@@ -30,6 +30,8 @@ Cảm giác mong muốn: chiều muộn yên bình, gió nhẹ làm lúa và tre
 - **Low-poly, flat shading:** mỗi mặt một màu, không texture.
   Khi sinh mesh bằng `SurfaceTool`, gọi `set_smooth_group(-1)` trước khi thêm đỉnh
   rồi `generate_normals()` để được pháp tuyến phẳng.
+  Dùng `MeshBuilder` (`scripts/mesh_builder.gd`): mọi khối có **đáy ở y = 0, tâm đáy ở gốc**,
+  đặt vị trí bằng tham số `xform`; gộp nhiều khối của một vật thành một mesh để ít draw call.
 - **Vật liệu:** `StandardMaterial3D`, `roughness = 1.0`, `metallic = 0`,
   màu lấy từ bảng màu bên dưới. Dùng `vertex_color_use_as_albedo = true`
   để một mesh có thể mang nhiều màu, **và `vertex_color_is_srgb = true`**
