@@ -58,18 +58,26 @@ func build() -> void:
 	_build_path(details)
 	add_child(details.commit_instance("FieldsAndPath"))
 
+	add_child(_build_pond_bank())
 	add_child(_build_water())
 
 
 # --- Truy vấn cho các builder khác -----------------------------------------------
 
-## Độ cao mặt đất tại (x, z).
+## Độ cao mặt nhìn thấy tại (x, z) — tính cả mesh bờ ao. Dùng để đặt vật thể.
 func height_at(x: float, z: float) -> float:
+	var t := _pond_factor(Vector2(x, z))
+	if t < BANK_RINGS[BANK_RINGS.size() - 1][0]:
+		return _bank_height(t)
+	return _grid_height_at(x, z)
+
+
+## Độ cao của lưới nền. Quanh ao lưới được hạ hẳn xuống để mesh bờ ao (mượt, theo
+## đúng hình ao) phủ lên trên; nhờ vậy viền ao không bị răng cưa theo ô lưới.
+func _grid_height_at(x: float, z: float) -> float:
 	var p := Vector2(x, z)
-	var pond_t := _pond_factor(p)
-	if pond_t < 1.0:
-		# Lòng ao: dốc nhanh ở mép, phẳng ở giữa
-		return -pond_depth * clampf((1.0 - pond_t) * 3.0, 0.0, 1.0)
+	if _pond_factor(p) < POND_GRID_CUT:
+		return -pond_depth
 	var flat := _distance_to_features(p)
 	var mask := smoothstep(0.5, 4.0, flat)
 	# Mép lưới về 0 để khớp với mặt phẳng bao ngoài
@@ -105,7 +113,7 @@ func _build_ground(mb: MeshBuilder) -> void:
 		for ix in n + 1:
 			var x := -grid_extent + ix * cell_size
 			var z := -grid_extent + iz * cell_size
-			heights[iz * (n + 1) + ix] = height_at(x, z)
+			heights[iz * (n + 1) + ix] = _grid_height_at(x, z)
 
 	for iz in n:
 		for ix in n:
@@ -138,7 +146,7 @@ func _build_ground(mb: MeshBuilder) -> void:
 func _ground_tri(mb: MeshBuilder, a: Vector3, b: Vector3, c: Vector3) -> void:
 	# Chỉ bờ ao mới có màu đất; chỗ trũng tự nhiên vẫn là cỏ
 	var mid := (a + b + c) / 3.0
-	var color := Palette.EARTH if _pond_factor(Vector2(mid.x, mid.z)) < 1.12 else Palette.GRASS
+	var color := Palette.EARTH if _pond_factor(Vector2(mid.x, mid.z)) < POND_GRID_CUT else Palette.GRASS
 	mb.add_triangle(a, b, c, color, (a + b + c) / 3.0 + Vector3.DOWN)
 
 
@@ -269,7 +277,20 @@ static func _densify(points: PackedVector2Array, step: float) -> PackedVector2Ar
 
 # --- Ao ---------------------------------------------------------------------------
 
-const POND_SEGMENTS := 28
+const POND_SEGMENTS := 48
+## Lưới nền trong phạm vi này (theo bán kính tương đối của ao) bị hạ xuống lòng ao.
+const POND_GRID_CUT := 1.2
+## Mặt cắt bờ ao: [bán kính tương đối, độ cao, màu]. Vòng ngoài cùng là cỏ, cao hơn
+## lưới nền một chút để che các ô lưới bị hạ, hoà vào nền cỏ.
+const BANK_RINGS: Array = [
+	[0.7, -0.68, 0],
+	[0.85, -0.45, 0],
+	[1.0, -0.12, 1],
+	[1.1, 0.03, 2],
+	[1.22, 0.045, 3],
+	[1.4, 0.04, 3],
+	[1.65, 0.02, 3],
+]
 
 
 func _make_pond_shape() -> void:
@@ -293,6 +314,47 @@ func _pond_factor(p: Vector2) -> float:
 	var i1 := (i0 + 1) % POND_SEGMENTS
 	var r := lerpf(_pond_shape[i0], _pond_shape[i1], f - floorf(f)) * pond_radius
 	return d.length() / r
+
+
+## Bờ ao: các vòng đồng tâm theo hình ao, từ đáy lên mép đất rồi ra viền cỏ.
+func _build_pond_bank() -> MeshInstance3D:
+	var mb := MeshBuilder.new(random_seed + 3, 0.035)
+	var colors: Array[Color] = [Palette.EARTH.darkened(0.2), Palette.EARTH,
+			Palette.EARTH.lerp(Palette.GRASS, 0.45), Palette.GRASS]
+	var below := Vector3(pond_center.x, -5.0, pond_center.y)
+	for ri in BANK_RINGS.size() - 1:
+		var r0: Array = BANK_RINGS[ri]
+		var r1: Array = BANK_RINGS[ri + 1]
+		var col := colors[r0[2]]
+		for i in POND_SEGMENTS:
+			var j := (i + 1) % POND_SEGMENTS
+			var a0 := _ring_point(i, r0[0], r0[1])
+			var a1 := _ring_point(j, r0[0], r0[1])
+			var b0 := _ring_point(i, r1[0], r1[1])
+			var b1 := _ring_point(j, r1[0], r1[1])
+			mb.add_quad(a0, a1, b1, b0, col, below)
+	var mi := mb.commit_instance("PondBank")
+	return mi
+
+
+func _ring_point(i: int, scale: float, y: float) -> Vector3:
+	var p := _pond_point(i, scale)
+	p.y = y
+	return p
+
+
+## Độ cao bờ ao theo bán kính tương đối t (nội suy theo BANK_RINGS).
+func _bank_height(t: float) -> float:
+	var first: Array = BANK_RINGS[0]
+	if t <= first[0]:
+		return first[1]
+	for i in BANK_RINGS.size() - 1:
+		var a: Array = BANK_RINGS[i]
+		var b: Array = BANK_RINGS[i + 1]
+		if t <= b[0]:
+			return lerpf(a[1], b[1], (t - a[0]) / (b[0] - a[0]))
+	var last: Array = BANK_RINGS[BANK_RINGS.size() - 1]
+	return last[1]
 
 
 ## Mặt nước: các vòng đồng tâm theo hình ao; vòng ngoài sáng (viền) và không lay sóng.
@@ -347,7 +409,7 @@ func _pond_point(i: int, scale: float) -> Vector3:
 func _distance_to_features(p: Vector2) -> float:
 	var d := _rect_distance(p, field_rect.grow(1.0))
 	d = minf(d, _rect_distance(p, yard_rect))
-	d = minf(d, maxf(0.0, (_pond_factor(p) - 1.0) * pond_radius))
+	d = minf(d, maxf(0.0, (_pond_factor(p) - 1.7) * pond_radius))
 	for i in path_points.size() - 1:
 		d = minf(d, _segment_distance(p, path_points[i], path_points[i + 1]) - path_width)
 	return maxf(d, 0.0)
