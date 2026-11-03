@@ -1,12 +1,9 @@
 extends Node3D
-## Dựng toàn cảnh khi chạy: không khí (trời, sương, ánh sáng) + nền cỏ phẳng.
-## Các builder chi tiết (địa hình, nhà, tre...) sẽ được gọi từ đây ở các bước sau.
+## Dựng toàn cảnh khi chạy: gán không khí (trời, sương, ánh sáng) rồi gọi `build()`
+## của từng builder con theo thứ tự trong cây scene (Terrain trước, các vật sau).
 
 @export var world_environment: WorldEnvironment
 @export var sun: DirectionalLight3D
-
-@export_group("Nền")
-@export var ground_size: float = 240.0
 
 @export_group("Không khí")
 @export_range(0.0, 2.0) var sun_energy: float = 1.1
@@ -15,13 +12,15 @@ extends Node3D
 
 @export_group("Kiểm thử")
 ## Hiện hàng khối mẫu của MeshBuilder (bước 2). Sẽ tắt khi có cảnh thật.
-@export var show_test_shapes: bool = true
+@export var show_test_shapes: bool = false
 @export var random_seed: int = 20261103
 
 
 func _ready() -> void:
 	_apply_atmosphere()
-	_build_ground()
+	for child in get_children():
+		if child.has_method("build"):
+			child.call("build")
 	if show_test_shapes:
 		_build_test_shapes()
 
@@ -43,21 +42,6 @@ func _apply_atmosphere() -> void:
 	if sun != null:
 		sun.light_color = Palette.SUN
 		sun.light_energy = sun_energy
-
-
-## Mặt phẳng cỏ tạm thời (bước 3 sẽ thay bằng địa hình thật).
-func _build_ground() -> void:
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(ground_size, ground_size)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Palette.GRASS
-	mat.roughness = 1.0
-	mat.metallic = 0.0
-	plane.material = mat
-	var ground := MeshInstance3D.new()
-	ground.name = "Ground"
-	ground.mesh = plane
-	add_child(ground)
 
 
 ## Hàng khối mẫu để kiểm tra MeshBuilder: flat shading, màu đỉnh, gộp nhiều khối.

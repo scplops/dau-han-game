@@ -18,6 +18,8 @@ const RICE_1 := Color("#b5d66b")
 const RICE_2 := Color("#a6cc5f")
 const RICE_3 := Color("#c9dd74")
 const RICE_FURROW := Color("#7fa84a")
+const DIKE := Color("#8a9a4a")           # bờ ruộng phủ cỏ (bổ sung)
+const EARTH := Color("#b89468")          # đất đường đi, bờ ao (bổ sung)
 
 # Nước
 const WATER := Color("#6fb0c2")

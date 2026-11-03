@@ -15,11 +15,24 @@ extends RefCounted
 
 static var _shared_material: StandardMaterial3D
 
+## Độ lệch màu ngẫu nhiên của từng mặt (0 = tắt, 0.04 = ±4% độ sáng).
+## Làm mặt đất, tường, tán lá bớt đơn điệu mà không thêm đa giác.
+var color_jitter: float = 0.0
+## Bóng tiếp xúc: đỉnh thấp hơn độ cao này (toạ độ sau xform) bị tối dần về phía đất.
+## 0 = tắt. Dùng cho vật đứng trên đất (nhà, cây, đá), KHÔNG dùng cho mặt đất.
+var contact_shade_height: float = 0.0
+var contact_shade_strength: float = 0.25
+
 var _st := SurfaceTool.new()
 var _count: int = 0
+var _rng: RandomNumberGenerator
 
 
-func _init() -> void:
+## `seed_value` quyết định độ lệch màu, để cảnh giống nhau mỗi lần chạy.
+func _init(seed_value: int = 1, jitter: float = 0.0) -> void:
+	_rng = RandomNumberGenerator.new()
+	_rng.seed = seed_value
+	color_jitter = jitter
 	_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	_st.set_smooth_group(-1)  # -1 = không làm mượt => flat shading
 
@@ -62,6 +75,31 @@ func commit_instance(node_name: String = "Mesh", mat: Material = null) -> MeshIn
 ## thứ tự đỉnh được tự đảo để pháp tuyến luôn hướng ra ngoài.
 func add_triangle(a: Vector3, b: Vector3, c: Vector3, color: Color,
 		inside: Vector3, xform: Transform3D = Transform3D.IDENTITY) -> MeshBuilder:
+	_tri(a, b, c, vary(color), inside, xform)
+	return self
+
+
+## Tứ giác (2 tam giác cùng một màu), các đỉnh theo thứ tự vòng quanh.
+func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, color: Color,
+		inside: Vector3, xform: Transform3D = Transform3D.IDENTITY) -> MeshBuilder:
+	var col := vary(color)
+	_tri(a, b, c, col, inside, xform)
+	_tri(a, c, d, col, inside, xform)
+	return self
+
+
+## Màu sau khi lệch ngẫu nhiên theo `color_jitter`.
+func vary(color: Color) -> Color:
+	if color_jitter <= 0.0:
+		return color
+	var k := 1.0 + _rng.randf_range(-color_jitter, color_jitter)
+	var out := Color(color.r * k, color.g * k, color.b * k, color.a)
+	out.h = wrapf(out.h + _rng.randf_range(-color_jitter, color_jitter) * 0.12, 0.0, 1.0)
+	return out
+
+
+func _tri(a: Vector3, b: Vector3, c: Vector3, color: Color,
+		inside: Vector3, xform: Transform3D) -> void:
 	a = xform * a
 	b = xform * b
 	c = xform * c
@@ -72,20 +110,18 @@ func add_triangle(a: Vector3, b: Vector3, c: Vector3, color: Color,
 		var tmp := b
 		b = c
 		c = tmp
-	_st.set_color(color)
-	_st.add_vertex(a)
-	_st.add_vertex(b)
-	_st.add_vertex(c)
+	for v: Vector3 in [a, b, c]:
+		_st.set_color(_shade(color, v))
+		_st.add_vertex(v)
 	_count += 1
-	return self
 
 
-## Tứ giác (2 tam giác), các đỉnh theo thứ tự vòng quanh.
-func add_quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, color: Color,
-		inside: Vector3, xform: Transform3D = Transform3D.IDENTITY) -> MeshBuilder:
-	add_triangle(a, b, c, color, inside, xform)
-	add_triangle(a, c, d, color, inside, xform)
-	return self
+## Tối dần phần sát đất (bóng tiếp xúc giả).
+func _shade(color: Color, v: Vector3) -> Color:
+	if contact_shade_height <= 0.0 or v.y >= contact_shade_height:
+		return color
+	var t := clampf(1.0 - v.y / contact_shade_height, 0.0, 1.0)
+	return color.darkened(contact_shade_strength * t)
 
 
 ## Hộp chữ nhật kích thước `size`, đáy ở y = 0.

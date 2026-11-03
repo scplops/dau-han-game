@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/world_builder.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/builders/terrain.gd" id="3_terrain"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -34,13 +35,18 @@ shadow_bias = 0.05
 directional_shadow_max_distance = 70.0
 
 [node name="CameraRig" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
 script = ExtResource("2_camera")
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 fov = 40.0
+near = 0.3
 far = 500.0
 
 [node name="World" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "sun")]
 script = ExtResource("1_world")
 world_environment = NodePath("../WorldEnvironment")
 sun = NodePath("../Sun")
+
+[node name="Terrain" type="Node3D" parent="World"]
+script = ExtResource("3_terrain")

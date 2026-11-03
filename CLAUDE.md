@@ -46,6 +46,17 @@ Cảm giác mong muốn: chiều muộn yên bình, gió nhẹ làm lúa và tre
   để không bị vệt sọc (shadow acne) trên mặt phẳng.
 - **Không** dùng hiệu ứng gắt: không bloom mạnh, không lens flare, không viền đen dày.
 
+### Mức chi tiết (tránh đơn điệu)
+
+- **Ghép nhiều khối nhỏ** cho mỗi vật: nhà có thềm, cột hiên, mái chìa, bờ nóc, hàng ngói,
+  khung cửa; cây có nhiều nhánh/khối tán. Không dựng vật chính chỉ bằng 1–2 khối.
+- **Lệch màu từng mặt:** `MeshBuilder.new(seed, jitter)` với `jitter` khoảng 0.03–0.06;
+  vật đứng trên đất bật `contact_shade_height` để chân vật tối dần như bóng tiếp xúc.
+- **Không thẳng tuyệt đối:** kích thước, góc xoay, vị trí lệch ngẫu nhiên nhẹ theo seed;
+  bờ, đường, viền ao hơi cong vẹo.
+- **Lấp khoảng trống** bằng vật nhỏ rải bằng MultiMesh (cỏ, hoa, sỏi, lá rụng).
+- Màu thêm ngoài bảng (ví dụ `DIKE`, `EARTH`) khai báo trong `palette.gd`, ghi chú "(bổ sung)".
+
 ### Bảng màu (hex)
 
 | Thành phần | Màu chính | Màu mặt tối |

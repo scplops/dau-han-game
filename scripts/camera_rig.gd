@@ -10,7 +10,7 @@ extends Node3D
 @export_range(-80.0, -10.0) var max_pitch_deg: float = -25.0
 
 @export_group("Zoom")
-@export var distance: float = 38.0
+@export var distance: float = 46.0
 @export var min_distance: float = 8.0
 @export var max_distance: float = 70.0
 @export_range(1.01, 1.5) var zoom_step: float = 1.12
