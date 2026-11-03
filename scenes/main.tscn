@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/world_builder.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="2_camera"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
+sun_angle_max = 20.0
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("SkyMaterial_main")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 2
+ambient_light_energy = 0.45
+tonemap_mode = 2
+tonemap_white = 1.2
+fog_enabled = true
+fog_density = 0.0035
+fog_sky_affect = 0.3
+adjustment_enabled = true
+adjustment_saturation = 1.1
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.436332, -2.356194, 0)
+shadow_enabled = true
+shadow_bias = 0.05
+directional_shadow_max_distance = 70.0
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("2_camera")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+fov = 40.0
+far = 500.0
+
+[node name="World" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "sun")]
+script = ExtResource("1_world")
+world_environment = NodePath("../WorldEnvironment")
+sun = NodePath("../Sun")
