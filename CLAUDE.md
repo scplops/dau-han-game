@@ -3,6 +3,7 @@
 > File hướng dẫn cho Claude Code. Đặt file này ở thư mục gốc của dự án Godot.
 > Mục tiêu giai đoạn này: **chỉ dựng cảnh quan để ngắm**, CHƯA có gameplay
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
+> Ngoại lệ duy nhất: **vào/ra ngôi nhà bằng cách bấm cửa** (mục 10) — vẫn không có nhân vật điều khiển.
 
 ---
 
@@ -131,7 +132,8 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    kèm file giấy phép `OFL.txt`).
 7. **Phím tắt** khai báo trong **Input Map** của `project.godot` (tên action tiếng Anh:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
-   `time_forward`, `toggle_time`, `toggle_hud`), không bắt phím cứng trong code.
+   `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc)),
+   không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
 
@@ -156,6 +158,8 @@ scripts/
     characters.gd      # trâu + người nón lá
     props.gd           # đá, cỏ, hoa, giếng, chum, rơm, lá súng
     clouds.gd          # mây trôi (bay thấp hơn camera để lọt khung nhìn chéo)
+  interior.gd          # không gian trong nhà kiểu nhà búp bê (mục 10)
+  house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
   day_night.gd         # giờ, màu trời/đèn, đèn cửa sổ, đom đóm, khói bếp
   hud.gd
@@ -217,3 +221,18 @@ screenshots/           # ảnh chụp, không commit
 
 Điều khiển nhân vật, trồng trọt, NPC và hội thoại, lưu game, âm thanh và nhạc nền,
 thay mesh procedural bằng model Blender, các mùa trong năm, thời tiết mưa.
+
+## 10. Vào trong nhà (giai đoạn 1b)
+
+- **Cách vào:** rê chuột vào cửa nhà chính → cửa sáng viền + gợi ý "Vào nhà"; bấm chuột trái
+  hoặc nhấn `E` để vào. Bên trong: `Esc`, `E`, nút "Ra sân" hoặc bấm vào ô cửa để ra.
+  Không có nhân vật điều khiển.
+- **Chuyển cảnh:** màn hình mờ dần sang đen rồi sáng lại (~0,35 s). Cảnh ngoài sân và trong nhà
+  cùng nằm trong một scene; chỉ đổi camera, ẩn/hiện, HUD — giờ trong ngày vẫn chạy liên tục.
+- **Không gian trong nhà** (`interior.gd`) đặt ở xa (z = 1000), ngoài tầm camera ngoài sân.
+  Kiểu **nhà búp bê**: bỏ mái, tường trước cắt thấp, nhìn chéo từ trên vào cả 3 gian; vẫn
+  xoay/zoom bằng một `CameraRig` riêng. Kích thước nhà lấy từ `House` để khớp bên ngoài.
+- **Bày trí 3 gian Bắc Bộ:** gian giữa bàn thờ gia tiên, hoành phi câu đối, bàn trà;
+  gian trái giường, tủ; gian phải chạn bát, chum gạo, nong nia, quang gánh.
+  Đèn dầu thuộc nhóm `night_light` để tự sáng khi tối.
+- **Vùng bấm** là `StaticBody3D` ở lớp va chạm 2, tạo bằng `HouseEntry.make_click_target()`.

@@ -13,6 +13,8 @@
 [ext_resource type="Script" path="res://scripts/day_night.gd" id="11_daynight"]
 [ext_resource type="Script" path="res://scripts/builders/clouds.gd" id="12_clouds"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="13_hud"]
+[ext_resource type="Script" path="res://scripts/interior.gd" id="14_interior"]
+[ext_resource type="Script" path="res://scripts/house_entry.gd" id="15_entry"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -91,6 +93,31 @@ banyan = NodePath("../Banyan")
 [node name="Clouds" type="Node3D" parent="World"]
 script = ExtResource("12_clouds")
 
+[node name="Interior" type="Node3D" parent="." node_paths=PackedStringArray("house")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1000)
+visible = false
+script = ExtResource("14_interior")
+house = NodePath("../World/House")
+
+[node name="InteriorCameraRig" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 999.4)
+script = ExtResource("2_camera")
+yaw_deg = -18.0
+pitch_deg = -50.0
+min_pitch_deg = -72.0
+max_pitch_deg = -25.0
+distance = 12.5
+min_distance = 4.5
+max_distance = 22.0
+ortho_camera_distance = 40.0
+focus_limit = 6.0
+active = false
+
+[node name="Camera3D" type="Camera3D" parent="InteriorCameraRig"]
+fov = 40.0
+near = 0.1
+far = 300.0
+
 [node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment", "house")]
 script = ExtResource("11_daynight")
 sun = NodePath("../Sun")
@@ -100,3 +127,11 @@ house = NodePath("../World/House")
 [node name="HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("day_night")]
 script = ExtResource("13_hud")
 day_night = NodePath("../DayNight")
+
+[node name="HouseEntry" type="Node" parent="." node_paths=PackedStringArray("outdoor_rig", "interior_rig", "outdoor_root", "interior", "hud")]
+script = ExtResource("15_entry")
+outdoor_rig = NodePath("../CameraRig")
+interior_rig = NodePath("../InteriorCameraRig")
+outdoor_root = NodePath("../World")
+interior = NodePath("../Interior")
+hud = NodePath("../HUD")

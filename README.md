@@ -22,6 +22,8 @@ godot --path . --rendering-method gl_compatibility
 | Chuột phải + kéo | Xoay quanh cảnh |
 | Lăn chuột | Zoom |
 | Chuột giữa + kéo, WASD / mũi tên | Di chuyển tâm nhìn |
+| Bấm vào cửa nhà / `E` | Vào trong nhà (kiểu nhà búp bê) |
+| `Esc` / `E` / nút "Ra sân" | Ra sân |
 | `P` | Đổi phối cảnh ↔ trực giao |
 | `[` / `]` (giữ) | Lùi / tiến giờ |
 | `T` | Bật/tắt tự chạy giờ (1 ngày = 2 phút) |

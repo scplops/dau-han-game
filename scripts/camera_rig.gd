@@ -20,10 +20,12 @@ extends Node3D
 @export_group("Di chuyển")
 @export var rotate_sensitivity: float = 0.25   # độ / pixel
 @export var pan_speed: float = 0.6             # tỉ lệ theo khoảng cách, mỗi giây
-@export var focus_limit: float = 30.0          # tâm không ra khỏi hình vuông ±giới hạn
+@export var focus_limit: float = 30.0          # tâm không ra khỏi vị trí ban đầu ±giới hạn
 @export var smoothing: float = 10.0            # càng lớn càng bám nhanh
 
 @export var orthographic: bool = false
+## Chỉ camera đang dùng mới nhận chuột/phím (ngoài sân hoặc trong nhà).
+@export var active: bool = true
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -33,11 +35,13 @@ var _pitch: float
 var _distance: float
 var _focus: Vector3
 var _target_focus: Vector3
+var _home: Vector3
 var _rotating: bool = false
 var _panning: bool = false
 
 
 func _ready() -> void:
+	_home = global_position
 	_target_focus = global_position
 	snap()
 
@@ -56,6 +60,10 @@ func set_focus(point: Vector3) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not active:
+		_rotating = false
+		_panning = false
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		match mb.button_index:
@@ -84,6 +92,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if not active:
+		return
 	# WASD / phím mũi tên: di chuyển tâm trên mặt đất
 	var dir := Input.get_vector("cam_left", "cam_right", "cam_forward", "cam_back")
 	if dir != Vector2.ZERO:
@@ -104,8 +114,8 @@ func _move_focus(offset: Vector2) -> void:
 	var basis_y := Basis(Vector3.UP, deg_to_rad(yaw_deg))
 	var move := basis_y * Vector3(offset.x, 0.0, offset.y)
 	_target_focus += move
-	_target_focus.x = clampf(_target_focus.x, -focus_limit, focus_limit)
-	_target_focus.z = clampf(_target_focus.z, -focus_limit, focus_limit)
+	_target_focus.x = clampf(_target_focus.x, _home.x - focus_limit, _home.x + focus_limit)
+	_target_focus.z = clampf(_target_focus.z, _home.z - focus_limit, _home.z + focus_limit)
 
 
 func _update_camera() -> void:

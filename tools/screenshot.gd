@@ -2,6 +2,7 @@ extends SceneTree
 ## Chụp ảnh scene chính để tự kiểm tra hình ảnh.
 ## Dùng: godot --path . -s tools/screenshot.gd -- --out=screenshots/a.png [--hour=17]
 ##        [--yaw=0] [--pitch=-40] [--distance=38] [--focus=x,z] [--ortho] [--frames=30]
+##        [--inside] (chụp trong nhà) [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -20,8 +21,14 @@ func _run() -> void:
 	if day_night != null and args.has("hour"):
 		day_night.set("time_of_day", float(args["hour"]))
 
-	# Góc camera
-	var rig := scene.get_node_or_null("CameraRig") as CameraRig
+	# Vào trong nhà
+	var entry := scene.get_node_or_null("HouseEntry") as HouseEntry
+	var inside := args.has("inside") and entry != null
+	if inside:
+		entry.enter_house(true)
+
+	# Góc camera (camera đang dùng)
+	var rig := scene.get_node_or_null("InteriorCameraRig" if inside else "CameraRig") as CameraRig
 	if rig != null:
 		if args.has("yaw"): rig.yaw_deg = float(args["yaw"])
 		if args.has("pitch"): rig.pitch_deg = float(args["pitch"])
@@ -35,6 +42,14 @@ func _run() -> void:
 	# Chờ vài khung hình cho bóng đổ, shader ổn định
 	for i in int(args.get("frames", "30")):
 		await process_frame
+		# Đưa chuột lên cửa để kiểm tra viền sáng + gợi ý
+		if args.has("hover") and i == 3 and rig != null:
+			var house := scene.get_node_or_null("World/House") as Node3D
+			var door := Vector3(0.0, 0.9, 1000.0 + 1.2) if inside else Vector3.ZERO
+			if not inside and house != null:
+				var target := house.find_child("ClickTarget", true, false) as Node3D
+				door = target.global_position
+			root.warp_mouse(rig.camera.unproject_position(door))
 	await RenderingServer.frame_post_draw
 
 	var out := str(args.get("out", "screenshots/shot.png"))

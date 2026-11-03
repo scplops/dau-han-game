@@ -110,3 +110,14 @@ const CLOUD := Color("#fbf7ee")
 const HUD_TEXT := Color("#fdf8ec")
 const HUD_SUBTEXT := Color("#e9dfc8")
 const HUD_BG := Color(0.17, 0.14, 0.11, 0.55)
+
+# Trong nhà (bổ sung)
+const FLOOR := Color("#b4704e")          # gạch đỏ lát nền
+const ALTAR_RED := Color("#8e2f22")      # sơn son bàn thờ, hoành phi
+const GOLD := Color("#d8a942")           # thếp vàng, đồ đồng
+const CERAMIC := Color("#ebe6da")        # gốm sứ: bát hương, ấm chén
+const MAT := Color("#d9c58f")            # chiếu cói
+const BLANKET := Color("#7b9bb6")
+const PILLOW := Color("#f1ece0")
+const SACK := Color("#e6dbbd")           # bao gạo
+const FADE := Color("#000000")           # màn chuyển cảnh
