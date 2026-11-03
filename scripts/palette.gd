@@ -41,6 +41,7 @@ const FIRE_GLOW := Color("#ff9a4a")      # ánh lửa bếp (bổ sung)
 
 # Tre
 const BAMBOO_STEM := Color("#7d8f3a")
+const BAMBOO_NODE := Color("#677730")     # đốt tre (bổ sung)
 const BAMBOO_LEAF := Color("#6e9a3c")
 const BAMBOO_LEAF_DARK := Color("#5d8a32")
 

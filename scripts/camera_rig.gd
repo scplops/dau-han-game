@@ -5,7 +5,7 @@ extends Node3D
 
 @export_group("Góc nhìn")
 @export_range(-180.0, 180.0) var yaw_deg: float = 0.0
-@export_range(-80.0, -10.0) var pitch_deg: float = -40.0
+@export_range(-80.0, -10.0) var pitch_deg: float = -36.0
 @export_range(-80.0, -10.0) var min_pitch_deg: float = -55.0
 @export_range(-80.0, -10.0) var max_pitch_deg: float = -25.0
 

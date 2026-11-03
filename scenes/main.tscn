@@ -4,6 +4,9 @@
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="2_camera"]
 [ext_resource type="Script" path="res://scripts/builders/terrain.gd" id="3_terrain"]
 [ext_resource type="Script" path="res://scripts/builders/house.gd" id="4_house"]
+[ext_resource type="Script" path="res://scripts/builders/bamboo.gd" id="5_bamboo"]
+[ext_resource type="Script" path="res://scripts/builders/banyan.gd" id="6_banyan"]
+[ext_resource type="Script" path="res://scripts/builders/mountains.gd" id="7_mountains"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -55,3 +58,12 @@ script = ExtResource("3_terrain")
 [node name="House" type="Node3D" parent="World" node_paths=PackedStringArray("terrain")]
 script = ExtResource("4_house")
 terrain = NodePath("../Terrain")
+
+[node name="Bamboo" type="Node3D" parent="World"]
+script = ExtResource("5_bamboo")
+
+[node name="Banyan" type="Node3D" parent="World"]
+script = ExtResource("6_banyan")
+
+[node name="Mountains" type="Node3D" parent="World"]
+script = ExtResource("7_mountains")
