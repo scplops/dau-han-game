@@ -19,7 +19,7 @@ const RICE_2 := Color("#a6cc5f")
 const RICE_3 := Color("#c9dd74")
 const RICE_FURROW := Color("#7fa84a")
 const DIKE := Color("#8a9a4a")           # bờ ruộng phủ cỏ (bổ sung)
-const EARTH := Color("#b89468")          # đất đường đi, bờ ao (bổ sung)
+const EARTH := Color("#a98b66")          # đất đường đi, bờ ao (bổ sung)
 
 # Nước
 const WATER := Color("#6fb0c2")
@@ -62,3 +62,16 @@ const FARMER_SKIN := Color("#e3b58c")
 const FARMER_PANTS := Color("#5a3d28")
 const HAT := Color("#efd9a0")
 const HAT_DARK := Color("#d8c084")
+
+# Chi tiết nhỏ (bổ sung)
+const ROCK := Color("#a29d8c")
+const ROCK_DARK := Color("#87836f")
+const JAR := Color("#8a5a3b")            # chum nước
+const STRAW := Color("#d9b862")          # đống rơm
+const LILY := Color("#5f9a45")           # lá súng
+const LOTUS := Color("#f2a7b8")          # hoa sen
+const FLOWER_WHITE := Color("#f4f0e2")
+const FLOWER_YELLOW := Color("#f2d25a")
+const FLOWER_PINK := Color("#eba3c0")
+const DUCK := Color("#f3efe4")
+const BEAK := Color("#e59a3a")
