@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/world_builder.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="2_camera"]
 [ext_resource type="Script" path="res://scripts/builders/terrain.gd" id="3_terrain"]
+[ext_resource type="Script" path="res://scripts/builders/house.gd" id="4_house"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -50,3 +51,7 @@ sun = NodePath("../Sun")
 
 [node name="Terrain" type="Node3D" parent="World"]
 script = ExtResource("3_terrain")
+
+[node name="House" type="Node3D" parent="World" node_paths=PackedStringArray("terrain")]
+script = ExtResource("4_house")
+terrain = NodePath("../Terrain")

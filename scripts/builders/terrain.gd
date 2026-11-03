@@ -34,9 +34,9 @@ extends Node3D
 
 @export_group("Sân & đường")
 ## Vùng phẳng dành cho nhà và sân (bước 4).
-@export var yard_rect: Rect2 = Rect2(-17.0, -15.0, 12.0, 10.0)
+@export var yard_rect: Rect2 = Rect2(-18.5, -18.0, 15.5, 14.0)
 @export var path_points: PackedVector2Array = PackedVector2Array([
-	Vector2(-10.5, -5.0), Vector2(-9.6, -2.5), Vector2(-9.9, 0.0), Vector2(-9.0, 2.0)])
+	Vector2(-10.5, -4.2), Vector2(-9.6, -2.2), Vector2(-9.9, 0.0), Vector2(-9.0, 2.0)])
 @export var path_width: float = 1.1
 
 var _noise := FastNoiseLite.new()

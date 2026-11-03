@@ -194,7 +194,7 @@ screenshots/           # ảnh chụp, không commit
   Forward+ (giống máy thật) qua Vulkan phần mềm:
   `xvfb-run -a -s "-screen 0 1920x1080x24" godot --path . --resolution 1920x1080 -s tools/screenshot.gd -- --out=screenshots/step.png`
   Tham số thêm: `--hour=17` (giờ, khi đã có chu kỳ ngày đêm — chụp ít nhất 17:00 và 22:00),
-  `--yaw=`, `--pitch=`, `--distance=`, `--ortho`, `--frames=`.
+  `--yaw=`, `--pitch=`, `--distance=`, `--focus=x,z`, `--ortho`, `--frames=`.
   Máy cloud cần cài trước: `apt-get install -y mesa-vulkan-drivers libvulkan1` (lavapipe).
   Thêm `--rendering-method gl_compatibility` để kiểm tra chế độ Compatibility; mọi hiệu ứng
   phải có **phương án dự phòng cho Compatibility** (ví dụ `CPUParticles3D` thay

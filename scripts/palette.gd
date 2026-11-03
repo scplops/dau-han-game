@@ -32,6 +32,12 @@ const YARD := Color("#c9a77a")
 const ROOF := Color("#c4563f")
 const ROOF_DARK := Color("#a8432f")
 const WOOD := Color("#7a5233")
+const WOOD_LIGHT := Color("#8f6540")     # cánh cửa (bổ sung)
+const PLINTH := Color("#b8a888")         # nền nhà, bậc thềm (bổ sung)
+const GROUT := Color("#9c8466")          # mạch vữa sân gạch (bổ sung)
+const WINDOW_DARK := Color("#3a2c22")    # ô cửa ban ngày (bổ sung)
+const WINDOW_GLOW := Color("#ffc56b")    # ánh đèn trong nhà ban đêm (bổ sung)
+const FIRE_GLOW := Color("#ff9a4a")      # ánh lửa bếp (bổ sung)
 
 # Tre
 const BAMBOO_STEM := Color("#7d8f3a")

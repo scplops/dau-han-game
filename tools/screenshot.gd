@@ -1,7 +1,7 @@
 extends SceneTree
 ## Chụp ảnh scene chính để tự kiểm tra hình ảnh.
 ## Dùng: godot --path . -s tools/screenshot.gd -- --out=screenshots/a.png [--hour=17]
-##        [--yaw=0] [--pitch=-40] [--distance=38] [--ortho] [--size=1920x1080] [--frames=30]
+##        [--yaw=0] [--pitch=-40] [--distance=38] [--focus=x,z] [--ortho] [--frames=30]
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -27,6 +27,9 @@ func _run() -> void:
 		if args.has("pitch"): rig.pitch_deg = float(args["pitch"])
 		if args.has("distance"): rig.distance = float(args["distance"])
 		if args.has("ortho"): rig.orthographic = true
+		if args.has("focus"):
+			var f := str(args["focus"]).split(",")
+			rig.set_focus(Vector3(float(f[0]), 0.0, float(f[1])))
 		rig.snap()
 
 	# Chờ vài khung hình cho bóng đổ, shader ổn định
