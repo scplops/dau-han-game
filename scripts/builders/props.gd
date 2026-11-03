@@ -65,6 +65,8 @@ func _is_free(x: float, z: float, margin: float = 0.0) -> bool:
 		return false
 	if terrain.is_in_pond(x, z):
 		return false
+	if terrain.is_on_road(x, z, 0.3 + margin):
+		return false
 	for i in terrain.path_points.size() - 1:
 		var q := Geometry2D.get_closest_point_to_segment(p, terrain.path_points[i], terrain.path_points[i + 1])
 		if p.distance_to(q) < terrain.path_width * 0.7 + margin:

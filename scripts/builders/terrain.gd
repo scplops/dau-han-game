@@ -10,10 +10,12 @@ extends Node3D
 @export_group("Nền")
 @export var grid_extent: float = 32.0        # lưới chi tiết từ -extent đến +extent
 @export var cell_size: float = 1.0
-@export var skirt_extent: float = 160.0      # mặt phẳng phẳng bao ngoài, tan vào sương
+@export var skirt_extent: float = 400.0      # nền phẳng bao ngoài, tan vào sương
+@export var skirt_cell: float = 8.0           # ô của nền bao ngoài (chia hết grid_extent và village_rect)
 @export var noise_amplitude: float = 0.35
 @export var noise_frequency: float = 0.07
 @export_range(0.0, 0.2) var ground_jitter: float = 0.035
+@export_range(0.0, 0.2) var flat_jitter: float = 0.012     # nền làng + bao ngoài (ô lớn)
 
 @export_group("Ruộng")
 ## Khối ruộng (x, z, rộng, sâu); chia thành 3 thửa bởi `field_dividers`.
@@ -39,6 +41,25 @@ extends Node3D
 	Vector2(-10.5, -4.2), Vector2(-9.6, -2.2), Vector2(-9.9, 0.0), Vector2(-9.0, 2.0)])
 @export var path_width: float = 1.1
 
+@export_group("Làng & đồng")
+## Vùng đất phẳng của làng (Village dựng nhà, đường gạch trên đó).
+@export var village_rect: Rect2 = Rect2(-112.0, -184.0, 224.0, 152.0)
+@export var village_cell: float = 4.0
+## Đường đất nối cổng làng ra đồng.
+@export var roads: Array[PackedVector2Array] = [
+	PackedVector2Array([Vector2(0, -33), Vector2(-8, -27), Vector2(-21, -24), Vector2(-24.5, -13),
+		Vector2(-24.5, 10), Vector2(-24.5, 42), Vector2(-24, 104)]),
+	PackedVector2Array([Vector2(0, -33), Vector2(10, -27), Vector2(22, -22), Vector2(27.5, -12),
+		Vector2(27.5, 10), Vector2(27.5, 42), Vector2(27, 104)]),
+]
+@export var road_width: float = 3.6
+## Cánh đồng bao quanh (chỉ mặt ruộng + bờ, không có khóm lúa để nhẹ máy).
+@export var outer_fields: Array[Rect2] = [
+	Rect2(-104, -28, 74, 68), Rect2(33, -28, 71, 68),
+	Rect2(-104, 46, 74, 58), Rect2(-20, 46, 42, 58), Rect2(33, 46, 71, 58),
+]
+@export var outer_paddy_size: Vector2 = Vector2(16.0, 13.0)
+
 var _noise := FastNoiseLite.new()
 var _pond_shape := PackedFloat32Array()      # bán kính tương đối theo góc
 
@@ -50,13 +71,23 @@ func build() -> void:
 	_make_pond_shape()
 
 	var ground := MeshBuilder.new(random_seed, ground_jitter)
-	_build_ground(ground)
+	var flat := MeshBuilder.new(random_seed + 5, flat_jitter)
+	_build_ground(ground, flat)
 	add_child(ground.commit_instance("Ground"))
+	add_child(flat.commit_instance("FlatGround"))
 
 	var details := MeshBuilder.new(random_seed + 1, 0.06)
 	_build_fields(details)
-	_build_path(details)
+	_build_strip(details, path_points, path_width, random_seed + 20)
+	for i in roads.size():
+		_build_strip(details, roads[i], road_width, random_seed + 21 + i)
 	add_child(details.commit_instance("FieldsAndPath"))
+
+	var outer := MeshBuilder.new(random_seed + 4, 0.07)
+	_build_outer_fields(outer)
+	var outer_node := outer.commit_instance("OuterFields")
+	outer_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(outer_node)
 
 	add_child(_build_pond_bank())
 	add_child(_build_water())
@@ -98,6 +129,19 @@ func paddy_rects() -> Array[Rect2]:
 	return rects
 
 
+## Điểm có nằm trên đường đất (ra đồng hoặc lối vào sân) không.
+func is_on_road(x: float, z: float, margin: float = 0.0) -> bool:
+	var p := Vector2(x, z)
+	for r in roads:
+		for i in r.size() - 1:
+			if _segment_distance(p, r[i], r[i + 1]) < road_width * 0.5 + margin:
+				return true
+	for i in path_points.size() - 1:
+		if _segment_distance(p, path_points[i], path_points[i + 1]) < path_width * 0.6 + margin:
+			return true
+	return false
+
+
 ## Điểm có nằm trong lòng ao không.
 func is_in_pond(x: float, z: float) -> bool:
 	return _pond_factor(Vector2(x, z)) < 1.0
@@ -105,7 +149,7 @@ func is_in_pond(x: float, z: float) -> bool:
 
 # --- Nền --------------------------------------------------------------------------
 
-func _build_ground(mb: MeshBuilder) -> void:
+func _build_ground(mb: MeshBuilder, flat: MeshBuilder) -> void:
 	var n := int(grid_extent * 2.0 / cell_size)
 	var heights := PackedFloat32Array()
 	heights.resize((n + 1) * (n + 1))
@@ -133,14 +177,31 @@ func _build_ground(mb: MeshBuilder) -> void:
 				_ground_tri(mb, a, b, d)
 				_ground_tri(mb, b, c, d)
 
-	# Mặt phẳng bao ngoài lưới
-	var e := grid_extent
-	var s := skirt_extent
 	var below := Vector3(0, -1, 0)
-	mb.add_quad(Vector3(-s, 0, -s), Vector3(s, 0, -s), Vector3(s, 0, -e), Vector3(-s, 0, -e), Palette.GRASS, below)
-	mb.add_quad(Vector3(-s, 0, e), Vector3(s, 0, e), Vector3(s, 0, s), Vector3(-s, 0, s), Palette.GRASS, below)
-	mb.add_quad(Vector3(-s, 0, -e), Vector3(-e, 0, -e), Vector3(-e, 0, e), Vector3(-s, 0, e), Palette.GRASS, below)
-	mb.add_quad(Vector3(e, 0, -e), Vector3(s, 0, -e), Vector3(s, 0, e), Vector3(e, 0, e), Palette.GRASS, below)
+	# Nền phẳng của làng: ô vừa, lệch màu nhẹ
+	var vc := village_cell
+	var z := village_rect.position.y
+	while z < village_rect.end.y - 0.01:
+		var x := village_rect.position.x
+		while x < village_rect.end.x - 0.01:
+			flat.add_quad(Vector3(x, 0, z), Vector3(x + vc, 0, z), Vector3(x + vc, 0, z + vc), Vector3(x, 0, z + vc),
+					Palette.GRASS, Vector3(x, -1, z))
+			x += vc
+		z += vc
+	# Nền bao ngoài: ô lớn, bỏ phần lưới chính và vùng làng
+	var core := Rect2(-grid_extent, -grid_extent, grid_extent * 2.0, grid_extent * 2.0)
+	var sc := skirt_cell
+	var se := skirt_extent
+	z = -se
+	while z < se - 0.01:
+		var x := -se
+		while x < se - 0.01:
+			var cell := Rect2(x + 0.01, z + 0.01, sc - 0.02, sc - 0.02)
+			if not cell.intersects(core) and not cell.intersects(village_rect):
+				flat.add_quad(Vector3(x, 0, z), Vector3(x + sc, 0, z), Vector3(x + sc, 0, z + sc), Vector3(x, 0, z + sc),
+						Palette.GRASS, Vector3(x, -1, z))
+			x += sc
+		z += sc
 
 
 func _ground_tri(mb: MeshBuilder, a: Vector3, b: Vector3, c: Vector3) -> void:
@@ -186,6 +247,41 @@ func _flat_rect(mb: MeshBuilder, x0: float, x1: float, z0: float, z1: float, y: 
 		color: Color, inside: Vector3) -> void:
 	mb.add_quad(Vector3(x0, y, z0), Vector3(x1, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z1),
 			color, inside)
+
+
+## Cánh đồng bao quanh: chia thửa, mỗi thửa một sắc lúa có luống, bờ chia thửa.
+func _build_outer_fields(mb: MeshBuilder) -> void:
+	var colors: Array[Color] = [Palette.RICE_1, Palette.RICE_2, Palette.RICE_3, Palette.RICE_1.lerp(Palette.STRAW, 0.35)]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = random_seed + 40
+	var below := Vector3(0, -1, 0)
+	for fr in outer_fields:
+		var nx := maxi(1, roundi(fr.size.x / outer_paddy_size.x))
+		var nz := maxi(1, roundi(fr.size.y / outer_paddy_size.y))
+		var pw := fr.size.x / nx
+		var pd := fr.size.y / nz
+		for ix in nx:
+			for iz in nz:
+				var col := colors[rng.randi_range(0, colors.size() - 1)]
+				var x0 := fr.position.x + ix * pw
+				var z0 := fr.position.y + iz * pd
+				var x := x0
+				while x < x0 + pw - 0.01:
+					var xe := minf(x + 1.2, x0 + pw)
+					var xm := minf(x + 0.9, xe)
+					_flat_rect(mb, x, xm, z0, z0 + pd, 0.03, col, below)
+					if xe > xm:
+						_flat_rect(mb, xm, xe, z0, z0 + pd, 0.03, Palette.RICE_FURROW, below)
+					x = xe
+		var outline := PackedVector2Array([fr.position, Vector2(fr.end.x, fr.position.y), fr.end,
+				Vector2(fr.position.x, fr.end.y), fr.position])
+		_build_dike(mb, outline, rng)
+		for ix in range(1, nx):
+			var x := fr.position.x + ix * pw
+			_build_dike(mb, PackedVector2Array([Vector2(x, fr.position.y), Vector2(x, fr.end.y)]), rng)
+		for iz in range(1, nz):
+			var z := fr.position.y + iz * pd
+			_build_dike(mb, PackedVector2Array([Vector2(fr.position.x, z), Vector2(fr.end.x, z)]), rng)
 
 
 ## Bờ đất tiết diện hình thang chạy theo đường gấp khúc `points`.
@@ -238,10 +334,11 @@ func _build_dike(mb: MeshBuilder, points: PackedVector2Array, rng: RandomNumberG
 
 # --- Đường đất --------------------------------------------------------------------
 
-func _build_path(mb: MeshBuilder) -> void:
+## Dải đất theo đường gấp khúc (lối vào sân, đường ra đồng), mép hơi nham nhở.
+func _build_strip(mb: MeshBuilder, points: PackedVector2Array, width: float, seed_value: int) -> void:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = random_seed + 20
-	var pts := _densify(path_points, 0.8)
+	rng.seed = seed_value
+	var pts := _densify(points, 0.8)
 	var inside := Vector3(0, -1, 0)
 	var prev_l := Vector3.ZERO
 	var prev_r := Vector3.ZERO
@@ -255,8 +352,8 @@ func _build_path(mb: MeshBuilder) -> void:
 		else:
 			dir = pts[i + 1] - pts[i - 1]
 		var side := dir.normalized().orthogonal()
-		var w := path_width * 0.5 * rng.randf_range(0.8, 1.15)
-		var y := height_at(p.x, p.y) + 0.04
+		var w := width * 0.5 * rng.randf_range(0.85, 1.12)
+		var y := maxf(height_at(p.x, p.y), 0.0) + 0.04
 		var l := Vector3(p.x - side.x * w, y, p.y - side.y * w)
 		var r := Vector3(p.x + side.x * w, y, p.y + side.y * w)
 		if i > 0:
@@ -412,6 +509,11 @@ func _distance_to_features(p: Vector2) -> float:
 	d = minf(d, maxf(0.0, (_pond_factor(p) - 1.7) * pond_radius))
 	for i in path_points.size() - 1:
 		d = minf(d, _segment_distance(p, path_points[i], path_points[i + 1]) - path_width)
+	for r in roads:
+		for i in r.size() - 1:
+			d = minf(d, _segment_distance(p, r[i], r[i + 1]) - road_width)
+	for fr in outer_fields:
+		d = minf(d, _rect_distance(p, fr.grow(1.0)))
 	return maxf(d, 0.0)
 
 

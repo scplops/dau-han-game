@@ -29,6 +29,10 @@ godot --path . --rendering-method gl_compatibility
 | `T` | Bật/tắt tự chạy giờ (1 ngày = 2 phút) |
 | `H` | Ẩn/hiện HUD |
 
+Phía bắc khu nhà là một làng Bắc Bộ xưa với 44 ngôi nhà, mỗi nhà một kiến trúc khác nhau,
+cùng đình, chùa, ao, giếng, lũy tre. Lăn chuột để lùi camera ra xa, kéo chuột giữa (hoặc W)
+để đi vào làng.
+
 Thông số (vị trí vật thể, gió, số khóm lúa, màu sương…) chỉnh trong Inspector
 ở các node con của `World`, `DayNight` và `CameraRig`.
 

@@ -4,10 +4,10 @@ extends Node3D
 ## Bay thấp hơn camera vì góc nhìn chéo từ trên không thấy được bầu trời xa.
 
 @export var random_seed: int = 1212
-@export_range(0, 20) var cloud_count: int = 4
-@export var height_range: Vector2 = Vector2(13.0, 16.0)
-@export var z_range: Vector2 = Vector2(6.0, 24.0)
-@export var x_extent: float = 60.0
+@export_range(0, 20) var cloud_count: int = 9
+@export var height_range: Vector2 = Vector2(16.0, 24.0)
+@export var z_range: Vector2 = Vector2(-175.0, -35.0)
+@export var x_extent: float = 140.0
 @export var speed: float = 0.5
 @export var cast_shadows: bool = true
 

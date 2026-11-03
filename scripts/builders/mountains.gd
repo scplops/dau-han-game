@@ -4,18 +4,18 @@ extends Node3D
 
 @export var random_seed: int = 7107
 @export_group("Đồi gần")
-@export_range(0, 30) var hill_count: int = 11
-@export var hill_z_range: Vector2 = Vector2(-40.0, -58.0)
-@export var hill_height_range: Vector2 = Vector2(5.0, 12.0)
-@export var hill_radius_range: Vector2 = Vector2(9.0, 16.0)
+@export_range(0, 30) var hill_count: int = 16
+@export var hill_z_range: Vector2 = Vector2(-205.0, -235.0)
+@export var hill_height_range: Vector2 = Vector2(10.0, 22.0)
+@export var hill_radius_range: Vector2 = Vector2(18.0, 30.0)
 @export_range(0.0, 1.0) var hill_haze: float = 0.12
 @export_group("Núi xa")
-@export_range(0, 30) var peak_count: int = 10
-@export var peak_z_range: Vector2 = Vector2(-80.0, -125.0)
-@export var peak_height_range: Vector2 = Vector2(16.0, 34.0)
-@export var peak_radius_range: Vector2 = Vector2(18.0, 30.0)
+@export_range(0, 30) var peak_count: int = 16
+@export var peak_z_range: Vector2 = Vector2(-265.0, -340.0)
+@export var peak_height_range: Vector2 = Vector2(35.0, 70.0)
+@export var peak_radius_range: Vector2 = Vector2(40.0, 70.0)
 @export_range(0.0, 1.0) var peak_haze: float = 0.4
-@export var x_extent: float = 95.0
+@export var x_extent: float = 260.0
 
 
 func build() -> void:

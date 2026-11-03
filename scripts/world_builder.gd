@@ -7,8 +7,8 @@ extends Node3D
 @export_group("Không khí")
 ## Màu trời, mặt trời, ánh sáng môi trường do DayNight điều khiển theo giờ.
 ## Sương theo khoảng cách: cảnh chính (gần) luôn rõ, núi xa mờ dần.
-@export var fog_begin: float = 65.0
-@export var fog_end: float = 240.0
+@export var fog_begin: float = 110.0
+@export var fog_end: float = 520.0
 @export_range(0.0, 1.0) var fog_max: float = 0.8
 @export var fog_curve: float = 1.4
 ## Bóng tiếp xúc ở góc khuất (chỉ Forward+).

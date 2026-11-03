@@ -21,6 +21,8 @@ extends Node3D
 @export var rotate_sensitivity: float = 0.25   # độ / pixel
 @export var pan_speed: float = 0.6             # tỉ lệ theo khoảng cách, mỗi giây
 @export var focus_limit: float = 30.0          # tâm không ra khỏi vị trí ban đầu ±giới hạn
+## Nếu có kích thước, tâm bị giới hạn trong hình chữ nhật này (x, z; tính từ vị trí ban đầu).
+@export var focus_bounds: Rect2 = Rect2()
 @export var smoothing: float = 10.0            # càng lớn càng bám nhanh
 
 @export var orthographic: bool = false
@@ -114,8 +116,12 @@ func _move_focus(offset: Vector2) -> void:
 	var basis_y := Basis(Vector3.UP, deg_to_rad(yaw_deg))
 	var move := basis_y * Vector3(offset.x, 0.0, offset.y)
 	_target_focus += move
-	_target_focus.x = clampf(_target_focus.x, _home.x - focus_limit, _home.x + focus_limit)
-	_target_focus.z = clampf(_target_focus.z, _home.z - focus_limit, _home.z + focus_limit)
+	if focus_bounds.has_area():
+		_target_focus.x = clampf(_target_focus.x, _home.x + focus_bounds.position.x, _home.x + focus_bounds.end.x)
+		_target_focus.z = clampf(_target_focus.z, _home.z + focus_bounds.position.y, _home.z + focus_bounds.end.y)
+	else:
+		_target_focus.x = clampf(_target_focus.x, _home.x - focus_limit, _home.x + focus_limit)
+		_target_focus.z = clampf(_target_focus.z, _home.z - focus_limit, _home.z + focus_limit)
 
 
 func _update_camera() -> void:

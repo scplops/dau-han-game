@@ -214,6 +214,22 @@ func add_wedge(size: Vector3, color: Color,
 	return self
 
 
+## Khúc trụ nối điểm a tới điểm b (thân cây, cành, sừng, cán...).
+func add_limb(a: Vector3, b: Vector3, r0: float, r1: float, sides: int, color: Color,
+		xform: Transform3D = Transform3D.IDENTITY) -> MeshBuilder:
+	var dir := b - a
+	if dir.length() < 0.0001:
+		return self
+	var n := dir.normalized()
+	var axis := Vector3.UP.cross(n)
+	var basis := Basis()
+	if axis.length() > 0.0001:
+		basis = Basis(axis.normalized(), Vector3.UP.angle_to(n))
+	elif n.y < 0.0:
+		basis = Basis(Vector3.RIGHT, PI)
+	return add_prism(r0, r1, dir.length(), sides, color, xform * Transform3D(basis, a))
+
+
 ## Đa diện ngẫu nhiên (khối đá, tán cây): khối 20 mặt có đỉnh bị xô lệch.
 ## `radius` co giãn theo từng trục; `jitter` 0..0.5 là độ méo.
 ## Tâm khối ở y = radius.y để đáy chạm đất.

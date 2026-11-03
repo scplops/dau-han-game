@@ -158,6 +158,8 @@ scripts/
     characters.gd      # trâu + người nón lá
     props.gd           # đá, cỏ, hoa, giếng, chum, rơm, lá súng
     clouds.gd          # mây trôi (bay thấp hơn camera để lọt khung nhìn chéo)
+    village.gd         # làng: lũy tre, cổng, đường trục, ngõ, lô đất, đình, chùa, ao, giếng (mục 11)
+    village_house.gd   # sinh kiểu nhà không trùng + dựng từng lô (nhà, mái, rào, sân, vườn)
   interior.gd          # không gian trong nhà kiểu nhà búp bê (mục 10)
   house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
@@ -236,3 +238,26 @@ thay mesh procedural bằng model Blender, các mùa trong năm, thời tiết m
   gian trái giường, tủ; gian phải chạn bát, chum gạo, nong nia, quang gánh.
   Đèn dầu thuộc nhóm `night_light` để tự sáng khi tối.
 - **Vùng bấm** là `StaticBody3D` ở lớp va chạm 2, tạo bằng `HouseEntry.make_click_target()`.
+
+## 11. Làng (giai đoạn 1c)
+
+- **Vị trí:** khu nhà chính + ruộng giữ nguyên ở gốc toạ độ; làng nằm phía bắc (z âm),
+  trong elip `Village.center` (0, −105), bán kính (100, 70). Đất làng phẳng (y = 0) do
+  `Terrain.village_rect` dựng; ngoài làng là đồng (`Terrain.outer_fields`) và đường đất
+  (`Terrain.roads`) nối cổng làng ra đồng.
+- **Quy hoạch kiểu làng Bắc Bộ:** lũy tre dày bao quanh, cổng làng phía nam, đường trục lát gạch
+  từ cổng tới đình, các ngõ ngang toả hai bên (xương cá, hơi uốn). Lô đất nằm phía bắc mỗi ngõ,
+  nhà quay hướng nam; lô sâu/rộng khác nhau, xoay theo ngõ, có khe giữa các lô.
+- **Nhà không trùng:** mỗi nhà là một tổ hợp duy nhất của số gian · loại mái (ngói đỏ, ngói nâu,
+  rạ) · kiểu mái (hai mái, bốn mái có đầu đao, tường hồi bít đốc) · tường (vôi vàng, vôi trắng,
+  gạch, đất) · mặt tiền (hiên cột gỗ, hiên cột gạch, cửa bức bàn) · bố cục lô (một nếp, chữ L
+  trái/phải, chữ U, bếp riêng). `VillageHouse.signature()` dùng để kiểm tra trùng; nhà tranh
+  được ưu tiên để chiếm khoảng 1/3. Khi chạy in ra số nhà và thống kê từng đặc điểm.
+- **Công trình chung:** đình (nghi môn, sân gạch, hồ bán nguyệt, tả mạc hữu mạc, mái bốn mái
+  đầu đao, lưỡng long chầu nguyệt, cây đa), chùa (tam quan, chính điện mái chồng diêm, gác
+  chuông), ao làng, giếng làng, điếm canh, cây đa đầu làng; vườn tạp lấp chỗ trống.
+- **Hiệu năng:** gộp mesh theo từng dãy ngõ (nhà, lá có gió, nền, ô cửa phát sáng); cả cảnh
+  khoảng 400 nghìn tam giác, ~80 node mesh. Cửa sổ/khe cửa các nhà phát sáng ban đêm (nhóm
+  `night_glow`); chỉ đình, chùa có đèn thật (`night_light`).
+- Khi thêm chi tiết cho nhà làng: mọi khối đặt bằng `xf * ...` (toạ độ lô) — quên `xf` thì vật
+  rơi về gốc toạ độ (đã từng xảy ra với cửa sổ tròn).

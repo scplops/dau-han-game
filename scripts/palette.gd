@@ -121,3 +121,20 @@ const BLANKET := Color("#7b9bb6")
 const PILLOW := Color("#f1ece0")
 const SACK := Color("#e6dbbd")           # bao gạo
 const FADE := Color("#000000")           # màn chuyển cảnh
+
+# Làng (bổ sung)
+const WALL_WHITE := Color("#ece6d6")     # tường vôi trắng
+const BRICK := Color("#a95a40")          # gạch trần
+const BRICK_DARK := Color("#8e4733")
+const MUD := Color("#b39370")            # vách đất
+const THATCH := Color("#c7a564")         # mái rơm rạ
+const THATCH_DARK := Color("#a78748")
+const ROOF_BROWN := Color("#8f4a36")     # ngói cũ màu nâu
+const ROOF_BROWN_DARK := Color("#743a2b")
+const LANE_BRICK := Color("#b0654a")     # gạch lát đường làng
+const LANE_BRICK_DARK := Color("#9a5640")
+const HEDGE := Color("#4f7f36")          # dậu cây
+const HIBISCUS := Color("#d9473e")       # hoa dâm bụt
+const ARECA_TRUNK := Color("#9a9580")    # thân cau
+const BANANA := Color("#86b84e")         # lá chuối
+const VEGETABLE := Color("#5f9e3e")      # luống rau

@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/hud.gd" id="13_hud"]
 [ext_resource type="Script" path="res://scripts/interior.gd" id="14_interior"]
 [ext_resource type="Script" path="res://scripts/house_entry.gd" id="15_entry"]
+[ext_resource type="Script" path="res://scripts/builders/village.gd" id="16_village"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -44,16 +45,18 @@ environment = SubResource("Environment_main")
 rotation = Vector3(-0.436332, -2.356194, 0)
 shadow_enabled = true
 shadow_bias = 0.05
-directional_shadow_max_distance = 70.0
+directional_shadow_max_distance = 140.0
 
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
 script = ExtResource("2_camera")
+max_distance = 190.0
+focus_bounds = Rect2(-120, -190, 240, 250)
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 fov = 40.0
 near = 0.3
-far = 500.0
+far = 1200.0
 
 [node name="World" type="Node3D" parent="." node_paths=PackedStringArray("world_environment")]
 script = ExtResource("1_world")
@@ -89,6 +92,10 @@ terrain = NodePath("../Terrain")
 house = NodePath("../House")
 bamboo = NodePath("../Bamboo")
 banyan = NodePath("../Banyan")
+
+[node name="Village" type="Node3D" parent="World" node_paths=PackedStringArray("terrain")]
+script = ExtResource("16_village")
+terrain = NodePath("../Terrain")
 
 [node name="Clouds" type="Node3D" parent="World"]
 script = ExtResource("12_clouds")
