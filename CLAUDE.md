@@ -154,13 +154,14 @@ scripts/
     rice_field.gd      # MultiMesh lúa
     mountains.gd
     characters.gd      # trâu + người nón lá
-    props.gd           # đá, cỏ, giếng, chum
+    props.gd           # đá, cỏ, hoa, giếng, chum, rơm, lá súng
+    clouds.gd          # mây trôi (bay thấp hơn camera để lọt khung nhìn chéo)
   camera_rig.gd
-  day_night.gd
+  day_night.gd         # giờ, màu trời/đèn, đèn cửa sổ, đom đóm, khói bếp
   hud.gd
 shaders/
   wind_sway.gdshader
-  water.gdshader
+  water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
 assets/
   fonts/
 tools/

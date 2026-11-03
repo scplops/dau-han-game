@@ -58,11 +58,7 @@ func build() -> void:
 	_build_path(details)
 	add_child(details.commit_instance("FieldsAndPath"))
 
-	var water := MeshBuilder.new(random_seed + 2, 0.0)
-	_build_water(water)
-	var water_node := water.commit_instance("PondWater")
-	water_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(water_node)
+	add_child(_build_water())
 
 
 # --- Truy vấn cho các builder khác -----------------------------------------------
@@ -299,15 +295,45 @@ func _pond_factor(p: Vector2) -> float:
 	return d.length() / r
 
 
-func _build_water(mb: MeshBuilder) -> void:
-	# Mặt nước là đa giác phủ hết lòng ao; phần ngoài mép bị đất che
-	var center := Vector3(pond_center.x, water_level, pond_center.y)
-	var below := center + Vector3.DOWN
-	for i in POND_SEGMENTS:
-		var j := (i + 1) % POND_SEGMENTS
-		var a := _pond_point(i, 1.05)
-		var b := _pond_point(j, 1.05)
-		mb.add_triangle(center, a, b, Palette.WATER, below)
+## Mặt nước: các vòng đồng tâm theo hình ao; vòng ngoài sáng (viền) và không lay sóng.
+func _build_water() -> MeshInstance3D:
+	var rings: Array[float] = [0.0, 0.3, 0.55, 0.78, 0.93, 1.05]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pts: Array = []
+	for r in rings:
+		var ring: Array[Vector3] = []
+		for i in POND_SEGMENTS:
+			ring.append(_pond_point(i, maxf(r, 0.001)))
+		pts.append(ring)
+	for ri in rings.size() - 1:
+		for i in POND_SEGMENTS:
+			var j := (i + 1) % POND_SEGMENTS
+			var a0: Vector3 = pts[ri][i]
+			var a1: Vector3 = pts[ri][j]
+			var b0: Vector3 = pts[ri + 1][i]
+			var b1: Vector3 = pts[ri + 1][j]
+			# Thứ tự đỉnh để mặt trước hướng lên trên
+			for v in [[a0, ri], [b0, ri + 1], [b1, ri + 1], [a0, ri], [b1, ri + 1], [a1, ri]]:
+				_water_vertex(st, v[0], rings[v[1]])
+	st.generate_normals()
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/water.gdshader") as Shader
+	var mi := MeshInstance3D.new()
+	mi.name = "PondWater"
+	mi.mesh = st.commit()
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
+func _water_vertex(st: SurfaceTool, p: Vector3, r: float) -> void:
+	var edge := smoothstep(0.75, 1.0, r)
+	var col := Palette.WATER.lerp(Palette.WATER_LIGHT, edge)
+	col.a = 1.0 - smoothstep(0.85, 1.0, r)   # mép bờ không lay sóng
+	st.set_color(col)
+	st.set_normal(Vector3.UP)
+	st.add_vertex(p)
 
 
 func _pond_point(i: int, scale: float) -> Vector3:

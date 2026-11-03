@@ -11,6 +11,8 @@
 [ext_resource type="Script" path="res://scripts/builders/characters.gd" id="9_characters"]
 [ext_resource type="Script" path="res://scripts/builders/props.gd" id="10_props"]
 [ext_resource type="Script" path="res://scripts/day_night.gd" id="11_daynight"]
+[ext_resource type="Script" path="res://scripts/builders/clouds.gd" id="12_clouds"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="13_hud"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -86,8 +88,15 @@ house = NodePath("../House")
 bamboo = NodePath("../Bamboo")
 banyan = NodePath("../Banyan")
 
+[node name="Clouds" type="Node3D" parent="World"]
+script = ExtResource("12_clouds")
+
 [node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment", "house")]
 script = ExtResource("11_daynight")
 sun = NodePath("../Sun")
 world_environment = NodePath("../WorldEnvironment")
 house = NodePath("../World/House")
+
+[node name="HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("day_night")]
+script = ExtResource("13_hud")
+day_night = NodePath("../DayNight")

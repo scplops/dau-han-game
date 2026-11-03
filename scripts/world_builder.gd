@@ -6,7 +6,13 @@ extends Node3D
 
 @export_group("Không khí")
 ## Màu trời, mặt trời, ánh sáng môi trường do DayNight điều khiển theo giờ.
-@export_range(0.0, 0.05, 0.0005) var fog_density: float = 0.0035
+## Sương theo khoảng cách: cảnh chính (gần) luôn rõ, núi xa mờ dần.
+@export var fog_begin: float = 65.0
+@export var fog_end: float = 240.0
+@export_range(0.0, 1.0) var fog_max: float = 0.8
+@export var fog_curve: float = 1.4
+## Bóng tiếp xúc ở góc khuất (chỉ Forward+).
+@export var ssao_enabled: bool = true
 
 @export_group("Kiểm thử")
 ## Hiện hàng khối mẫu của MeshBuilder (bước 2). Sẽ tắt khi có cảnh thật.
@@ -25,7 +31,16 @@ func _ready() -> void:
 
 func _apply_atmosphere() -> void:
 	if world_environment != null:
-		world_environment.environment.fog_density = fog_density
+		var env := world_environment.environment
+		env.fog_mode = Environment.FOG_MODE_DEPTH
+		env.fog_density = fog_max
+		env.fog_depth_begin = fog_begin
+		env.fog_depth_end = fog_end
+		env.fog_depth_curve = fog_curve
+		# SSAO chỉ có ở Forward+; ở Compatibility tắt để không báo cảnh báo
+		env.ssao_enabled = ssao_enabled and RenderingServer.get_current_rendering_method() == "forward_plus"
+		env.ssao_radius = 1.2
+		env.ssao_intensity = 1.4
 
 
 ## Hàng khối mẫu để kiểm tra MeshBuilder: flat shading, màu đỉnh, gộp nhiều khối.
