@@ -49,6 +49,19 @@ static func material() -> StandardMaterial3D:
 	return _shared_material
 
 
+## Vật liệu gió (shaders/wind_sway.gdshader). `base_height`/`sway_height` theo toạ độ
+## cục bộ của mesh: dưới base đứng yên, lên tới base + sway thì lay mạnh nhất.
+static func wind_material(strength: float, base_height: float, sway_height: float,
+		speed: float = 1.4) -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/wind_sway.gdshader") as Shader
+	mat.set_shader_parameter("strength", strength)
+	mat.set_shader_parameter("base_height", base_height)
+	mat.set_shader_parameter("sway_height", sway_height)
+	mat.set_shader_parameter("speed", speed)
+	return mat
+
+
 ## Số tam giác đã thêm.
 func triangle_count() -> int:
 	return _count

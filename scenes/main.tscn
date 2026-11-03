@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/builders/bamboo.gd" id="5_bamboo"]
 [ext_resource type="Script" path="res://scripts/builders/banyan.gd" id="6_banyan"]
 [ext_resource type="Script" path="res://scripts/builders/mountains.gd" id="7_mountains"]
+[ext_resource type="Script" path="res://scripts/builders/rice_field.gd" id="8_rice"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -67,3 +68,7 @@ script = ExtResource("6_banyan")
 
 [node name="Mountains" type="Node3D" parent="World"]
 script = ExtResource("7_mountains")
+
+[node name="RiceField" type="Node3D" parent="World" node_paths=PackedStringArray("terrain")]
+script = ExtResource("8_rice")
+terrain = NodePath("../Terrain")

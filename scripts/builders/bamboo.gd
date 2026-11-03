@@ -13,6 +13,10 @@ extends Node3D
 @export var max_lean_deg: float = 18.0
 @export_range(2, 10) var leaf_clusters: int = 6
 
+@export_group("Gió")
+@export var wind_strength: float = 0.3
+@export var wind_speed: float = 1.0
+
 var leaves_node: MeshInstance3D
 
 
@@ -43,8 +47,10 @@ func build() -> void:
 		stems.add_pyramid(0.12, rng.randf_range(0.4, 0.9), 5, Palette.BAMBOO_LEAF_DARK,
 				Transform3D(Basis(Vector3.UP, rng.randf() * TAU), p))
 
-	add_child(stems.commit_instance("Stems"))
-	leaves_node = leaves.commit_instance("Leaves")
+	# Thân và lá dùng chung vật liệu gió để ngọn tre và lá lay cùng nhau
+	var wind := MeshBuilder.wind_material(wind_strength, 1.5, height_range.y - 1.5, wind_speed)
+	add_child(stems.commit_instance("Stems", wind))
+	leaves_node = leaves.commit_instance("Leaves", wind)
 	add_child(leaves_node)
 
 

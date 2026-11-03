@@ -13,6 +13,10 @@ extends Node3D
 @export_range(0, 12) var small_blobs: int = 7
 @export_range(0, 20) var aerial_roots: int = 9
 
+@export_group("Gió")
+@export var wind_strength: float = 0.12
+@export var wind_speed: float = 0.8
+
 var leaves_node: MeshInstance3D
 
 
@@ -79,5 +83,6 @@ func build() -> void:
 		wood.add_prism(0.045, 0.03, len_, 4, Palette.BANYAN_TRUNK, Transform3D(Basis(), base))
 
 	add_child(wood.commit_instance("Wood"))
-	leaves_node = leaves.commit_instance("Leaves")
+	var wind := MeshBuilder.wind_material(wind_strength, trunk_height, canopy_height, wind_speed)
+	leaves_node = leaves.commit_instance("Leaves", wind)
 	add_child(leaves_node)
