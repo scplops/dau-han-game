@@ -8,6 +8,35 @@ const SUN := Color("#f7c873")
 const AMBIENT := Color("#e9dcc0")        # ánh sáng môi trường ấm
 const FOG := Color("#f2e4c6")            # sương màu kem
 
+# Chu kỳ ngày đêm (bổ sung). Màu chiều 17:00 là SUN / SKY / SKY_TOP / AMBIENT / FOG ở trên.
+const SUN_DAWN := Color("#ffb08a")       # sáng sớm: hồng nhạt
+const SKY_DAWN := Color("#f3c6b8")
+const SKY_DAWN_TOP := Color("#b7c3d9")
+const AMBIENT_DAWN := Color("#dcc3c6")
+const FOG_DAWN := Color("#eccdc4")
+const SUN_NOON := Color("#fff4e0")       # trưa: trắng ấm
+const SKY_NOON := Color("#eef1e2")
+const SKY_NOON_TOP := Color("#a9cde0")
+const AMBIENT_NOON := Color("#e6e8dc")
+const FOG_NOON := Color("#e9ecdf")
+const SUN_SUNSET := Color("#f2955a")     # hoàng hôn: cam
+const SKY_SUNSET := Color("#f2b385")
+const SKY_SUNSET_TOP := Color("#c4b3c6")
+const AMBIENT_SUNSET := Color("#d9b5a3")
+const FOG_SUNSET := Color("#e9c19f")
+const MOON_DUSK := Color("#9aa6e0")      # chạng vạng: tím
+const SKY_DUSK := Color("#6a6797")
+const SKY_DUSK_TOP := Color("#343a6a")
+const AMBIENT_DUSK := Color("#6c6fa8")
+const FOG_DUSK := Color("#55577f")
+const MOON := Color("#a9b6ea")           # đêm: xanh tím đậm
+const SKY_NIGHT := Color("#2f3768")
+const SKY_NIGHT_TOP := Color("#151b3c")
+const AMBIENT_NIGHT := Color("#56609c")
+const FOG_NIGHT := Color("#283058")
+const FIREFLY := Color("#d8f27a")
+const SMOKE := Color("#ece6da")
+
 # Núi xa
 const MOUNTAIN := Color("#9bb3a4")
 const MOUNTAIN_DARK := Color("#87a291")

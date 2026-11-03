@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/builders/rice_field.gd" id="8_rice"]
 [ext_resource type="Script" path="res://scripts/builders/characters.gd" id="9_characters"]
 [ext_resource type="Script" path="res://scripts/builders/props.gd" id="10_props"]
+[ext_resource type="Script" path="res://scripts/day_night.gd" id="11_daynight"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -50,10 +51,9 @@ fov = 40.0
 near = 0.3
 far = 500.0
 
-[node name="World" type="Node3D" parent="." node_paths=PackedStringArray("world_environment", "sun")]
+[node name="World" type="Node3D" parent="." node_paths=PackedStringArray("world_environment")]
 script = ExtResource("1_world")
 world_environment = NodePath("../WorldEnvironment")
-sun = NodePath("../Sun")
 
 [node name="Terrain" type="Node3D" parent="World"]
 script = ExtResource("3_terrain")
@@ -85,3 +85,9 @@ terrain = NodePath("../Terrain")
 house = NodePath("../House")
 bamboo = NodePath("../Bamboo")
 banyan = NodePath("../Banyan")
+
+[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment", "house")]
+script = ExtResource("11_daynight")
+sun = NodePath("../Sun")
+world_environment = NodePath("../WorldEnvironment")
+house = NodePath("../World/House")

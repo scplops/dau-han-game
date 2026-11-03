@@ -1,13 +1,11 @@
 extends Node3D
-## Dựng toàn cảnh khi chạy: gán không khí (trời, sương, ánh sáng) rồi gọi `build()`
+## Dựng toàn cảnh khi chạy: đặt độ dày sương rồi gọi `build()`
 ## của từng builder con theo thứ tự trong cây scene (Terrain trước, các vật sau).
 
 @export var world_environment: WorldEnvironment
-@export var sun: DirectionalLight3D
 
 @export_group("Không khí")
-@export_range(0.0, 2.0) var sun_energy: float = 1.1
-@export_range(0.0, 2.0) var ambient_energy: float = 0.45
+## Màu trời, mặt trời, ánh sáng môi trường do DayNight điều khiển theo giờ.
 @export_range(0.0, 0.05, 0.0005) var fog_density: float = 0.0035
 
 @export_group("Kiểm thử")
@@ -25,23 +23,9 @@ func _ready() -> void:
 		_build_test_shapes()
 
 
-## Gán màu từ Palette cho trời, sương, ánh sáng môi trường và mặt trời.
 func _apply_atmosphere() -> void:
 	if world_environment != null:
-		var env := world_environment.environment
-		var sky_mat := env.sky.sky_material as ProceduralSkyMaterial
-		if sky_mat != null:
-			sky_mat.sky_top_color = Palette.SKY_TOP
-			sky_mat.sky_horizon_color = Palette.SKY
-			sky_mat.ground_horizon_color = Palette.SKY
-			sky_mat.ground_bottom_color = Palette.MOUNTAIN_DARK
-		env.ambient_light_color = Palette.AMBIENT
-		env.ambient_light_energy = ambient_energy
-		env.fog_light_color = Palette.FOG
-		env.fog_density = fog_density
-	if sun != null:
-		sun.light_color = Palette.SUN
-		sun.light_energy = sun_energy
+		world_environment.environment.fog_density = fog_density
 
 
 ## Hàng khối mẫu để kiểm tra MeshBuilder: flat shading, màu đỉnh, gộp nhiều khối.
