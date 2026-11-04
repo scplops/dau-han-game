@@ -7,6 +7,7 @@ extends SceneTree
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus)
+##        [--quest=water,lost,…] (nhận sẵn các việc nhờ từ người gần nhất có vai hợp)
 ##        [--talk] [--talk-pick=N] (cùng --fp: bắt chuyện người gần nhất, chọn câu hỏi thứ N)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
@@ -98,6 +99,22 @@ func _run() -> void:
 			fp._pitch = deg_to_rad(float(args["fp-pitch"]))
 			fp.camera.rotation.x = fp._pitch
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		# Nhận sẵn việc nhờ để xem dấu chỉ đường, khung "Việc được nhờ"
+		var qs := scene.get_node_or_null("Quests") as Quests
+		var vs3 := scene.get_node_or_null("World/Villagers") as Villagers
+		if args.has("quest") and qs != null and vs3 != null:
+			var taken := {}
+			for kind in str(args["quest"]).split(","):
+				var best_q: Villager = null
+				for v in vs3.people:
+					if not v.visible or taken.has(v) or not Quests.KINDS_BY_ROLE.get(v.role, []).has(kind):
+						continue
+					if best_q == null or v.global_position.distance_to(fp.global_position) < best_q.global_position.distance_to(fp.global_position):
+						best_q = v
+				if best_q != null:
+					taken[best_q] = true
+					qs.debug_accept(best_q, kind)
+			qs._refresh_offers()
 		# Bắt chuyện người đang đứng gần nhất: đứng trước mặt họ, mở khung thoại
 		var dlg := scene.get_node_or_null("Dialogue") as Dialogue
 		var vs2 := scene.get_node_or_null("World/Villagers") as Villagers

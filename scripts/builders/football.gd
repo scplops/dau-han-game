@@ -7,6 +7,9 @@ extends Node3D
 ## Dựng sau `Village` (lấy `pitch_rect`), đứng sau `Villagers` trong cây scene để điều khiển
 ## cầu thủ SAU khi Villagers đã tick xong mỗi khung.
 
+## Có bàn thắng (`by_player`: người nhập vai chạm bóng cuối cùng).
+signal goal_scored(team: int, by_player: bool)
+
 enum Phase { IDLE, KICKOFF, PLAY, GOAL }
 
 const TEAM_NAMES: Array[String] = ["Xóm Đông", "Xóm Đoài"]
@@ -52,7 +55,8 @@ var _kickoff_team: int = 0
 var _score_labels: Array[Label3D] = []
 var _goal_label: Label3D
 var _discs: Array[CylinderMesh] = []
-var _touch_gap: float = 0.0      # nhịp ngắn sau mỗi cú chạm: bóng phải rời chân rồi người khác mới chạm
+var _touch_gap: float = 0.0
+var _player_touch: bool = false   # người nhập vai là người chạm bóng cuối      # nhịp ngắn sau mỗi cú chạm: bóng phải rời chân rồi người khác mới chạm
 
 
 func build() -> void:
@@ -322,6 +326,7 @@ func _build_ball() -> void:
 
 
 func _place_ball(p: Vector3) -> void:
+	_player_touch = false
 	_ball_pos = Vector3(p.x, ball_radius, p.z)
 	_ball_vel = Vector3.ZERO
 	_ball.global_position = _ball_pos
@@ -345,6 +350,7 @@ func ball_position() -> Vector3:
 func kick_from_player(dir: Vector3, up: float) -> void:
 	_kick(dir, user_kick_speed * _rng.randf_range(0.85, 1.05), lerpf(0.5, 7.0, up))
 	_touch_gap = 0.3
+	_player_touch = true
 
 
 ## Người nhập vai đi vào bóng: đẩy nhẹ theo hướng chân (dẫn bóng).
@@ -355,6 +361,7 @@ func nudge(dir: Vector3, speed: float) -> void:
 	if h.dot(dir) >= speed * 0.9:
 		return
 	_kick(dir, speed, 0.0)
+	_player_touch = true
 
 
 ## Bấm vào bóng: sút bay ra xa phía camera đang nhìn.
@@ -663,6 +670,7 @@ func _try_kicks() -> void:
 		p.cool = 0.5
 		p.kick_t = 0.35
 		_touch_gap = 0.3
+		_player_touch = false
 		return
 
 
@@ -709,9 +717,11 @@ func _step_ball(dt: float) -> void:
 	if _ball_pos.y <= r:
 		_ball_pos.y = r
 		if _ball_vel.y < 0.0:
+			# Chỉ những cú rơi thật (không phải trọng lực kéo nhẹ khi đang lăn) mới nảy và mất đà
+			if _ball_vel.y < -1.5:
+				_ball_vel.x *= 0.85      # nảy trên đất gồ ghề mất đà
+				_ball_vel.z *= 0.85
 			_ball_vel.y = -_ball_vel.y * 0.45
-			_ball_vel.x *= 0.8      # nảy trên đất gồ ghề mất đà
-			_ball_vel.z *= 0.8
 			if _ball_vel.y < 0.6:
 				_ball_vel.y = 0.0
 		# Lăn trên cỏ: chậm dần
@@ -769,6 +779,7 @@ func _check_goal(prev: Vector3) -> void:
 			return
 		if dz < hw and _ball_pos.y < goal_height:
 			_ball_vel *= 0.25
+			goal_scored.emit(0 if s > 0.0 else 1, _player_touch)
 			_ball_pos.x = minf(_ball_pos.x * s, (gx + s * goal_depth * 0.6) * s) * s
 			if phase == Phase.PLAY:
 				var team := 0 if s > 0.0 else 1

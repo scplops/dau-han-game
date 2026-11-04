@@ -101,6 +101,8 @@ var _side: float = 1.0
 # Sổ câu: loài → {count, best}
 var _log: Dictionary = {}
 var _total: int = 0
+## Cá đang có trong giỏ: [{name, kg}] — việc nhờ "câu cá" lấy ra từ đây.
+var basket: Array[Dictionary] = []
 
 # Hình
 var _angler: Node3D
@@ -693,6 +695,7 @@ func _land_fish() -> void:
 	rec.best = maxf(float(rec.best), _fish_kg)
 	_log[name_s] = rec
 	_total += 1
+	basket.append({"name": name_s, "kg": _fish_kg})
 	_card_title.text = name_s
 	var lines: Array[String] = ["%s  ·  %d cm" % [_kg(_fish_kg), roundi(_fish_cm)]]
 	if record and int(rec.count) > 1:

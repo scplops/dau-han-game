@@ -736,6 +736,22 @@ func _select(v: Villager) -> void:
 	_info_timer = 0.0
 
 
+## Gọi một người đang ở trong nhà ra cổng (người chơi tới gõ cửa vì có việc).
+func call_out(v: Villager) -> void:
+	var h: Dictionary = v.home
+	v.global_position = h.front
+	v.visible = true
+	v.state = Villager.State.IDLE
+	v.path = PackedVector3Array()
+	v.activity = "yard"
+	v.activity_text = "ra cổng tiếp khách"
+	v.work_anim = "chat"
+	v.dwell = 45.0
+	v.set_meta("at_home", true)
+	if v.lantern != null:
+		v.lantern.visible = false
+
+
 func select_villager(v: Villager) -> void:
 	_select(v)
 	_show_info()

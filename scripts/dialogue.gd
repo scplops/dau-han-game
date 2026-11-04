@@ -16,6 +16,7 @@ signal finished
 @export var weather: Weather
 @export var football: Football
 @export var fishing: Fishing
+@export var quests: Quests
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
 @export var chars_per_second: float = 48.0
@@ -237,12 +238,22 @@ func _choose(i: int) -> void:
 	if o.get("end", false):
 		end()
 		return
-	_say((o.answer as Callable).call(), true)
+	var text: String = (o.answer as Callable).call()
+	if o.has("next"):
+		# Câu trả lời kèm lựa chọn riêng (vd. nhận / từ chối việc nhờ)
+		_say(text, false)
+		_options.assign((o.next as Callable).call())
+		return
+	_say(text, true)
 
 
 ## Các câu người chơi có thể hỏi lúc này (bỏ câu đã hỏi), luôn có câu chào ra về ở cuối.
 func _build_options() -> Array[Dictionary]:
 	var v := npc
+	var out: Array[Dictionary] = []
+	# Việc nhờ / báo việc xong / nhắn tin luôn đứng đầu
+	if quests != null:
+		out.assign(quests.dialog_options(v))
 	var all: Array[Dictionary] = []
 	all.append({"key": "doing", "text": "{Npc} đang làm gì đấy{a}?", "answer": _ans_doing})
 	match v.role:
@@ -263,7 +274,6 @@ func _build_options() -> Array[Dictionary]:
 		all.append({"key": "match", "text": "Trận bóng thế nào rồi{a}?", "answer": _ans_match})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
 	all.append({"key": "home", "text": "Nhà {npc} ở đâu{a}?", "answer": _ans_home})
-	var out: Array[Dictionary] = []
 	for o in all:
 		if not _asked.has(o.key) and out.size() < 3:
 			out.append(o)
@@ -460,6 +470,8 @@ func _score_text() -> String:
 ## {me}: người chơi tự xưng; {a}: " ạ" khi nói với người lớn hơn. Viết hoa: {Self}, {You}, {Npc}.
 func _kin() -> Dictionary:
 	var v := npc
+	if v == null:
+		return {"self": "tôi", "you": "bạn", "npc": "bạn", "me": "tôi", "a": ""}
 	var words := v.display_name.split(" ")
 	var title := words[0].to_lower()
 	var big := "chị" if player_female else "anh"

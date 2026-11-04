@@ -5,7 +5,8 @@
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
-> và **trò chuyện với dân làng** (mục 19) — chưa có túi đồ, nhiệm vụ.
+> **trò chuyện với dân làng** (mục 19) và **dân làng nhờ việc** (mục 20) — chưa có túi đồ đầy đủ,
+> chưa lưu game.
 
 ---
 
@@ -178,6 +179,7 @@ scripts/
   fishing.gd           # mini-game câu cá ở các bến sông (mục 16)
   first_person.gd      # nhập vai góc nhìn thứ nhất: đi lại, va chạm, tương tác (mục 18)
   dialogue.gd          # trò chuyện với dân làng: lời thoại, xưng hô, khung thoại (mục 19)
+  quests.gd            # dân làng nhờ việc: gánh nước, nhắn tin, câu cá, tìm đồ, sút bóng (mục 20)
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
@@ -229,8 +231,8 @@ screenshots/           # ảnh chụp, không commit
 - **Hiệu năng:** mục tiêu ≥ 60 FPS ở 1080p trên máy tầm trung. Vật thể lặp lại nhiều
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
-- Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện);
-  inventory, nhiệm vụ vẫn để giai đoạn sau.
+- Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện,
+  việc nhờ); túi đồ đầy đủ, lưu game vẫn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
@@ -439,7 +441,9 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   sau mỗi cú chạm có nhịp 0,3 s (`_touch_gap`) để hai bên không đá qua đá lại tại chỗ.
 - Chụp ảnh: `--football=<số người>` đưa người ra sân đá ngay (chạy trước 6 s), camera nhìn vào
   sân. `tools/football_test.gd -- --players=12 --seconds=240` mô phỏng một trận không giao diện,
-  in bàn thắng / số lần chạm bóng / bóng ra biên (thường 2–7 bàn mỗi 4 phút).
+  in bàn thắng / số lần chạm bóng / bóng ra biên (thường 4–7 bàn, ~150 lần chạm, ~10 lần ra biên
+  mỗi 4 phút). Bóng chỉ mất đà khi rơi xuống thật mạnh (`vel.y < -1.5`): nếu trừ đà mỗi khi
+  `vel.y < 0` thì lúc lăn (trọng lực kéo nhẹ mỗi khung) bóng mất 20 % tốc độ mỗi khung và khựng lại.
 
 ## 18. Nhập vai góc nhìn thứ nhất (giai đoạn 3a)
 
@@ -489,4 +493,28 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   chỉ nói một câu `Label3D` vài giây, không mở khung thoại.
 - `tools/talk_test.gd -- --hour=17 --weather=cloudy` in hội thoại mẫu với mỗi loại người / con vật
   để đọc lại lời lẽ. Chụp ảnh: `--fp --talk --talk-pick=N` (bắt chuyện người gần nhất).
+
+## 20. Dân làng nhờ việc (giai đoạn 3c)
+
+- `scripts/quests.gd` (node `Quests`). Luôn có `max_offers` (5) người có việc muốn nhờ — dấu "!"
+  vàng trên đầu (`Label3D` tên `QuestMark`, meta `quest_offer`), làm mới mỗi `offer_refresh` giây.
+  Nói chuyện → "{Npc} có cần {me} giúp gì không{a}?" → họ kể việc → "Vâng / Được, để {me} giúp"
+  hoặc "Để lúc khác". Tối đa `max_active` (3) việc cùng lúc.
+- **5 loại việc** (`make_quest`, `KINDS_BY_ROLE`): `water` (múc nước ở giếng làng → gánh về
+  `home.front` người nhờ, đi chậm `carry_speed`), `message` (nhắn một người lớn khác, `MESSAGES`),
+  `fish` (câu đúng loài — lấy từ `Fishing.basket`, đưa cá thì bỏ khỏi giỏ), `lost` (đồ đánh rơi
+  `LOST_ITEMS` nằm cách một chỗ quen 2–5 m: gốc đa, bờ ao, sân đình, giếng, sân bóng, bến sông;
+  dấu chỉ đường chỉ khoanh vùng "quanh đây"), `goal` (trẻ con thách sút vào lưới — tín hiệu
+  `Football.goal_scored(team, by_player)`, `_player_touch` = người nhập vai chạm bóng cuối).
+  Bước cuối luôn là quay lại báo người nhờ → nhận quà (`GIFTS` theo vai) vào `gifts`.
+- **Bước** (`steps`): `pickup` (vùng bấm lớp 2 + meta `activate`, nhập vai nhìn vào là "E: Múc
+  nước / Nhặt …"), `goto` (tới gần `arrive_radius`, chỉ tính khi đang nhập vai), `talk` (Dialogue
+  thêm câu riêng lên đầu danh sách — `Quests.dialog_options(v)`), `catch`, `goal`. Người cần gặp
+  đang trong nhà: tới trước cổng thì họ ra (`Villagers.call_out`).
+- **Chỉ đường:** hình thoi vàng xoay trên mục tiêu (vẽ đè, phóng to theo khoảng cách) + số mét
+  (`Label3D` `fixed_size`); khung "Việc được nhờ" bên phải: từng việc, bước hiện tại, hướng
+  (phía trước / bên trái / bên phải / phía sau) và khoảng cách; đồ đang cầm; quà đã nhận.
+- Dialogue hỗ trợ lựa chọn có bước con: option có `next` (Callable trả về danh sách lựa chọn).
+- `tools/quest_test.gd` chạy trọn 5 loại việc (nhận qua hội thoại → làm → báo → quà).
+  Chụp ảnh: `--fp --quest=water,message,lost` nhận sẵn việc từ người gần nhất có vai hợp.
 
