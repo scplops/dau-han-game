@@ -18,6 +18,7 @@ const SOLID_LAYER := 4
 @export var villagers: Villagers
 @export var hud: Hud
 @export var world: Node3D
+@export var dialogue: Dialogue
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -70,6 +71,8 @@ func _ready() -> void:
 		house_entry.inside_changed.connect(_on_inside_changed)
 	if fishing != null:
 		fishing.stopped.connect(_on_fishing_stopped)
+	if dialogue != null:
+		dialogue.finished.connect(_on_talk_finished)
 
 
 # --- Bật / tắt ------------------------------------------------------------------------
@@ -174,6 +177,22 @@ func _on_fishing_stopped() -> void:
 		_resume.call_deferred()
 
 
+## Đang nói chuyện: quay dần về phía mặt người đối diện.
+func _process(delta: float) -> void:
+	if _suspended != "talk" or dialogue == null or dialogue.npc == null:
+		return
+	var kid := dialogue.npc.role in ["kid", "herder"]
+	var head := dialogue.npc.global_position + Vector3(0, 1.0 if kid else 1.42, 0)
+	var t := 1.0 - exp(-6.0 * delta)
+	# Hạ tầm mắt ngang mặt người đối diện (nói với trẻ con thì như ngồi xuống), để vành nón không che mặt
+	var eye := clampf(head.y - global_position.y + 0.05, 0.95, eye_height)
+	camera.position.y = lerpf(camera.position.y, eye, t)
+	var d := head - camera.global_position
+	rotation.y = lerp_angle(rotation.y, atan2(-d.x, -d.z), t)
+	_pitch = lerpf(_pitch, atan2(d.y, Vector2(d.x, d.z).length()), t)
+	camera.rotation.x = _pitch
+
+
 # --- Mỗi bước vật lý --------------------------------------------------------------------
 
 func _physics_process(delta: float) -> void:
@@ -241,7 +260,8 @@ func _update_look() -> void:
 		var col := hit.get("collider") as Node
 		if col != null and col.has_meta("villager"):
 			target = col.get_meta("villager")
-			hint = "E: xem tin  ·  " + (target as Villager).display_name
+			var tv := target as Villager
+			hint = ("E: trò chuyện  ·  " if not tv.role in ["dog", "buffalo", "chicken", "duck"] else "E: gọi  ·  ") + tv.display_name
 		elif col != null and col.has_meta("hint"):
 			target = col
 			hint = "E: " + str(col.get_meta("hint")).split("  ·  ")[0]
@@ -260,8 +280,9 @@ func _act() -> void:
 	if _look_target == null:
 		return
 	if _look_target is Villager:
-		if villagers != null:
-			villagers.select_villager(_look_target as Villager)
+		var v := _look_target as Villager
+		if dialogue != null and dialogue.start(v, self):
+			_suspend("talk")
 		return
 	var body := _look_target as StaticBody3D
 	if body == null:
@@ -287,16 +308,22 @@ func _act() -> void:
 			_resume()
 
 
-## Nhường camera tạm thời (vào nhà, ngồi câu).
+func _on_talk_finished() -> void:
+	if active and _suspended == "talk":
+		_resume()
+
+
+## Nhường camera tạm thời (vào nhà, ngồi câu) hoặc đứng lại nói chuyện (giữ camera).
 func _suspend(why: String) -> void:
 	_suspended = why
 	set_physics_process(false)
-	visible = false
+	visible = why == "talk"
 	_crosshair.visible = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if hud != null:
 		hud.set_hint("")
-		hud.set_first_person(false)
+		if why != "talk":
+			hud.set_first_person(false)
 
 
 ## Đi vào bóng thì đẩy bóng theo hướng chân (dẫn bóng).

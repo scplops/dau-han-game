@@ -605,6 +605,15 @@ func _process(delta: float) -> void:
 		_weather_check = 1.0
 
 	for v in people:
+		if v.has_meta("talking"):
+			# Đang nói chuyện với người chơi: đứng lại, giữ nguyên việc đang làm
+			var st := v.state
+			var dw := v.dwell
+			v.state = Villager.State.IDLE
+			v.tick(delta, true)
+			v.state = st
+			v.dwell = dw
+			continue
 		var was_walking := v.state == Villager.State.WALK
 		v.tick(delta, v.global_position.distance_to(cam_pos) < animate_distance)
 		if was_walking and v.state == Villager.State.IDLE:

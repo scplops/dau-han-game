@@ -177,6 +177,10 @@ func _build_person_rig(look: Dictionary) -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 7
 		mb.add_blob(Vector3(0.12, 0.13, 0.12) * s, skin, rng, 0.06, tilt * _t(0, 0.6 * s, 0))
+		# Mắt, lông mày (để biết người đang nhìn về phía nào, nhất là khi nói chuyện)
+		for ex: float in [-0.045, 0.045]:
+			mb.add_box(Vector3(0.026, 0.032, 0.02) * s, Palette.WINDOW_DARK, tilt * _t(ex * s, 0.735 * s, 0.112 * s))
+			mb.add_box(Vector3(0.04, 0.012, 0.02) * s, Palette.WINDOW_DARK.lightened(0.1), tilt * _t(ex * s, 0.775 * s, 0.108 * s))
 	), Vector3.ZERO)
 	var head_top := Vector3(0, hip + 0.86 * s * cos(bend), 0.86 * s * sin(bend))
 	match str(look.get("hat", "none")):

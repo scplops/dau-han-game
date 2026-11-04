@@ -4,8 +4,8 @@
 > Mục tiêu giai đoạn này: **chỉ dựng cảnh quan để ngắm**, CHƯA có gameplay
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
-> mini-game câu cá (mục 16), sân bóng (mục 17) và **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
-> — chưa có hội thoại, túi đồ, nhiệm vụ.
+> mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
+> và **trò chuyện với dân làng** (mục 19) — chưa có túi đồ, nhiệm vụ.
 
 ---
 
@@ -136,7 +136,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
    `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái),
-   `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space)),
+   `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -177,6 +177,7 @@ scripts/
   hud.gd
   fishing.gd           # mini-game câu cá ở các bến sông (mục 16)
   first_person.gd      # nhập vai góc nhìn thứ nhất: đi lại, va chạm, tương tác (mục 18)
+  dialogue.gd          # trò chuyện với dân làng: lời thoại, xưng hô, khung thoại (mục 19)
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
@@ -228,14 +229,14 @@ screenshots/           # ảnh chụp, không commit
 - **Hiệu năng:** mục tiêu ≥ 60 FPS ở 1080p trên máy tầm trung. Vật thể lặp lại nhiều
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
-- Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại);
-  inventory, nhiệm vụ, hội thoại vẫn để giai đoạn sau.
+- Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện);
+  inventory, nhiệm vụ vẫn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Trồng trọt, hội thoại với NPC, lưu game, âm thanh và nhạc nền,
+Trồng trọt, lưu game, âm thanh và nhạc nền,
 thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -464,4 +465,28 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   để mưa, dân làng, cá nhảy vẫn diễn ra quanh chỗ đứng.
 - Chụp ảnh: `--fp --focus=x,z --fp-yaw=độ --fp-pitch=độ`. `tools/fp_test.gd` (headless) thử đi
   vào tường nhà, nhìn cửa → vào → ra, dẫn bóng và sút, ngồi câu → thôi câu, thoát nhập vai.
+
+## 19. Trò chuyện với dân làng (giai đoạn 3b)
+
+- `scripts/dialogue.gd` (node `Dialogue`). Khi nhập vai, nhìn vào một người (gợi ý
+  "E: trò chuyện · tên") và nhấn E: `Dialogue.start(v, player)`; người chơi đứng lại
+  (`FirstPerson._suspend("talk")`, giữ camera, hiện chuột), camera quay dần về mặt người đó và hạ
+  tầm mắt ngang mặt họ (nói với trẻ con thì như ngồi xuống). Thoại xong (`finished`) thì đi tiếp.
+- **NPC đứng lại:** meta `talking` — `Villagers._process` chỉ diễn hoạt (dáng "chat"), không
+  đi tiếp, không đổi việc; NPC quay mặt về người chơi, thoại xong thì làm tiếp việc dở.
+  Người làng có mắt và lông mày (trong mesh thân) để biết họ đang nhìn về đâu.
+- **Khung thoại** dưới màn hình: tên (vàng), lời chạy từng chữ (`chars_per_second`), tối đa 3 câu
+  hỏi chưa hỏi + câu chào ra về; chọn bằng 1–4 hoặc bấm chuột, E / Space để hiện hết chữ, Esc để thôi.
+- **Xưng hô** (`_kin`): người chơi gọi NPC theo chữ đầu tên hiển thị (cụ, ông, bà, bác, chú, cô,
+  thím, anh, chị); cụ ông / cụ bà tự xưng ông / bà; người lớn gọi người chơi "cháu", anh / chị gọi
+  "em"; trẻ con xưng "em" và gọi người chơi anh / chị (`player_female`). Lời thoại viết với chỗ
+  trống `{self}` `{you}` `{npc}` `{me}` `{a}` (" ạ" khi nói với người lớn), viết hoa `{Self}`…
+- **Nội dung theo ngữ cảnh:** chào theo giờ / vai trò / đồng phục / đã gặp chưa; "đang làm gì"
+  theo `v.activity`; câu riêng từng vai (lúa – nông dân, chợ phiên – người gánh hàng, chuyện làng
+  ngày xưa `LORE` – cụ già, đá bóng / đi học – trẻ con, con trâu – trẻ chăn trâu); thời tiết;
+  nhà ở đâu (`v.home.name`); khoe giỏ cá (khi `Fishing._total > 0`); tỉ số trận bóng.
+- **Câu ngắn trên đầu (bark):** con vật (gâu gâu, ò ọ, cục tác, cạp cạp) và người đang đá bóng
+  chỉ nói một câu `Label3D` vài giây, không mở khung thoại.
+- `tools/talk_test.gd -- --hour=17 --weather=cloudy` in hội thoại mẫu với mỗi loại người / con vật
+  để đọc lại lời lẽ. Chụp ảnh: `--fp --talk --talk-pick=N` (bắt chuyện người gần nhất).
 

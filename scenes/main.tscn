@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://scripts/fishing.gd" id="21_fishing"]
 [ext_resource type="Script" path="res://scripts/builders/football.gd" id="22_football"]
 [ext_resource type="Script" path="res://scripts/first_person.gd" id="23_fp"]
+[ext_resource type="Script" path="res://scripts/dialogue.gd" id="24_dialogue"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -195,7 +196,15 @@ weather = NodePath("../Weather")
 hud = NodePath("../HUD")
 villagers = NodePath("../World/Villagers")
 
-[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world")]
+[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing")]
+script = ExtResource("24_dialogue")
+villagers = NodePath("../World/Villagers")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+football = NodePath("../World/Football")
+fishing = NodePath("../Fishing")
+
+[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue")]
 script = ExtResource("23_fp")
 outdoor_rig = NodePath("../CameraRig")
 house_entry = NodePath("../HouseEntry")
@@ -204,3 +213,4 @@ football = NodePath("../World/Football")
 villagers = NodePath("../World/Villagers")
 hud = NodePath("../HUD")
 world = NodePath("../World")
+dialogue = NodePath("../Dialogue")

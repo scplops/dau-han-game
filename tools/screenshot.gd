@@ -7,6 +7,7 @@ extends SceneTree
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus)
+##        [--talk] [--talk-pick=N] (cùng --fp: bắt chuyện người gần nhất, chọn câu hỏi thứ N)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -97,6 +98,26 @@ func _run() -> void:
 			fp._pitch = deg_to_rad(float(args["fp-pitch"]))
 			fp.camera.rotation.x = fp._pitch
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		# Bắt chuyện người đang đứng gần nhất: đứng trước mặt họ, mở khung thoại
+		var dlg := scene.get_node_or_null("Dialogue") as Dialogue
+		var vs2 := scene.get_node_or_null("World/Villagers") as Villagers
+		if args.has("talk") and dlg != null and vs2 != null:
+			var best: Villager = null
+			for v in vs2.people:
+				if v.visible and (best == null or v.global_position.distance_to(fp.global_position) < best.global_position.distance_to(fp.global_position)):
+					best = v
+			if best != null:
+				var face := Basis(Vector3.UP, best.rotation.y) * Vector3.BACK
+				fp.global_position = best.global_position + face * 1.8 + Vector3(0, 0.05, 0)
+				fp._look_target = best
+				fp._act()
+				for k in 30:
+					await process_frame
+				dlg._finish_typing()
+				if args.has("talk-pick"):
+					dlg._choose(int(args["talk-pick"]) - 1)
+					await process_frame
+					dlg._finish_typing()
 
 	# Chờ vài khung hình cho bóng đổ, shader ổn định
 	for i in int(args.get("frames", "30")):
