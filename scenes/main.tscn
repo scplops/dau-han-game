@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://scripts/builders/village.gd" id="16_village"]
 [ext_resource type="Script" path="res://scripts/weather.gd" id="17_weather"]
 [ext_resource type="Script" path="res://scripts/villagers.gd" id="18_villagers"]
+[ext_resource type="Script" path="res://scripts/builders/river.gd" id="19_river"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -53,7 +54,7 @@ directional_shadow_max_distance = 140.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.5)
 script = ExtResource("2_camera")
 max_distance = 190.0
-focus_bounds = Rect2(-120, -190, 240, 250)
+focus_bounds = Rect2(-160, -215, 320, 275)
 
 [node name="Camera3D" type="Camera3D" parent="CameraRig"]
 fov = 40.0
@@ -98,6 +99,10 @@ banyan = NodePath("../Banyan")
 [node name="Village" type="Node3D" parent="World" node_paths=PackedStringArray("terrain")]
 script = ExtResource("16_village")
 terrain = NodePath("../Terrain")
+
+[node name="River" type="Node3D" parent="World" node_paths=PackedStringArray("village")]
+script = ExtResource("19_river")
+village = NodePath("../Village")
 
 [node name="Clouds" type="Node3D" parent="World"]
 script = ExtResource("12_clouds")

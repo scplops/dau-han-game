@@ -162,6 +162,7 @@ scripts/
     clouds.gd          # mây trôi (bay thấp hơn camera để lọt khung nhìn chéo)
     village.gd         # làng: lũy tre, cổng, đường trục, ngõ, lô đất, đình, chùa, ao, giếng (mục 11)
     village_house.gd   # sinh kiểu nhà không trùng + dựng từng lô (nhà, mái, rào, sân, vườn)
+    river.gd           # sông móng ngựa quanh làng: đê, lòng sông, nước, cá, đầm sen, đò (mục 14)
   interior.gd          # không gian trong nhà kiểu nhà búp bê (mục 10)
   house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
@@ -173,6 +174,7 @@ scripts/
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
+  fish.gdshader        # cá MultiMesh: đuôi ngoe nguẩy, mỗi con một nhịp (INSTANCE_ID)
 assets/
   fonts/
 tools/
@@ -325,3 +327,23 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - **Hiệu năng:** mesh từng bộ phận dùng chung qua bộ đệm; chỉ diễn hoạt NPC trong
   `animate_distance` quanh camera; mỗi phần có `visibility_range_end`.
 - Chụp ảnh: `--npc=<chỉ số|vai trò>` chọn NPC và cho camera đi theo.
+
+## 14. Sông quanh làng (giai đoạn 1f)
+
+- `scripts/builders/river.gd` (node `World/River`, dựng sau `Village`). Sông hình móng ngựa
+  ôm ba mặt làng (tây → bắc → đông) theo elip của làng nới ra `offset_radii` (120, 88), uốn
+  khúc nhẹ; hai đầu (`west_tail`, `east_tail`) vòng thoải rồi chảy xa ra đồng. Mặt nam để trống
+  (cổng làng, ruộng). Dài khoảng 1 km, rộng 11–17 m.
+- **Cả lòng sông nằm TRÊN nền cỏ:** lòng bùn ở `bed_level` 0,06, mặt nước `water_level` 0,32,
+  đê cao `levee_height` 0,85. Nếu để mặt nước sát nền y = 0 thì cỏ lộ qua làn nước trong
+  (đã gặp: mảng xanh giữa sông). Mặt cắt bờ: lòng bùn → mái đất → mặt đê cỏ → mái thoải.
+- Khúc nối vào vòng phải cua đủ rộng (bán kính ≫ nửa bề rộng sông + đê ~15 m), nếu không
+  mặt bờ phía trong bị gấp lại thành "mũi nhọn". Tim sông làm mượt Chaikin 3 lần.
+- **Cá:** 220 con (chép đỏ, vàng, trắng, trắm xám) — một MultiMesh, cập nhật vị trí mỗi khung
+  theo độ dài dọc sông (`River.sample(s)`), bơi xuôi ngược, lượn ngang; thỉnh thoảng một con
+  gần camera nhảy lên khỏi mặt nước, để lại gợn tròn. Đuôi uốn trong `fish.gdshader`.
+- **Sen:** 12 đầm sát bờ, mỗi đầm ~30–40 lá nổi, 6–12 lá vươn cao, 4–9 hoa (¼ sen trắng),
+  3–6 nụ; tất cả MultiMesh, lá/hoa có thân dùng shader gió. `River.lotus_spots` /
+  `boat_spots` lưu toạ độ để chụp ảnh.
+- **Đò:** 3 con đò mui tre neo ven bờ.
+- Đồi và núi sau làng đã lùi ra xa hơn (`Mountains`) để không lấn vào sông.

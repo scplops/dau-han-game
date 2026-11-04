@@ -145,3 +145,4 @@ const STORM_CLOUD := Color("#6e7378")
 const RAIN := Color("#cfd9e2")
 const MIST := Color("#e4e6e1")           # sương mù sáng sớm
 const LIGHTNING := Color("#e8ecff")
+const RIVER_BED := Color("#5e5a3c")      # bùn lòng sông (bổ sung)

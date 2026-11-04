@@ -32,6 +32,7 @@ godot --path . --rendering-method gl_compatibility
 | `R` | Đổi ngay sang thời tiết ngẫu nhiên khác (thời tiết luôn tự đổi ngẫu nhiên) |
 | `H` | Ẩn/hiện HUD |
 
+Quanh làng có một con sông với đê cỏ, đàn cá bơi, đầm sen và đò neo bến.
 Phía bắc khu nhà là một làng Bắc Bộ xưa với 44 ngôi nhà, mỗi nhà một kiến trúc khác nhau,
 cùng đình, chùa, ao, giếng, lũy tre. Lăn chuột để lùi camera ra xa, kéo chuột giữa (hoặc W)
 để đi vào làng.
