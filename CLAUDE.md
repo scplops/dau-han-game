@@ -431,6 +431,13 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - **Giờ & thời tiết:** cá ăn mạnh lúc sáng sớm và chiều muộn, kém buổi trưa, rất kém ban đêm;
   mưa phùn cá ăn hơn; mưa giông thì không câu được (đang câu thì tự thu cần về).
   Ban đêm đèn bão cạnh chỗ ngồi tự sáng (nhóm `night_light`).
+- **Câu trên đò** (giai đoạn 3i): mỗi đò có một chỗ câu ở mũi, sau mui (`Fishing._make_boat_spot`,
+  node `FishSpot` là con của đò, toạ độ `BOAT_SEAT_X/Z`): ghế đẩu, cần tre dựng sẵn, giỏ cá, vùng bấm
+  `FishTarget` ("Ngồi câu cá · Đò N"). Chỉ số chỗ câu: 0…2 là bến, 3 trở đi là đò. Lúc ngồi xuống
+  `_orient_boat_spot` xoay chỗ câu về mạn phía lòng sông. Hướng ngồi lấy từ node (`_face(i)` =
+  `global_rotation.y`), nên đò đã chèo đi chỗ khác vẫn câu đúng hướng. Đang chèo thì không ngồi câu
+  (BoatRide tắt `FishSpot/FishTarget`). Nhập vai: đứng ở mũi đò nhìn cần câu "E: ngồi câu cá";
+  thôi câu thì đứng lại trên đò.
 - Chụp ảnh: `--fish=<chỉ số bến>` vào câu, `--fish-state=charge|wait|nibble|bite|reel|caught`
   dựng sẵn trạng thái để kiểm tra giao diện. `tools/fish_test.gd` chơi thử tự động (headless), in
   diễn biến từng lượt câu.
@@ -626,7 +633,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   Con của mỗi đò: `Hull`, `Pole` (mái chèo dựa cọc — ẩn khi đang chèo), `Solid` (StaticBody lớp 4:
   hộp sàn, hai đầu, mạn chừa khe, vách + mái mui, bếp, chum, cọc), `ClickTarget` (hộp cả con đò,
   "Lên đò"; viền sáng là khung phẳng trên mặt nước), `OarTarget` ("Cầm chèo"), `Plank` (ván cầu),
-  `Lantern` + `BoatLantern` (đèn bão đầu mui, `night_light`). `FirstPerson` không dựng va chạm từ
+  `Lantern` + `BoatLantern` (đèn bão đầu mui, treo lệch một bên, `night_light`), `FishSpot` (chỗ câu,
+  mục 16). `FirstPerson` không dựng va chạm từ
   mesh đò (bỏ qua nhóm `boat`) vì đã có `Solid` đi theo đò.
 - **Ván cầu** (`BoatRide.deploy_plank`): khi neo, nếu mạn đò (chỗ khe) cách mép nước dưới
   `plank_reach` thì bắc ván từ khe lên mặt đê (cách mép 2 m) phía bờ gần hơn; xa bờ thì cất ván.
@@ -654,6 +662,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   gỗ theo hướng mũi) và mũi tên đỏ theo đò khi đang chèo (`BoatRide.heading_for_map`).
 - `tools/boat_test.gd` (headless): đi qua ván lên đò, vào mui, cầm chèo, chèo tới / rẽ / lùi (luôn
   cách mép ≥ `bank_margin`), thôi chèo giữa sông (không ván), lội xuống rồi trèo bậc mạn, chèo sát bờ
-  (có ván), nhìn đò từ bờ "E: Lên đò", bấm đò từ ngắm cảnh.
+  (có ván), nhìn đò từ bờ "E: Lên đò", bấm đò từ ngắm cảnh, ngồi câu trên đò (quay ra lòng sông,
+  phao rơi xuống nước), đang chèo thì không câu, rê chuột vào cần câu trên đò.
+  `tools/fish_test.gd -- --spot=4` chơi trọn một ván câu trên đò 2.
   Chụp ảnh: `--boat=N [--boat-drive=giây] [--boat-cam=độ]`; đứng trên đò:
   `--fp --fp-board=N [--fp-at=x,z] [--fp-yaw=độ]` (toạ độ, hướng tính theo đò).

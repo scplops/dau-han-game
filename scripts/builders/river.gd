@@ -611,6 +611,7 @@ func _build_boats() -> void:
 		# mắt nằm trong hộp nên tia nhìn không chạm hộp này nữa
 		var target := HouseEntry.make_click_target(node, _t(0, 1.25, 0), Vector3(2.7, 2.7, 9.6), "Lên đò")
 		target.set_meta("boat_index", i)
+		target.set_meta("pass_through", true)     # rê chuột vào cọc chèo / chỗ câu bên trong thì lấy chỗ đó
 		# Viền sáng khi rê chuột: một khung phẳng trên mặt nước quanh đò thay cho hộp to che mất đò
 		var hl := target.get_node("Highlight") as MeshInstance3D
 		var bm := (hl.mesh as BoxMesh).duplicate() as BoxMesh

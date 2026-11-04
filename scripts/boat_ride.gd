@@ -90,7 +90,7 @@ func _ready() -> void:
 
 ## Đèn bão treo ở đầu mui: tối thì sáng (nhóm `night_light`), đò neo hay đang chèo đều thấy.
 func _add_lantern(b: Node3D) -> void:
-	var lamp := Transform3D(Basis.IDENTITY, Vector3(0.0, River.BOAT_DECK + 1.25, River.BOAT_CABIN.y + 0.2))
+	var lamp := Transform3D(Basis.IDENTITY, Vector3(-0.72, River.BOAT_DECK + 1.05, River.BOAT_CABIN.y + 0.2))   # treo lệch một bên, không chắn tầm nhìn từ trong mui
 	var mb := MeshBuilder.new(77, 0.02)
 	mb.add_limb(Vector3(0, 0.4, -0.06), Vector3(0, 0.3, 0), 0.006, 0.006, 3, Palette.WINDOW_DARK, lamp)
 	mb.add_prism(0.06, 0.06, 0.03, 6, Palette.WINDOW_DARK, lamp)
@@ -103,7 +103,7 @@ func _add_lantern(b: Node3D) -> void:
 	light.light_color = Palette.WINDOW_GLOW
 	light.omni_range = 8.0
 	light.light_energy = 0.0
-	light.set_meta("max_energy", 1.4)
+	light.set_meta("max_energy", 0.85)
 	light.shadow_enabled = false
 	light.position = lamp.origin + Vector3(0, 0.1, 0)
 	light.add_to_group("night_light")
@@ -147,8 +147,10 @@ func board(i: int) -> void:
 		house_entry.locked = true
 	_set_plank(boat, null)
 	(boat.get_node("Pole") as Node3D).visible = false
-	for t: String in ["ClickTarget", "OarTarget"]:
-		(boat.get_node(t) as Node3D).process_mode = Node.PROCESS_MODE_DISABLED
+	for t: String in ["ClickTarget", "OarTarget", "FishSpot/FishTarget"]:
+		var tn := boat.get_node_or_null(t) as Node3D
+		if tn != null:
+			tn.process_mode = Node.PROCESS_MODE_DISABLED
 	_make_rower()
 	active = true
 	_cam.global_position = _cam_target()
@@ -188,8 +190,10 @@ func _leave_boat() -> void:
 		_rower.queue_free()
 		_rower = null
 	(boat.get_node("Pole") as Node3D).visible = true
-	for t: String in ["ClickTarget", "OarTarget"]:
-		(boat.get_node(t) as Node3D).process_mode = Node.PROCESS_MODE_INHERIT
+	for t: String in ["ClickTarget", "OarTarget", "FishSpot/FishTarget"]:
+		var tn := boat.get_node_or_null(t) as Node3D
+		if tn != null:
+			tn.process_mode = Node.PROCESS_MODE_INHERIT
 	boat.rotation = Vector3(0, _yaw, 0)
 	boat.position.y = river.water_level - 0.15
 	deploy_plank(boat)

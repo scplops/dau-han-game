@@ -48,6 +48,10 @@ const SPECIES: Array = [
 @export var cast_range: Vector2 = Vector2(2.5, 13.0)
 @export var cast_time: float = 0.8
 
+## Chỗ ngồi câu trên đò (toạ độ cục bộ của đò: lệch mạn, phía mũi sau mui).
+const BOAT_SEAT_X := 0.5
+const BOAT_SEAT_Z := 3.1
+
 @export_group("Kéo cá")
 @export var reel_speed: float = 0.2
 @export var tension_rise: float = 0.55
@@ -146,6 +150,8 @@ func _ready() -> void:
 	if river != null:
 		for i in river.landings.size():
 			_make_spot(i, river.landings[i])
+		for b in river.boat_nodes.size():
+			_make_boat_spot(_spots.size(), river.boat_nodes[b], b)
 	_set_visuals(false)
 
 
@@ -173,7 +179,58 @@ func _make_spot(i: int, landing: Dictionary) -> void:
 			"Ngồi câu cá  ·  " + str(landing.name))
 	target.set_meta("activate", start.bind(i))
 	target.add_to_group(HouseEntry.ACTIVATE_GROUP)
-	_spots.append({"node": node, "idle": idle, "landing": landing})
+	_spots.append({"node": node, "idle": idle, "name": str(landing.name), "boat": null})
+
+
+## Chỗ ngồi câu trên đò (mũi đò, sau mui): ghế đẩu, cần tre dựng sẵn, giỏ cá. Node là con của đò
+## nên đi theo khi chèo; lúc ngồi xuống thì quay mặt ra phía lòng sông (`_orient_boat_spot`).
+func _make_boat_spot(i: int, boat: Node3D, b: int) -> void:
+	var node := Node3D.new()
+	node.name = "FishSpot"
+	boat.add_child(node)
+	node.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(BOAT_SEAT_X, River.BOAT_DECK, BOAT_SEAT_Z))
+	var h := river.stool_height
+	# Ghế đẩu + giỏ cá (luôn hiện)
+	var fixed := MeshBuilder.new(90 + b, 0.04)
+	fixed.add_box(Vector3(0.34, 0.04, 0.3), Palette.WOOD_LIGHT, _t3(0, h - 0.04, -0.12))
+	for lx: float in [-0.13, 0.13]:
+		for lz: float in [-0.24, 0.0]:
+			fixed.add_box(Vector3(0.04, h - 0.04, 0.04), Palette.WOOD, _t3(lx, 0, lz))
+	fixed.add_prism(0.14, 0.2, 0.3, 9, Palette.STRAW.darkened(0.25), _t3(-0.55, 0, 0.05))
+	fixed.add_prism(0.1, 0.1, 0.04, 9, Palette.STRAW.darkened(0.4), _t3(-0.55, 0.3, 0.05))
+	node.add_child(fixed.commit_instance("Seat"))
+	# Cần tre dựng nghiêng chờ sẵn (ẩn khi đang câu) — giống ở bến
+	var mb := MeshBuilder.new(80 + b, 0.04)
+	mb.add_limb(Vector3(0.3, 0.02, -0.35), Vector3(0.2, 1.9, 2.0), 0.022, 0.009, 5, Palette.BAMBOO_STEM)
+	for k in 4:
+		var p := Vector3(0.3, 0.02, -0.35).lerp(Vector3(0.2, 1.9, 2.0), 0.15 + k * 0.2)
+		mb.add_prism(0.026 - k * 0.003, 0.026 - k * 0.003, 0.03, 5, Palette.BAMBOO_NODE, _t3(p.x, p.y, p.z))
+	var idle := mb.commit_instance("IdleRod")
+	node.add_child(idle)
+	var name_s := "Đò %d" % (b + 1)
+	var target := HouseEntry.make_click_target(node, _t3(0.0, 0.55, 0.1), Vector3(1.0, 1.1, 1.0),
+			"Ngồi câu cá  ·  " + name_s)
+	target.name = "FishTarget"
+	target.set_meta("activate", start.bind(i))
+	target.add_to_group(HouseEntry.ACTIVATE_GROUP)
+	_spots.append({"node": node, "idle": idle, "name": "Câu trên " + name_s.to_lower(), "boat": boat})
+
+
+## Hướng mặt (yaw thế giới) của chỗ ngồi câu thứ `i`: nhìn ra mặt nước (+z cục bộ).
+func _face(i: int) -> float:
+	return (_spots[i].node as Node3D).global_rotation.y
+
+
+## Chỗ câu trên đò: ngồi ở mạn phía lòng sông (xa bờ hơn) để quăng ra chỗ nước rộng.
+func _orient_boat_spot(i: int) -> void:
+	var boat: Node3D = _spots[i].boat
+	var node: Node3D = _spots[i].node
+	var p := Vector2(boat.global_position.x, boat.global_position.z)
+	var smp := river.sample(river.nearest_s(p))
+	var to_center: Vector2 = (smp[0] as Vector2) - p
+	var bx := Vector2(boat.global_transform.basis.x.x, boat.global_transform.basis.x.z)
+	var side := 1.0 if bx.dot(to_center) >= 0.0 else -1.0
+	node.transform = Transform3D(Basis(Vector3.UP, side * PI * 0.5), Vector3(side * BOAT_SEAT_X, River.BOAT_DECK, BOAT_SEAT_Z))
 
 
 ## Người câu ngồi ghế đẩu, quay mặt ra sông (+z cục bộ). Cần câu gắn ở tay, hai khúc
@@ -292,8 +349,13 @@ func start(i: int, instant: bool = false) -> void:
 	if state != State.OFF or i < 0 or i >= _spots.size():
 		return
 	if weather != null and weather.kind == "storm":
-		_show_toast("Trời đang giông, không ra bến câu được.", 2.5)
+		_show_toast("Trời đang giông, không câu được.", 2.5)
 		return
+	if _spots[i].boat != null:
+		var br := get_parent().get_node_or_null("BoatRide") as BoatRide
+		if br != null and br.active:
+			return                                  # đang chèo thì không ngồi câu
+		_orient_boat_spot(i)
 	_spot = i
 	var node: Node3D = _spots[i].node
 	_angler.reparent(node, false)
@@ -303,11 +365,11 @@ func start(i: int, instant: bool = false) -> void:
 	if villagers != null:
 		villagers.select_villager(null)
 	if hud != null:
-		hud.set_fishing("Câu cá · " + str(_spots[i].landing.name))
+		hud.set_fishing("Câu cá · " + str(_spots[i].name))
 	if outdoor_rig != null:
 		_saved_cam = {"yaw": outdoor_rig.yaw_deg, "pitch": outdoor_rig.pitch_deg,
 				"distance": outdoor_rig.distance, "focus": outdoor_rig.global_position}
-		var face := float(_spots[i].landing.face)
+		var face := _face(i)
 		var fwd := Vector3(sin(face), 0.0, cos(face))
 		outdoor_rig.pan_locked = true
 		outdoor_rig.yaw_deg = wrapf(rad_to_deg(face + PI) + cam_side_deg, -180.0, 180.0)
@@ -400,7 +462,7 @@ func _cast(power: float) -> void:
 	_t = 0.0
 	_power = power
 	var node: Node3D = _spots[_spot].node
-	var face := float(_spots[_spot].landing.face)
+	var face := _face(_spot)
 	var fwd := Vector2(sin(face), cos(face))
 	var origin := Vector2(node.global_position.x, node.global_position.z)
 	# Tầm xa nhất còn là nước (lòng sông cong, rộng hẹp khác nhau)
@@ -656,7 +718,7 @@ func _do_reel(delta: float) -> void:
 			return
 	# Cá giãy: càng gần bờ càng ít lượn; phao bị lôi theo
 	var node: Node3D = _spots[_spot].node
-	var face := float(_spots[_spot].landing.face)
+	var face := _face(_spot)
 	var fwd := Vector3(sin(face), 0, cos(face))
 	var near := node.global_position + fwd * 1.3
 	near.y = river.water_level
@@ -678,7 +740,7 @@ func _do_reel(delta: float) -> void:
 	_set_rod(deg_to_rad(lerpf(45.0, 26.0, _tension)),
 			0.1 + 0.55 * _tension + 0.05 * _surge * sin(_time * 30.0))
 	var col := Palette.LILY.lerp(Palette.FLOWER_YELLOW, smoothstep(0.4, 0.7, _tension)).lerp(Palette.FLAG_RED, smoothstep(0.7, 0.9, _tension))
-	_show_meter("Độ căng dây", _tension, col, "Kéo vào bờ", _progress)
+	_show_meter("Độ căng dây", _tension, col, "Kéo cá vào", _progress)
 
 
 ## Cá lên bờ: bay một vòng vào giỏ, ghi sổ, hiện thẻ.

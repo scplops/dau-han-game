@@ -170,4 +170,60 @@ func _run() -> void:
 	var bp := r.boat_nodes[2].global_position
 	print("   thôi chèo: rig bật %s, camera rig %s, khoá cửa %s, tâm rig cách đò %.1f m" % [
 			rig.active, rig.camera.current, he.locked, Vector2(rig._target_focus.x - bp.x, rig._target_focus.z - bp.z).length()])
+	# 10) Câu cá trên đò: nhập vai đứng ở mũi đò 1, nhìn cần câu → E → ngồi câu, quăng phao ra nước
+	var fi := scene.get_node("Fishing") as Fishing
+	var spot_i := r.landings.size() + 1
+	var fspot: Node3D = fi._spots[spot_i].node
+	rig.global_position = Vector3(b.global_position.x, 0, b.global_position.z)
+	fp.enter()
+	br.step_aboard(1)
+	fp.global_position = b.to_global(Vector3(0, River.BOAT_DECK + 0.05, 2.0))
+	await _frames(10)
+	_face(fp, (fspot.get_node("FishTarget") as Node3D).global_position)
+	await _frames(3)
+	print("10) gợi ý khi nhìn cần câu trên đò: '%s'" % hud._hint_label.text)
+	fp._act()
+	await _frames(5)
+	var face := fi._face(spot_i)
+	var bp2 := Vector2(b.global_position.x, b.global_position.z)
+	var smb := r.sample(r.nearest_s(bp2))
+	var toward_center := Vector2(sin(face), cos(face)).dot((smb[0] as Vector2) - bp2) > 0.0
+	print("    đang câu: %s, chỗ: '%s', ngồi quay ra lòng sông: %s, nhập vai tạm dừng: %s" % [
+			Fishing.State.keys()[fi.state], fi._spots[spot_i].name, toward_center, fp._suspended])
+	fi._on_press()
+	fi._power = 0.9
+	fi._cast(0.9)
+	var land := Vector2(fi._cast_to.x, fi._cast_to.z)
+	print("    quăng phao: cách đò %.1f m, rơi xuống nước: %s" % [land.distance_to(bp2), r.is_water(land, 0.5)])
+	fi.stop()
+	await _frames(5)
+	lp = _local(fp, b)
+	print("    thôi câu: nhập vai tiếp %s, camera nhập vai %s, vẫn đứng trên đò (y=%.2f)" % [fp._suspended == "" and fp.active, fp.camera.current, lp.y])
+	# 11) Đang chèo thì không ngồi câu được (vùng bấm tắt)
+	_face(fp, b.to_global(Vector3(0.55, River.BOAT_DECK + 0.9, -2.95)))
+	fp.global_position = b.to_global(Vector3(0, River.BOAT_DECK + 0.05, -2.2))
+	await _frames(3)
+	_face(fp, (b.get_node("OarTarget") as Node3D).global_position)
+	await _frames(3)
+	fp._act()
+	await _frames(3)
+	fi.start(spot_i)
+	print("11) đang chèo mà gọi ngồi câu: trạng thái câu %s, vùng bấm câu tắt: %s" % [Fishing.State.keys()[fi.state],
+			(fspot.get_node("FishTarget") as Node).process_mode == Node.PROCESS_MODE_DISABLED])
+	br.disembark()
+	await _frames(3)
+	# 12) Ngắm cảnh: rê chuột vào chỗ câu trên đò → lấy chỗ câu, không phải cả con đò
+	fp.exit()
+	await _frames(3)
+	rig.yaw_deg = rad_to_deg(b.rotation.y) + 90.0
+	rig.pitch_deg = -40.0
+	rig.distance = 14.0
+	rig.set_focus(fspot.global_position)
+	rig.snap()
+	await _frames(3)
+	var ft := fspot.get_node("FishTarget") as Node3D
+	var picked := he.pick_at(rig.camera, rig.camera.unproject_position(ft.global_position))
+	var picked_hull := he.pick_at(rig.camera, rig.camera.unproject_position(b.to_global(Vector3(0, 1.5, 0))))
+	print("12) rê chuột vào cần câu trên đò: '%s'; vào mui đò: '%s'" % [str(picked.get_meta("hint")) if picked != null else "(không)",
+			str(picked_hull.get_meta("hint")) if picked_hull != null else "(không)"])
 	quit()

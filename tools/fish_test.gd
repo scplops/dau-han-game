@@ -1,6 +1,7 @@
 extends SceneTree
 ## Chạy thử mini-game câu cá không giao diện (người chơi giả): quăng, chờ, giật, kéo theo nhịp.
-## Dùng: godot --headless --path . -s tools/fish_test.gd   (chạy theo thời gian thật, ~3 phút)
+## Dùng: godot --headless --path . -s tools/fish_test.gd [-- --spot=N]   (chạy theo thời gian thật, ~3 phút)
+## --spot: chỗ câu (0–2 bến sông, 3 trở đi là chỗ câu trên đò).
 func _initialize() -> void:
 	_run.call_deferred()
 
@@ -13,7 +14,12 @@ func _run() -> void:
 	w.set_weather("clear", true)
 	var f := scene.get_node("Fishing") as Fishing
 	await process_frame
-	f.start(0, true)
+	var spot := 0
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--spot="):
+			spot = int(a.substr(7))
+	f.start(spot, true)
+	print("Chỗ câu %d: %s" % [spot, f._spots[spot].name])
 	var results := {}
 	var last := -1
 	var t := 0.0

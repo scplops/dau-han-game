@@ -129,12 +129,25 @@ func _physics_process(_delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
-	var mouse := get_viewport().get_mouse_position()
-	var from := cam.project_ray_origin(mouse)
-	var to := from + cam.project_ray_normal(mouse) * ray_length
+	_set_hovered(pick_at(cam, get_viewport().get_mouse_position()))
+
+
+## Vùng bấm dưới điểm `screen` trên màn hình (null nếu không trúng).
+func pick_at(cam: Camera3D, screen: Vector2) -> StaticBody3D:
+	var from := cam.project_ray_origin(screen)
+	var to := from + cam.project_ray_normal(screen) * ray_length
 	var query := PhysicsRayQueryParameters3D.create(from, to, 1 << (CLICK_LAYER - 1))
-	var hit := cam.get_world_3d().direct_space_state.intersect_ray(query)
-	_set_hovered(hit.get("collider") as StaticBody3D if not hit.is_empty() else null)
+	var space := cam.get_world_3d().direct_space_state
+	var hit := space.intersect_ray(query)
+	# Vùng bấm "bao ngoài" (cả con đò) nhường cho vùng bấm nhỏ nằm bên trong nó (cọc chèo,
+	# chỗ ngồi câu trên đò): dò lại bỏ qua hộp ngoài, trúng vùng con thì lấy vùng con
+	if not hit.is_empty() and (hit.collider as Node).has_meta("pass_through"):
+		var outer := hit.collider as Node
+		query.exclude = [hit.rid]
+		var inner := space.intersect_ray(query)
+		if not inner.is_empty() and outer.get_parent().is_ancestor_of(inner.collider as Node):
+			hit = inner
+	return hit.get("collider") as StaticBody3D if not hit.is_empty() else null
 
 
 ## Vào toà có cửa `target` (null = nhà mình).
