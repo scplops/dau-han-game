@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/house_entry.gd" id="15_entry"]
 [ext_resource type="Script" path="res://scripts/builders/village.gd" id="16_village"]
 [ext_resource type="Script" path="res://scripts/weather.gd" id="17_weather"]
+[ext_resource type="Script" path="res://scripts/villagers.gd" id="18_villagers"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -125,6 +126,16 @@ active = false
 fov = 40.0
 near = 0.1
 far = 300.0
+
+[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig")]
+script = ExtResource("18_villagers")
+village = NodePath("../Village")
+terrain = NodePath("../Terrain")
+house = NodePath("../House")
+day_night = NodePath("../../DayNight")
+weather = NodePath("../../Weather")
+hud = NodePath("../../HUD")
+outdoor_rig = NodePath("../../CameraRig")
 
 [node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment", "house")]
 script = ExtResource("11_daynight")

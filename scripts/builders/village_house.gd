@@ -405,6 +405,7 @@ static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, 
 
 	# Rào trước + cổng, rào bên trái
 	var gate_x := clampf(hx + rng.randf_range(-1.0, 1.0), -width * 0.5 + 1.6, width * 0.5 - 1.6)
+	info["gate"] = xf * Vector3(gate_x, 0.0, 0.7)   # ngay ngoài cổng, phía ngõ (cho NPC đi)
 	var fence: String = FENCES[rng.randi_range(0, FENCES.size() - 1)]
 	_fence(mb, leaves, xf, Vector3(-width * 0.5, 0, -0.4), Vector3(gate_x - 0.95, 0, -0.4), fence, rng)
 	_fence(mb, leaves, xf, Vector3(gate_x + 0.95, 0, -0.4), Vector3(width * 0.5, 0, -0.4), fence, rng)

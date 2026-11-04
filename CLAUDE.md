@@ -3,7 +3,8 @@
 > File hướng dẫn cho Claude Code. Đặt file này ở thư mục gốc của dự án Godot.
 > Mục tiêu giai đoạn này: **chỉ dựng cảnh quan để ngắm**, CHƯA có gameplay
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
-> Ngoại lệ duy nhất: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10) — vẫn không có nhân vật điều khiển.
+> Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10) và **dân làng tự đi lại** (mục 13)
+> — vẫn không có nhân vật do người xem điều khiển, chưa có hội thoại.
 
 ---
 
@@ -133,7 +134,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
 7. **Phím tắt** khai báo trong **Input Map** của `project.godot` (tên action tiếng Anh:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
-   `cycle_weather` (R)),
+   `cycle_weather` (R), `follow_npc` (F)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -166,6 +167,8 @@ scripts/
   camera_rig.gd
   day_night.gd         # giờ, màu trời/đèn, đèn cửa sổ, đom đóm, khói bếp
   weather.gd           # thời tiết: mây, mưa, giông, chớp, sương mù (mục 12)
+  villagers.gd         # dân làng + con vật: đồ thị đường, lịch sinh hoạt, chọn xem tin (mục 13)
+  villager.gd          # một NPC: hình có khớp, dáng đi/làm việc, đi theo đường
   hud.gd
 shaders/
   wind_sway.gdshader
@@ -223,7 +226,7 @@ screenshots/           # ảnh chụp, không commit
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Điều khiển nhân vật, trồng trọt, NPC và hội thoại, lưu game, âm thanh và nhạc nền,
+Điều khiển nhân vật, trồng trọt, hội thoại với NPC, lưu game, âm thanh và nhạc nền,
 thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -299,3 +302,26 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   vùng mưa rộng theo độ xa camera; ẩn khi vào trong nhà. GPUParticles3D ở Forward+,
   CPUParticles3D (bớt hạt) ở Compatibility. Mây (`Clouds.coverage`) dày và xám dần theo độ phủ.
 - Chụp ảnh: `--weather=<kiểu>` (tắt tự đổi), `--flash` (giữ khoảnh khắc chớp).
+
+## 13. Dân làng đi lại (giai đoạn 1e)
+
+- `scripts/villagers.gd` (node `World/Villagers`, dựng sau `Village`) + `scripts/villager.gd`.
+  Mặc định 36 người (12 nông dân vác cuốc, 6 người gánh hàng, 6 cụ già chống gậy, 8 trẻ con,
+  4 trẻ chăn trâu) và 37 con vật (4 trâu theo trẻ chăn, 3 chó theo chủ, 6 sân gà × 4, 6 vịt
+  bơi nối đuôi ở ao làng). Số lượng chỉnh bằng `@export`. Dân số sinh theo `random_seed` cố định.
+- **Đường đi:** `AStar3D` dựng từ đường trục, các ngõ (`Village.lane_points/alley_lines`),
+  đường đất (`Terrain.roads`) và lối sân nhà mình. Ra khỏi nhà: cửa → trước hiên → cổng
+  (`Village.homes[i].gate`) → đồ thị; về nhà thì ngược lại rồi ẩn ("vào nhà"). Mỗi người lệch
+  sang một bên đường (`side_offset`, tính theo hướng CỐ ĐỊNH của đoạn đường — tính theo vị trí
+  hiện tại thì NPC sẽ quay vòng mãi quanh điểm mốc).
+- **Lịch:** `Villagers._choices()` cho trọng số việc theo vai trò + giờ (ra đồng, chăn trâu,
+  gánh nước ở giếng, nghỉ gốc đa, lễ chùa, chơi sân đình/bờ ao, sang nhà hàng xóm, làm việc
+  ngoài sân, vào nhà). Mỗi việc kéo dài vài chục giây thật nên làng vẫn động khi giờ đứng yên.
+  Tối (≥ 20:30) ai cũng về nhà, trừ vài người cầm đèn lồng đi chơi tới 22:00.
+- **Thời tiết:** mưa phùn đi nhanh hơn, bớt đi chơi; mưa giông thì mọi người chạy về nhà trú,
+  tạnh mới ra lại. Gà vào chuồng khi giông hoặc tối.
+- **Xem tin:** bấm chuột trái vào người/vật (lớp va chạm 3) → vòng sáng dưới chân + khung
+  thông tin góc trên phải (tên, vai trò, nhà, việc đang làm); `F` cho camera đi theo.
+- **Hiệu năng:** mesh từng bộ phận dùng chung qua bộ đệm; chỉ diễn hoạt NPC trong
+  `animate_distance` quanh camera; mỗi phần có `visibility_range_end`.
+- Chụp ảnh: `--npc=<chỉ số|vai trò>` chọn NPC và cho camera đi theo.

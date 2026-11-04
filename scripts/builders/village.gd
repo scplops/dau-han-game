@@ -47,6 +47,12 @@ var style_stats: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 var _lane: PackedVector2Array
 var _alleys: Array[PackedVector2Array] = []
+
+## Các nhà có người ở (cho NPC): {door, forward, gate, name, key}. Có sau build().
+var homes: Array[Dictionary] = []
+## Chỗ đứng chơi trong sân đình / sân chùa (cho NPC).
+var dinh_spot: Vector3
+var pagoda_spot: Vector3
 var _glow_mat: StandardMaterial3D
 var _occupied: Array[Rect2] = []      # vùng đã có lô / công trình (để rải vườn tạp tránh)
 
@@ -108,6 +114,16 @@ static func _t(x: float, y: float, z: float) -> Transform3D:
 
 
 ## Nửa bề rộng elip làng tại độ sâu z.
+## Đường trục (x, z) từ ngoài cổng vào tới đình.
+func lane_points() -> PackedVector2Array:
+	return _lane
+
+
+## Các ngõ ngang, mỗi ngõ là một đường gấp khúc (x, z) bắt đầu từ mép đường trục.
+func alley_lines() -> Array[PackedVector2Array]:
+	return _alleys
+
+
 func half_width_at(z: float) -> float:
 	var dz := (z - center.y) / radii.y
 	return radii.x * sqrt(maxf(0.0, 1.0 - dz * dz))
@@ -264,6 +280,9 @@ func _build_plots() -> void:
 						info["name"] = VillageHouse.describe(st)
 						var door: Transform3D = info["door"]
 						info.erase("door")
+						homes.append({"door": door.origin, "forward": door.basis.z.normalized(),
+								"gate": info["gate"], "name": info["name"], "key": "house_%d" % house_count})
+						info.erase("gate")
 						HouseEntry.make_entry_target(self, door, Vector3(1.6, 2.1, 0.4),
 								"Vào  ·  " + str(info["name"]), info, "house_%d" % house_count)
 						house_count += 1
@@ -445,6 +464,7 @@ func _pond(stat: MeshBuilder, leaves: MeshBuilder, c: Vector3, r: Vector2, half:
 
 func _build_dinh(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, glow: MeshBuilder) -> void:
 	var z_front := alley_z[alley_z.size() - 1] - alley_width * 0.5 - 0.6
+	dinh_spot = Vector3(lane_x(alley_z[alley_z.size() - 1]), 0.05, z_front - 12.5)
 	var cx := lane_x(alley_z[alley_z.size() - 1])
 	# Nghi môn: 2 trụ lớn giữa, 2 trụ nhỏ hai bên, có đèn lồng đá trên đỉnh
 	var wc := Palette.WALL_WHITE.darkened(0.04)
@@ -562,6 +582,7 @@ func _build_dinh(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, gl
 func _build_pagoda(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, glow: MeshBuilder) -> void:
 	var r := pagoda_rect
 	var cx := r.get_center().x
+	pagoda_spot = Vector3(cx, 0.05, r.end.y - 4.0)
 	var front := r.end.y
 	var wc := Palette.WALL
 	var wd := Palette.WALL_DARK

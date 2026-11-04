@@ -14,7 +14,7 @@ signal exit_requested
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    Bấm người: xem tin    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
@@ -24,6 +24,9 @@ var _keys_panel: PanelContainer
 var _hint_panel: PanelContainer
 var _hint_label: Label
 var _exit_button: Button
+var _info_panel: PanelContainer
+var _info_title: Label
+var _info_body: Label
 var _inside: bool = false
 var _place: String = ""
 var _refresh: float = 0.0
@@ -106,6 +109,23 @@ func _ready() -> void:
 	_exit_button.pressed.connect(func() -> void: exit_requested.emit())
 	root.add_child(_exit_button)
 
+	# Khung thông tin NPC đang chọn (góc trên phải)
+	_info_panel = _panel()
+	_info_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_info_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_info_panel.offset_right = -20
+	_info_panel.offset_top = 18
+	_info_panel.custom_minimum_size.x = 300
+	_info_panel.visible = false
+	root.add_child(_info_panel)
+	var ib := VBoxContainer.new()
+	ib.add_theme_constant_override("separation", 2)
+	_info_panel.add_child(ib)
+	_info_title = _label(semibold, text_font_size + 7, Palette.HUD_TEXT)
+	ib.add_child(_info_title)
+	_info_body = _label(regular, text_font_size, Palette.HUD_SUBTEXT)
+	ib.add_child(_info_body)
+
 	_update_text()
 
 
@@ -141,10 +161,26 @@ func set_inside(value: bool, place: String = "") -> void:
 	if _exit_button == null:
 		return
 	_exit_button.visible = value
+	if value:
+		hide_info()
 	_keys_label.text = SHORTCUTS_IN if value else SHORTCUTS_OUT
 	_fit_bottom(_keys_panel, _keys_label)
 	set_hint("")
 	_update_text()
+
+
+## Hiện khung thông tin (tên + các dòng mô tả).
+func show_info(title: String, lines: Array[String]) -> void:
+	if _info_panel == null:
+		return
+	_info_title.text = title
+	_info_body.text = "\n".join(lines)
+	_info_panel.visible = not _inside
+
+
+func hide_info() -> void:
+	if _info_panel != null:
+		_info_panel.visible = false
 
 
 ## Gợi ý giữa màn hình (rỗng = ẩn).

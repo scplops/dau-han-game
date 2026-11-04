@@ -3,6 +3,7 @@ extends SceneTree
 ## Dùng: godot --path . -s tools/screenshot.gd -- --out=screenshots/a.png [--hour=17]
 ##        [--yaw=0] [--pitch=-40] [--distance=38] [--focus=x,z] [--ortho] [--frames=30]
 ##        [--weather=storm] [--flash] (loé chớp)
+##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -34,6 +35,19 @@ func _run() -> void:
 	if inside:
 		entry.enter_house(true, entry.find_entry(str(args.get("enter", "main"))))
 
+	# Chọn NPC thứ N, đặt camera vào họ (--npc=N), hoặc NPC đầu tiên có vai trò --npc=farmer
+	var vs := scene.get_node_or_null("World/Villagers") as Villagers
+	var npc: Villager = null
+	if vs != null and args.has("npc"):
+		var key := str(args["npc"])
+		for v in vs.people + vs.animals:
+			if (key.is_valid_int() and v == (vs.people + vs.animals)[int(key)]) or (v.role == key and v.visible):
+				npc = v
+				break
+		if npc != null:
+			vs.select_villager(npc)
+			vs._following = true   # camera đi theo để NPC luôn ở giữa khung
+
 	# Góc camera (camera đang dùng)
 	var rig := scene.get_node_or_null("InteriorCameraRig" if inside else "CameraRig") as CameraRig
 	if rig != null:
@@ -41,6 +55,8 @@ func _run() -> void:
 		if args.has("pitch"): rig.pitch_deg = float(args["pitch"])
 		if args.has("distance"): rig.distance = float(args["distance"])
 		if args.has("ortho"): rig.orthographic = true
+		if npc != null and not args.has("focus"):
+			rig.set_focus(npc.global_position)
 		if args.has("focus"):
 			var f := str(args["focus"]).split(",")
 			rig.set_focus(Vector3(float(f[0]), 0.0, float(f[1])))

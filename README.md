@@ -27,6 +27,8 @@ godot --path . --rendering-method gl_compatibility
 | `P` | Đổi phối cảnh ↔ trực giao |
 | `[` / `]` (giữ) | Lùi / tiến giờ |
 | `T` | Bật/tắt tự chạy giờ (1 ngày = 2 phút) |
+| Bấm vào người / con vật | Xem tên, nhà, việc đang làm |
+| `F` | Camera đi theo người đang chọn |
 | `R` | Đổi ngay sang thời tiết ngẫu nhiên khác (thời tiết luôn tự đổi ngẫu nhiên) |
 | `H` | Ẩn/hiện HUD |
 
