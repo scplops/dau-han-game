@@ -34,7 +34,7 @@ func _init(seed_value: int = 1, jitter: float = 0.0) -> void:
 	_rng.seed = seed_value
 	color_jitter = jitter
 	_st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_st.set_smooth_group(-1)  # -1 = không làm mượt => flat shading
+	_st.set_smooth_group(-1)  # pháp tuyến tự đặt ở _tri (mặt phẳng hoặc mượt)
 
 
 ## Vật liệu dùng chung: màu lấy từ màu đỉnh, nhám hoàn toàn.
@@ -69,7 +69,7 @@ func triangle_count() -> int:
 
 ## Kết thúc và trả về mesh (đã gán vật liệu mặc định).
 func commit(mat: Material = null) -> ArrayMesh:
-	_st.generate_normals()
+	# Pháp tuyến đã đặt sẵn ở từng đỉnh (_tri): mặt phẳng = pháp tuyến mặt, khối mượt = pháp tuyến cong
 	_st.set_material(mat if mat != null else material())
 	return _st.commit()
 
@@ -111,8 +111,10 @@ func vary(color: Color) -> Color:
 	return out
 
 
+## Tam giác; `na/nb/nc` (toạ độ cục bộ) là pháp tuyến mượt từng đỉnh — bỏ trống thì dùng pháp tuyến mặt.
 func _tri(a: Vector3, b: Vector3, c: Vector3, color: Color,
-		inside: Vector3, xform: Transform3D) -> void:
+		inside: Vector3, xform: Transform3D,
+		na: Vector3 = Vector3.ZERO, nb: Vector3 = Vector3.ZERO, nc: Vector3 = Vector3.ZERO) -> void:
 	a = xform * a
 	b = xform * b
 	c = xform * c
@@ -123,8 +125,19 @@ func _tri(a: Vector3, b: Vector3, c: Vector3, color: Color,
 		var tmp := b
 		b = c
 		c = tmp
-	for v: Vector3 in [a, b, c]:
+		var tn := nb
+		nb = nc
+		nc = tn
+		n = -n
+	n = n.normalized()
+	var smooth := na != Vector3.ZERO
+	var nbasis := xform.basis.inverse().transposed() if smooth else Basis()
+	var verts := [a, b, c]
+	var norms := [na, nb, nc]
+	for k in 3:
+		var v: Vector3 = verts[k]
 		_st.set_color(_shade(color, v))
+		_st.set_normal((nbasis * (norms[k] as Vector3)).normalized() if smooth else n)
 		_st.add_vertex(v)
 	_count += 1
 
@@ -228,6 +241,82 @@ func add_limb(a: Vector3, b: Vector3, r0: float, r1: float, sides: int, color: C
 	elif n.y < 0.0:
 		basis = Basis(Vector3.RIGHT, PI)
 	return add_prism(r0, r1, dir.length(), sides, color, xform * Transform3D(basis, a))
+
+
+# --- Khối bo tròn, mặt mượt (dùng cho người: "low-poly mềm") ----------------------------
+
+## Vành tròn theo profile [(y, bán kính, góc φ của pháp tuyến)…] quanh trục y, nối các vành
+## bằng dải tứ giác. `smooth`: pháp tuyến cong theo φ (khối tròn); `ny_scale` làm dẹt theo y.
+func _lathe(profile: Array, sides: int, col: Color, scale_xz: Vector2, xform: Transform3D,
+		smooth: bool, ny_scale: float = 1.0) -> void:
+	var rings: Array = []
+	var nrings: Array = []
+	for pr: Vector3 in profile:
+		var ring: Array[Vector3] = []
+		var nring: Array[Vector3] = []
+		for i in sides:
+			var a := TAU * float(i) / float(sides)
+			ring.append(Vector3(cos(a) * pr.y * scale_xz.x, pr.x, sin(a) * pr.y * scale_xz.y))
+			nring.append(Vector3(cos(pr.z) * cos(a) / scale_xz.x, sin(pr.z) / ny_scale, cos(pr.z) * sin(a) / scale_xz.y).normalized())
+		rings.append(ring)
+		nrings.append(nring)
+	for k in profile.size() - 1:
+		var r0: Array[Vector3] = rings[k]
+		var r1: Array[Vector3] = rings[k + 1]
+		var n0: Array[Vector3] = nrings[k]
+		var n1: Array[Vector3] = nrings[k + 1]
+		var inside := Vector3(0, ((profile[k] as Vector3).x + (profile[k + 1] as Vector3).x) * 0.5, 0)
+		for i in sides:
+			var j := (i + 1) % sides
+			if (profile[k] as Vector3).y > 0.0001:
+				if smooth:
+					_tri(r0[i], r0[j], r1[j], col, inside, xform, n0[i], n0[j], n1[j])
+				else:
+					_tri(r0[i], r0[j], r1[j], col, inside, xform)
+			if (profile[k + 1] as Vector3).y > 0.0001:
+				if smooth:
+					_tri(r0[i], r1[j], r1[i], col, inside, xform, n0[i], n1[j], n1[i])
+				else:
+					_tri(r0[i], r1[j], r1[i], col, inside, xform)
+
+
+## Ống bo tròn hai đầu (bắp tay, bắp chân, thân người) từ điểm a tới b, bán kính r0 → r1.
+## Mặc định mặt mượt; `scale_xz` để dẹt ống (thân người dẹt trước sau).
+func add_capsule(a: Vector3, b: Vector3, r0: float, r1: float, sides: int, color: Color,
+		xform: Transform3D = Transform3D.IDENTITY, smooth: bool = true,
+		scale_xz: Vector2 = Vector2.ONE) -> MeshBuilder:
+	var dir := b - a
+	var length := dir.length()
+	if length < 0.0001:
+		return self
+	var n := dir / length
+	var axis := Vector3.UP.cross(n)
+	var basis := Basis()
+	if axis.length() > 0.0001:
+		basis = Basis(axis.normalized(), Vector3.UP.angle_to(n))
+	elif n.y < 0.0:
+		basis = Basis(Vector3.RIGHT, PI)
+	var profile: Array = []
+	var cap := 3
+	for i in cap + 1:
+		var phi := -PI * 0.5 + PI * 0.5 * float(i) / cap
+		profile.append(Vector3(r0 * sin(phi), r0 * cos(phi), phi))
+	for i in cap + 1:
+		var phi := PI * 0.5 * float(i) / cap
+		profile.append(Vector3(length + r1 * sin(phi), r1 * cos(phi), phi))
+	_lathe(profile, sides, vary(color), scale_xz, xform * Transform3D(basis, a), smooth)
+	return self
+
+
+## Khối trứng / cầu dẹt (đầu, bàn tay, bàn chân, hông). Đáy ở y = 0 như các khối khác.
+func add_ellipsoid(radius: Vector3, color: Color, xform: Transform3D = Transform3D.IDENTITY,
+		sides: int = 10, rings: int = 6, smooth: bool = true) -> MeshBuilder:
+	var profile: Array = []
+	for i in rings + 1:
+		var phi := -PI * 0.5 + PI * float(i) / rings
+		profile.append(Vector3(radius.y + radius.y * sin(phi), cos(phi), phi))
+	_lathe(profile, sides, vary(color), Vector2(radius.x, radius.z), xform, smooth, radius.y)
+	return self
 
 
 ## Đa diện ngẫu nhiên (khối đá, tán cây): khối 20 mặt có đỉnh bị xô lệch.

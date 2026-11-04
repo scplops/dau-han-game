@@ -32,8 +32,10 @@ var terrain: Terrain
 
 # --- Hình ---
 var body: Node3D                  # nhấp nhô khi đi
-var legs: Array[Node3D] = []
-var arms: Array[Node3D] = []
+var legs: Array[Node3D] = []       # khớp hông (người) / chân (con vật)
+var arms: Array[Node3D] = []       # khớp vai
+var knees: Array[Node3D] = []      # khớp gối (người) — co khi bước, gập khi ngồi
+var elbows: Array[Node3D] = []     # khớp khuỷu tay
 var lantern: Node3D
 var ring: MeshInstance3D
 var _phase: float = 0.0
@@ -130,6 +132,8 @@ func wear(name_s: String) -> void:
 	body = o.body
 	legs.assign(o.legs)
 	arms.assign(o.arms)
+	knees.assign(o.get("knees", []))
+	elbows.assign(o.get("elbows", []))
 	outfit = name_s
 	in_uniform = name_s == "uniform"
 
@@ -143,70 +147,107 @@ func set_outfit(uniform: bool) -> void:
 func _add_outfit(name_s: String, look: Dictionary) -> void:
 	legs = []
 	arms = []
+	knees = []
+	elbows = []
 	_build_person_rig(look)
 	_outfits[name_s] = _snapshot()
 	wear(outfit)
 
 
 func _snapshot() -> Dictionary:
-	return {"body": body, "legs": legs.duplicate(), "arms": arms.duplicate()}
+	return {"body": body, "legs": legs.duplicate(), "arms": arms.duplicate(),
+			"knees": knees.duplicate(), "elbows": elbows.duplicate()}
+
+
+## Đầu người kiểu "low-poly mềm" (dùng chung cho dân làng, người câu cá, tượng nông dân):
+## đầu bo tròn, tai, chỏm tóc (phụ nữ có búi), mắt, lông mày, má hồng. `xf`: đáy đầu, mặt hướng +z.
+static func soft_head(mb: MeshBuilder, xf: Transform3D, s: float, skin: Color, female: bool) -> void:
+	mb.add_ellipsoid(Vector3(0.112, 0.128, 0.118) * s, skin, xf, 12, 7)
+	for ex: float in [-1.0, 1.0]:
+		mb.add_ellipsoid(Vector3(0.018, 0.032, 0.026) * s, skin.darkened(0.06), xf * _t(ex * 0.11 * s, 0.1 * s, -0.005 * s), 6, 3)
+	var hair := Palette.WINDOW_DARK.lightened(0.05)
+	mb.add_ellipsoid(Vector3(0.118, 0.095, 0.124) * s, hair, xf * _t(0, 0.135 * s, -0.012 * s), 12, 6)
+	if female:
+		mb.add_ellipsoid(Vector3(0.05, 0.045, 0.045) * s, hair, xf * _t(0, 0.1 * s, -0.12 * s), 8, 4)
+	for ex: float in [-0.042, 0.042]:
+		mb.add_ellipsoid(Vector3(0.014, 0.017, 0.008) * s, Palette.WINDOW_DARK, xf * _t(ex * s, 0.125 * s, 0.108 * s), 6, 3)
+		mb.add_capsule(Vector3((ex - 0.018) * s, 0.168 * s, 0.103 * s), Vector3((ex + 0.018) * s, 0.168 * s, 0.103 * s),
+				0.006 * s, 0.006 * s, 4, hair, xf)
+		mb.add_ellipsoid(Vector3(0.022, 0.012, 0.006) * s, skin.lerp(Palette.LOTUS, 0.35), xf * _t(ex * 1.45 * s, 0.085 * s, 0.1 * s), 6, 3)
 
 
 func _build_person_rig(look: Dictionary) -> void:
+	# "Low-poly mềm": tay chân là ống bo tròn hai đầu, thân và đầu bo tròn, bóng mượt;
+	# có khớp gối, khớp khuỷu để dáng đi co duỗi tự nhiên.
 	var s: float = look.get("scale", 1.0)
 	var shirt: Color = look.shirt
 	var pants: Color = look.pants
 	var skin: Color = look.get("skin", Palette.FARMER_SKIN)
+	var female: bool = look.get("female", false)
 	var hip := 0.78 * s
+	var thigh := hip * 0.5
+	var shin := hip * 0.5
 	body = _pivot(self, Vector3.ZERO)
 	var hk := "%s_%s_%.2f" % [shirt.to_html(), pants.to_html(), s]
-	# Chân: ống quần + bắp chân
+	# Chân: đùi (quần) → gối → ống chân (quần xắn, bắp chân trần) → bàn chân
 	for side in [-1.0, 1.0]:
-		var leg := _pivot(body, Vector3(side * 0.1 * s, hip, 0.0))
-		_part(leg, _cached("leg_" + hk, func(mb: MeshBuilder) -> void:
-			mb.add_limb(Vector3.ZERO, Vector3(0, -hip * 0.55, 0), 0.085 * s, 0.075 * s, 5, pants)
-			mb.add_limb(Vector3(0, -hip * 0.55, 0), Vector3(0, -hip, 0), 0.06 * s, 0.055 * s, 5, skin)
+		var leg := _pivot(body, Vector3(side * 0.095 * s, hip, 0.0))
+		_part(leg, _cached("thigh_" + hk, func(mb: MeshBuilder) -> void:
+			mb.add_capsule(Vector3.ZERO, Vector3(0, -thigh, 0), 0.085 * s, 0.072 * s, 8, pants)
+		), Vector3.ZERO)
+		var knee := _pivot(leg, Vector3(0, -thigh, 0))
+		_part(knee, _cached("shin_" + hk, func(mb: MeshBuilder) -> void:
+			mb.add_capsule(Vector3.ZERO, Vector3(0, -shin * 0.3, 0), 0.072 * s, 0.068 * s, 8, pants)
+			mb.add_capsule(Vector3(0, -shin * 0.25, 0), Vector3(0, -shin + 0.05 * s, 0), 0.055 * s, 0.042 * s, 8, skin)
+			mb.add_ellipsoid(Vector3(0.048, 0.03, 0.085) * s, skin.darkened(0.12), _t(0, -shin, 0.035 * s), 8, 4)
 		), Vector3.ZERO)
 		legs.append(leg)
-	# Thân + đầu (+ lưng còng cho cụ già)
+		knees.append(knee)
+	# Thân + hông + cổ + đầu (+ lưng còng cho cụ già)
 	var bend := 0.25 if role == "elder" else 0.0
-	_part(body, _cached("torso_%s_%.2f_%.2f" % [shirt.to_html(), s, bend], func(mb: MeshBuilder) -> void:
+	var hair_key := "f" if female else "m"
+	_part(body, _cached("torso_soft_%s_%s_%.2f_%.2f_%s" % [shirt.to_html(), pants.to_html(), s, bend, hair_key], func(mb: MeshBuilder) -> void:
 		var tilt := Transform3D(Basis(Vector3.RIGHT, bend), Vector3(0, hip, 0))
-		mb.add_prism(0.2 * s, 0.22 * s, 0.56 * s, 6, shirt, tilt * Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.8)), Vector3.ZERO))
-		mb.add_prism(0.05 * s, 0.05 * s, 0.08 * s, 5, skin, tilt * _t(0, 0.56 * s, 0))
-		var rng := RandomNumberGenerator.new()
-		rng.seed = 7
-		mb.add_blob(Vector3(0.12, 0.13, 0.12) * s, skin, rng, 0.06, tilt * _t(0, 0.6 * s, 0))
-		# Mắt, lông mày (để biết người đang nhìn về phía nào, nhất là khi nói chuyện)
-		for ex: float in [-0.045, 0.045]:
-			mb.add_box(Vector3(0.026, 0.032, 0.02) * s, Palette.WINDOW_DARK, tilt * _t(ex * s, 0.735 * s, 0.112 * s))
-			mb.add_box(Vector3(0.04, 0.012, 0.02) * s, Palette.WINDOW_DARK.lightened(0.1), tilt * _t(ex * s, 0.775 * s, 0.108 * s))
+		# Hông (quần) và thân áo: ống dẹt, vai rộng hơn eo một chút
+		mb.add_ellipsoid(Vector3(0.17, 0.11, 0.13) * s, pants, _t(0, hip - 0.1 * s, 0), 10, 5)
+		mb.add_capsule(Vector3(0, 0.11 * s, 0), Vector3(0, 0.36 * s, 0), 0.175 * s, 0.19 * s, 10, shirt, tilt, true, Vector2(1.0, 0.78))
+		# Vạt áo bà ba hơi xoè dưới eo
+		mb.add_prism(0.18 * s, 0.185 * s, 0.1 * s, 10, shirt.darkened(0.05), tilt * Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.8)), Vector3(0, -0.02 * s, 0)))
+		mb.add_capsule(Vector3(0, 0.5 * s, 0), Vector3(0, 0.6 * s, 0), 0.045 * s, 0.043 * s, 8, skin, tilt)
+		soft_head(mb, tilt * _t(0, 0.58 * s, 0.005 * s), s, skin, female)
 	), Vector3.ZERO)
 	var head_top := Vector3(0, hip + 0.86 * s * cos(bend), 0.86 * s * sin(bend))
 	match str(look.get("hat", "none")):
 		"non":
-			_part(body, _cached("non_%.2f" % s, func(mb: MeshBuilder) -> void:
-				mb.add_prism(0.36 * s, 0.34 * s, 0.025, 12, Palette.HAT_DARK)
-				mb.add_pyramid(0.36 * s, 0.28 * s, 12, Palette.HAT, _t(0, 0.025, 0))
-			), head_top - Vector3(0, 0.05 * s, 0))
-		"khan":
-			_part(body, _cached("khan_%.2f" % s, func(mb: MeshBuilder) -> void:
-				mb.add_box(Vector3(0.27, 0.07, 0.27) * s, Palette.WINDOW_DARK)
-				mb.add_pyramid(0.08 * s, 0.1 * s, 4, Palette.WINDOW_DARK, _t(0, 0.05 * s, 0.1 * s))
+			_part(body, _cached("non_soft_%.2f" % s, func(mb: MeshBuilder) -> void:
+				mb.add_prism(0.36 * s, 0.34 * s, 0.025, 16, Palette.HAT_DARK)
+				mb.add_pyramid(0.36 * s, 0.28 * s, 16, Palette.HAT, _t(0, 0.025, 0))
 			), head_top - Vector3(0, 0.07 * s, 0))
+		"khan":
+			_part(body, _cached("khan_soft_%.2f" % s, func(mb: MeshBuilder) -> void:
+				# Khăn mỏ quạ: vành khăn ôm đầu + mỏ nhọn trước trán
+				mb.add_ellipsoid(Vector3(0.13, 0.06, 0.135) * s, Palette.WINDOW_DARK, Transform3D.IDENTITY, 12, 4)
+				mb.add_pyramid(0.07 * s, 0.09 * s, 4, Palette.WINDOW_DARK, Transform3D(Basis(Vector3.RIGHT, 0.5), Vector3(0, 0.06 * s, 0.1 * s)))
+			), head_top - Vector3(0, 0.09 * s, 0))
 		"tuft":
 			_part(body, _cached("tuft", func(mb: MeshBuilder) -> void:
-				mb.add_blob(Vector3(0.05, 0.05, 0.05), Palette.WINDOW_DARK, RandomNumberGenerator.new(), 0.1)
-			), head_top)
-	# Tay
-	var sh := hip + 0.52 * s
+				mb.add_ellipsoid(Vector3(0.04, 0.035, 0.04), Palette.WINDOW_DARK, Transform3D.IDENTITY, 8, 4)
+			), head_top - Vector3(0, 0.02, 0))
+	# Tay: bắp tay → khuỷu → cẳng tay (tay áo dài) → bàn tay
+	var sh := hip + 0.5 * s
+	var upper := 0.27 * s
 	for side in [-1.0, 1.0]:
-		var arm := _pivot(body, Vector3(side * 0.24 * s, sh, 0.52 * s * sin(bend) * 0.6))
-		_part(arm, _cached("arm_" + hk, func(mb: MeshBuilder) -> void:
-			mb.add_limb(Vector3.ZERO, Vector3(0, -0.5 * s, 0), 0.055 * s, 0.045 * s, 5, shirt)
-			mb.add_blob(Vector3(0.045, 0.05, 0.045) * s, skin, RandomNumberGenerator.new(), 0.05, _t(0, -0.56 * s, 0))
+		var arm := _pivot(body, Vector3(side * 0.205 * s, sh - 0.02 * s, 0.5 * s * sin(bend) * 0.6))
+		_part(arm, _cached("uarm_" + hk, func(mb: MeshBuilder) -> void:
+			mb.add_capsule(Vector3.ZERO, Vector3(0, -upper, 0), 0.052 * s, 0.046 * s, 8, shirt)
+		), Vector3.ZERO)
+		var elbow := _pivot(arm, Vector3(0, -upper, 0))
+		_part(elbow, _cached("farm_" + hk, func(mb: MeshBuilder) -> void:
+			mb.add_capsule(Vector3.ZERO, Vector3(0, -0.21 * s, 0), 0.045 * s, 0.038 * s, 8, shirt)
+			mb.add_ellipsoid(Vector3(0.036, 0.048, 0.03) * s, skin, _t(0, -0.3 * s, 0.005 * s), 8, 4)
 		), Vector3.ZERO)
 		arms.append(arm)
+		elbows.append(elbow)
 	# Đồ cầm theo
 	match str(look.get("prop", "none")):
 		"hoe":
@@ -487,7 +528,7 @@ func _step_follow(delta: float) -> void:
 
 func _face(dir: Vector3, delta: float) -> void:
 	var yaw := atan2(dir.x, dir.z)
-	rotation.y = lerp_angle(rotation.y, yaw, clampf(delta * 8.0, 0.0, 1.0))
+	rotation.y = lerp_angle(rotation.y, yaw, clampf(delta * 6.0, 0.0, 1.0))   # quay người từ tốn
 
 
 func _ground() -> void:
@@ -520,11 +561,30 @@ func _animate(delta: float) -> void:
 		legs[3].rotation.x = swing
 		legs[1].rotation.x = -swing
 		legs[2].rotation.x = -swing
-	body.position.y = absf(sin(_phase)) * 0.04 * w * (1.6 if role == "kid" else 1.0)
-
-	# Dáng làm việc khi đứng yên
+	# Người: gối co khi chân đưa lên trước, hơi chùng khi chạm đất; thân lắc nhẹ theo bước
+	if knees.size() == 2:
+		var c := cos(_phase)
+		knees[0].rotation.x = w * (0.1 + 0.85 * maxf(0.0, -c))
+		knees[1].rotation.x = w * (0.1 + 0.85 * maxf(0.0, c))
+	var person := knees.size() == 2
+	if person:
+		body.position.y = (absf(sin(_phase)) * 0.035 - 0.02) * w * (1.5 if role == "kid" else 1.0)
+		body.rotation.z = sin(_phase) * 0.035 * w
+		body.rotation.y = sin(_phase) * 0.07 * w
+	else:
+		body.position.y = absf(sin(_phase)) * 0.04 * w
+	# Thở nhẹ khi đứng yên
 	_work_time += delta
 	var idle := 1.0 - w
+	if person:
+		body.scale = Vector3(1.0, 1.0 + 0.012 * sin(_work_time * 1.8) * idle, 1.0)
+	# Khuỷu tay hơi gập, gập thêm khi đi (tay cầm đồ thì giữ thẳng cho khớp đồ cầm)
+	if elbows.size() == 2:
+		var e := -(0.22 + 0.3 * w)
+		elbows[0].rotation.x = 0.0 if (lantern != null and lantern.visible) else e
+		elbows[1].rotation.x = 0.0 if (_holds_pole or prop_node != null and prop_node.visible) else e
+
+	# Dáng làm việc khi đứng yên
 	match work_anim:
 		"hoe":
 			if arms.size() == 2:
@@ -533,24 +593,38 @@ func _animate(delta: float) -> void:
 				arms[1].rotation.x = lerpf(-swing * 0.8, lift, idle)
 				arms[0].rotation.x = lerpf(swing * 0.8, lift * 0.8, idle)
 				body.rotation.x = 0.25 * idle * smoothstep(0.7, 0.9, t)
+				if knees.size() == 2:
+					var dip := 0.25 * idle * smoothstep(0.7, 0.9, t)
+					knees[0].rotation.x = maxf(knees[0].rotation.x, dip)
+					knees[1].rotation.x = maxf(knees[1].rotation.x, dip)
 		"play":
-			body.position.y += absf(sin(_work_time * 7.0)) * 0.18 * idle
+			var hop := absf(sin(_work_time * 7.0))
+			body.position.y += hop * 0.18 * idle
 			if arms.size() == 2:
-				arms[0].rotation.z = -1.2 * idle * absf(sin(_work_time * 7.0))
-				arms[1].rotation.z = 1.2 * idle * absf(sin(_work_time * 7.0))
+				arms[0].rotation.z = -1.2 * idle * hop
+				arms[1].rotation.z = 1.2 * idle * hop
+			if knees.size() == 2:
+				knees[0].rotation.x = maxf(knees[0].rotation.x, 0.5 * idle * (1.0 - hop))
+				knees[1].rotation.x = maxf(knees[1].rotation.x, 0.5 * idle * (1.0 - hop))
 		"chat":
 			if arms.size() == 2:
-				arms[0].rotation.x = lerpf(swing * 0.8, -0.5 - 0.3 * sin(_work_time * 2.3), idle)
+				arms[0].rotation.x = lerpf(swing * 0.8, -0.35 - 0.25 * sin(_work_time * 2.3), idle)
 				arms[1].rotation.x = lerpf(-swing * 0.8, 0.0, idle)
-			body.rotation.y = 0.15 * sin(_work_time * 0.7) * idle
+			if elbows.size() == 2:
+				elbows[0].rotation.x = lerpf(elbows[0].rotation.x, -0.9 - 0.3 * sin(_work_time * 2.3), idle)
+			body.rotation.y += 0.15 * sin(_work_time * 0.7) * idle
 		"peck", "graze":
-			var dip := 0.5 if work_anim == "peck" else 0.18
-			body.rotation.x = dip * maxf(0.0, sin(_work_time * (6.0 if work_anim == "peck" else 0.8))) * idle
+			var dip2 := 0.5 if work_anim == "peck" else 0.18
+			body.rotation.x = dip2 * maxf(0.0, sin(_work_time * (6.0 if work_anim == "peck" else 0.8))) * idle
 		"sit":
 			if legs.size() == 2:
-				legs[0].rotation.x = lerpf(swing, -1.4, idle)
-				legs[1].rotation.x = lerpf(-swing, -1.4, idle)
-			body.position.y -= 0.35 * idle
+				legs[0].rotation.x = lerpf(swing, -1.45, idle)
+				legs[1].rotation.x = lerpf(-swing, -1.45, idle)
+			if knees.size() == 2:
+				knees[0].rotation.x = lerpf(knees[0].rotation.x, 1.45, idle)
+				knees[1].rotation.x = lerpf(knees[1].rotation.x, 1.45, idle)
+			# Gập gối thì hông hạ xuống đúng một đoạn đùi (như ngồi ghế đẩu, ngồi bậc)
+			body.position.y -= idle * (0.35 if knees.is_empty() else legs[0].position.y * 0.47)
 		_:
 			if arms.size() == 2:
 				arms[0].rotation.x = -swing * 0.8

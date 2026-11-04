@@ -40,6 +40,12 @@ Cảm giác mong muốn: chiều muộn yên bình, gió nhẹ làm lúa và tre
   màu lấy từ bảng màu bên dưới. Dùng `vertex_color_use_as_albedo = true`
   để một mesh có thể mang nhiều màu, **và `vertex_color_is_srgb = true`**
   để màu hiển thị đúng mã hex trong bảng màu.
+- **Ngoại lệ — con người dùng "low-poly mềm":** tay chân, thân, đầu dựng bằng
+  `MeshBuilder.add_capsule()` (ống bo tròn hai đầu) và `add_ellipsoid()` (khối trứng) với pháp tuyến
+  cong (bóng mượt), nhưng vẫn ít mặt và màu phẳng không texture. Mọi thứ khác giữ flat shading.
+  Pháp tuyến do `MeshBuilder._tri` tự đặt cho từng đỉnh (mặt phẳng = pháp tuyến mặt, khối mượt =
+  pháp tuyến tính từ hình dạng); `commit()` KHÔNG gọi `generate_normals()` nữa (hàm đó không trung
+  bình pháp tuyến như mong đợi khi dùng smooth group).
 - **Vật thể có gió** (lúa, lá tre, tán đa) dùng `ShaderMaterial` với `wind_sway.gdshader`
   thay cho `StandardMaterial3D`; shader vẫn đọc màu đỉnh (`COLOR`) và giữ flat shading.
 - **Khử răng cưa:** bật MSAA 3D 4x trong `project.godot` (cạnh low-poly rất dễ lộ răng cưa).
@@ -334,6 +340,13 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   tạnh mới ra lại. Gà vào chuồng khi giông hoặc tối.
 - **Xem tin:** bấm chuột trái vào người/vật (lớp va chạm 3) → vòng sáng dưới chân + khung
   thông tin góc trên phải (tên, vai trò, nhà, việc đang làm); `F` cho camera đi theo.
+- **Hình người "mềm"** (`Villager._build_person_rig`): hông → đùi → khớp gối (`knees`) → ống chân
+  + bàn chân; vai → bắp tay → khớp khuỷu (`elbows`) → cẳng tay + bàn tay; hông, thân dẹt, cổ, đầu
+  dùng chung `Villager.soft_head()` (tai, chỏm tóc, búi tóc cho phụ nữ, mắt, lông mày, má hồng) —
+  người câu cá (`Fishing`) và tượng nông dân (`Characters`) cũng dùng hàm này. Dáng đi: gối co khi
+  chân đưa lên, thân lắc / xoay nhẹ theo bước, khuỷu hơi gập (tay cầm đồ thì thẳng), thở khi đứng
+  yên, ngồi thì gập gối (hông hạ đúng một đoạn đùi). Mỗi người ~2.100 tam giác (36 người ~75 nghìn).
+  Bộ đồ (`_outfits`) lưu cả `knees` / `elbows`.
 - **Hiệu năng:** mesh từng bộ phận dùng chung qua bộ đệm; chỉ diễn hoạt NPC trong
   `animate_distance` quanh camera; mỗi phần có `visibility_range_end`.
 - Chụp ảnh: `--npc=<chỉ số|vai trò>` chọn NPC và cho camera đi theo.

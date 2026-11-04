@@ -161,23 +161,25 @@ func _build_farmer(rng: RandomNumberGenerator) -> Node3D:
 	# Chân: ống quần xắn, bắp chân để trần
 	for s in [-1.0, 1.0]:
 		var z: float = s * 0.1
-		mb.add_prism(0.065, 0.06, 0.32, 5, Palette.FARMER_SKIN, _t(0.0, 0.0, z))
-		mb.add_prism(0.085, 0.09, 0.46, 5, Palette.FARMER_PANTS, _t(0.0, 0.32, z))
-	# Thân áo
-	mb.add_prism(0.2, 0.22, 0.56, 6, Palette.FARMER_SHIRT,
-			Transform3D(Basis().scaled(Vector3(0.8, 1.0, 1.0)), Vector3(0.0, 0.76, 0.0)))
+		mb.add_capsule(Vector3(0.0, 0.05, z), Vector3(0.0, 0.36, z), 0.052, 0.06, 8, Palette.FARMER_SKIN)
+		mb.add_capsule(Vector3(0.0, 0.36, z), Vector3(0.0, 0.76, z), 0.078, 0.088, 8, Palette.FARMER_PANTS)
+		mb.add_ellipsoid(Vector3(0.085, 0.03, 0.05), Palette.FARMER_SKIN.darkened(0.12), _t(0.04, 0.0, z), 8, 4)
+	# Hông + thân áo (bo tròn, dẹt trước sau)
+	mb.add_ellipsoid(Vector3(0.13, 0.1, 0.17), Palette.FARMER_PANTS, _t(0.0, 0.68, 0.0), 10, 5)
+	mb.add_capsule(Vector3(0.0, 0.9, 0.0), Vector3(0.0, 1.14, 0.0), 0.175, 0.19, 10, Palette.FARMER_SHIRT,
+			Transform3D.IDENTITY, true, Vector2(0.78, 1.0))
 	# Cánh tay: tay phải đưa ra trước cầm cán cuốc, tay trái buông
 	var sh_r := Vector3(0.0, 1.27, 0.24)
 	var sh_l := Vector3(0.0, 1.27, -0.24)
 	var hand_r := Vector3(0.32, 0.92, 0.2)
 	var hand_l := Vector3(0.04, 0.8, -0.3)
-	_limb(mb, sh_r, hand_r, 0.06, 0.05, 5, Palette.FARMER_SHIRT, id)
-	_limb(mb, sh_l, hand_l, 0.06, 0.05, 5, Palette.FARMER_SHIRT, id)
-	mb.add_blob(Vector3(0.05, 0.05, 0.05), Palette.FARMER_SKIN, rng, 0.1, _t(hand_r.x, hand_r.y - 0.05, hand_r.z))
-	mb.add_blob(Vector3(0.05, 0.05, 0.05), Palette.FARMER_SKIN, rng, 0.1, _t(hand_l.x, hand_l.y - 0.05, hand_l.z))
-	# Cổ + đầu
-	mb.add_prism(0.05, 0.05, 0.08, 5, Palette.FARMER_SKIN, _t(0.0, 1.32, 0.0))
-	mb.add_blob(Vector3(0.12, 0.13, 0.12), Palette.FARMER_SKIN, rng, 0.08, _t(0.0, 1.36, 0.0))
+	mb.add_capsule(sh_r, hand_r, 0.055, 0.045, 8, Palette.FARMER_SHIRT)
+	mb.add_capsule(sh_l, hand_l, 0.055, 0.045, 8, Palette.FARMER_SHIRT)
+	mb.add_ellipsoid(Vector3(0.04, 0.05, 0.035), Palette.FARMER_SKIN, _t(hand_r.x, hand_r.y - 0.06, hand_r.z), 8, 4)
+	mb.add_ellipsoid(Vector3(0.04, 0.05, 0.035), Palette.FARMER_SKIN, _t(hand_l.x, hand_l.y - 0.06, hand_l.z), 8, 4)
+	# Cổ + đầu (mặt hướng +x như thân)
+	mb.add_capsule(Vector3(0.0, 1.27, 0.0), Vector3(0.0, 1.37, 0.0), 0.047, 0.045, 8, Palette.FARMER_SKIN)
+	Villager.soft_head(mb, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0.0, 1.35, 0.0)), 1.0, Palette.FARMER_SKIN, false)
 	# Nón lá: chóp 12 cạnh + vành tối phía dưới
 	mb.add_prism(0.37, 0.35, 0.025, 12, Palette.HAT_DARK, _t(0.0, 1.52, 0.0))
 	mb.add_pyramid(0.37, 0.3, 12, Palette.HAT, _t(0.0, 1.545, 0.0))
