@@ -42,6 +42,9 @@ var entry_point := Vector3.ZERO
 var door_x: float = 0.0
 var exit_z: float = 0.0
 var size := Vector2(10.0, 5.6)
+## Chỗ cho người trong nhà (IndoorFolk đặt dân làng vào): {pos (cục bộ), yaw, pose, act, tags}.
+## pose: sit | tea | weave | study | kneel | pray | work | sleep | chat; tags: night, kid, female, elder.
+var seats: Array[Dictionary] = []
 
 # Kích thước của toà đang dựng
 var _len: float = 10.0
@@ -113,6 +116,7 @@ func build() -> void:
 	if walk_mode:
 		front_wall_cut = _h
 		column_cut = _h - 0.14
+	seats.clear()
 	var shell := MeshBuilder.new(_rng.seed, 0.035)
 	shell.contact_shade_height = _p + 0.5
 	shell.contact_shade_strength = 0.18
@@ -177,9 +181,17 @@ func build() -> void:
 	exit_z = _front_z if _ver > 0.0 or kind == "home" else _dep * 0.5
 	door_x = _door_x
 	size = Vector2(_len, _dep)
-	entry_point = Vector3(_door_x, _p + 0.05, exit_z - 0.9)
+	entry_point = Vector3(_door_x, _p + 0.05, exit_z - 0.48)   # ngay sau ngưỡng cửa, chưa tới bàn trà
 	HouseEntry.make_click_target(self, _t(_door_x, _p + 0.5, exit_z), Vector3(1.6, 1.0, 0.5),
 			"Ra sân  ·  bấm chuột, E hoặc Esc")
+
+
+## Thêm một chỗ cho người trong nhà; `face` là điểm họ quay mặt về (bỏ trống thì dùng `yaw`).
+func _seat(pos: Vector3, pose: String, act: String, tags: Array = [], face: Variant = null, yaw: float = 0.0) -> void:
+	if face != null:
+		var d: Vector3 = (face as Vector3) - pos
+		yaw = atan2(d.x, d.z)
+	seats.append({"pos": pos, "yaw": yaw, "pose": pose, "act": act, "tags": tags})
 
 
 ## Điểm (cục bộ) đã ra khỏi nền nhà chưa — người nhập vai bước ra là về sân.
@@ -459,10 +471,14 @@ func _room_altar(mb: MeshBuilder, flames: MeshBuilder, lamps: Array[Vector3], x0
 		mb.add_box(Vector3(minf(2.0, _gian - 0.4), 0.015, 0.25), col, _t(cx, p + 0.01, cz - 0.75 + i * 0.25))
 	if _poor:
 		_table(mb, Vector3(1.4, 0.38, 0.9), Vector3(cx, p, cz), Palette.WOOD_LIGHT, 0.07)
+		for s in [-1.0, 1.0]:
+			_seat(Vector3(cx + s * 0.95, p, cz), "tea", "home_tea", [], Vector3(cx, p, cz))
 	else:
 		_table(mb, Vector3(1.05, 0.55, 0.7), Vector3(cx, p, cz), Palette.WOOD, 0.05)
 		for s in [-1.0, 1.0]:
 			_chair(mb, Vector3(cx + s * 0.85, p, cz), s * -PI * 0.5)
+			_seat(Vector3(cx + s * 0.8, p, cz), "tea", "home_tea", [], Vector3(cx, p, cz))
+	_seat(Vector3(cx, p, az + 0.85), "pray", "home_pray", ["elder"], Vector3(cx, p, az))
 	var ty := p + (0.38 if _poor else 0.55)
 	mb.add_box(Vector3(0.45, 0.025, 0.3), Palette.WOOD_LIGHT, _t(cx + 0.12, ty, cz))
 	mb.add_prism(0.08, 0.06, 0.1, 8, Palette.CERAMIC, _t(cx + 0.02, ty + 0.025, cz))
@@ -519,6 +535,9 @@ func _room_bedroom(shell: MeshBuilder, mb: MeshBuilder, flames: MeshBuilder, lam
 	var bed_d := minf(2.1, _dep - _ver - 1.2)
 	var bz := _back_z + wall_thickness + 0.05 + bed_d * 0.5
 	_table(mb, Vector3(bed_w, 0.45, bed_d), Vector3(x, p, bz), Palette.WOOD, 0.08)
+	for s in [-1.0, 1.0]:
+		_seat(Vector3(x + s * bed_w * 0.22, p + 0.5, bz + bed_d * 0.5 - 0.12), "sleep", "home_sleep", ["night"])
+	_seat(Vector3(x, p, bz + bed_d * 0.5 + 0.22), "sit", "home_rest", [], null, 0.0)
 	mb.add_box(Vector3(bed_w - 0.1, 0.03, bed_d - 0.1), Palette.MAT, _t(x, p + 0.45, bz))
 	for s in [-1.0, 1.0]:
 		mb.add_box(Vector3(bed_w * 0.32, 0.1, 0.3), Palette.PILLOW, _t(x + s * bed_w * 0.22, p + 0.48, bz - bed_d * 0.38))
@@ -550,6 +569,7 @@ func _room_plank(mb: MeshBuilder, x0: float, x1: float, outer: float) -> void:
 	var x := (x0 + 0.2 + w * 0.5) if outer < 0.0 else (x1 - 0.2 - w * 0.5)
 	var z := _back_z + wall_thickness + 0.85
 	mb.add_box(Vector3(w, 0.38, 1.5), Palette.WOOD.darkened(0.1), _t(x, p, z))
+	_seat(Vector3(x, p + 0.44, z + 0.62), "sleep", "home_sleep", ["night"])
 	for i in 3:
 		mb.add_box(Vector3(w, 0.02, 0.48), Palette.WOOD_LIGHT, _t(x, p + 0.38, z - 0.5 + i * 0.5))
 	mb.add_box(Vector3(w - 0.15, 0.02, 1.35), Palette.MAT, _t(x, p + 0.4, z))
@@ -559,6 +579,7 @@ func _room_plank(mb: MeshBuilder, x0: float, x1: float, outer: float) -> void:
 	var cz := z + 1.4
 	if cz + 0.4 < _front_z:
 		var cx := (x0 + x1) * 0.5
+		_seat(Vector3(cx - 0.3, p, cz + 0.45), "sit", "home_rest", [], null, 0.0)
 		for sx in [-1.0, 1.0]:
 			for sz in [-1.0, 1.0]:
 				mb.add_box(Vector3(0.05, 0.42, 0.05), Palette.BAMBOO_STEM, _t(cx + sx * 0.75, p, cz + sz * 0.28))
@@ -635,6 +656,7 @@ func _room_loom(mb: MeshBuilder, x0: float, x1: float) -> void:
 	mb.add_box(Vector3(w - 0.1, 0.35, 0.05), Palette.WOOD, _t(cx, p + 0.9, cz))
 	# Ghế ngồi dệt + rổ sợi
 	mb.add_box(Vector3(0.7, 0.42, 0.3), Palette.WOOD, _t(cx, p, cz + d * 0.5 + 0.35))
+	_seat(Vector3(cx, p, cz + d * 0.5 + 0.38), "weave", "home_weave", ["female"], Vector3(cx, p, cz))
 	mb.add_prism(0.2, 0.25, 0.18, 10, Palette.STRAW, _t(cx + w * 0.5 + 0.4, p, cz + d * 0.5))
 	for i in 3:
 		mb.add_blob(Vector3(0.07, 0.06, 0.07), [Palette.BLANKET, Palette.FLOWER_WHITE, Palette.ALTAR_RED][i], _rng, 0.1,
@@ -654,6 +676,7 @@ func _room_mill(mb: MeshBuilder, x0: float, x1: float) -> void:
 	mb.add_limb(Vector3(mx + 0.3, p + 0.8, cz), Vector3(mx + 1.2, p + 0.85, cz + 0.2), 0.03, 0.03, 4, Palette.WOOD)
 	mb.add_box(Vector3(0.04, 0.04, 0.6), Palette.WOOD, _t(mx + 1.2, p + 0.82, cz + 0.2))
 	# Cối giã gạo + chày
+	_seat(Vector3(mx + 1.45, p, cz + 0.25), "work", "home_mill", [], Vector3(mx, p, cz))
 	var gx := cx + 0.6
 	var gz := cz + 0.6
 	mb.add_prism(0.24, 0.28, 0.45, 8, Palette.ROCK, _t(gx, p, gz))
@@ -678,6 +701,7 @@ func _room_study(mb: MeshBuilder, flames: MeshBuilder, lamps: Array[Vector3], x0
 	mb.add_box(Vector3(0.12, 0.04, 0.08), Palette.WINDOW_DARK, _t(cx + 0.33, p + 0.32, cz - 0.25))
 	mb.add_prism(0.006, 0.006, 0.18, 3, Palette.BAMBOO_STEM, Transform3D(Basis(Vector3.BACK, 1.2), Vector3(cx + 0.2, p + 0.34, cz - 0.05)))
 	mb.add_box(Vector3(0.4, 0.06, 0.4), Palette.BLANKET, _t(cx, p + 0.02, cz + 0.35))   # đệm ngồi
+	_seat(Vector3(cx, p, cz + 0.32), "study", "home_study", ["kid"], Vector3(cx, p, cz - 0.4))
 	# Giá sách sát tường sau
 	var bz := _back_z + wall_thickness + 0.2
 	for s in [-1.0, 1.0]:
@@ -735,6 +759,8 @@ func _build_classroom(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder
 			var z := wall_z + 2.4 + r * 1.0
 			_table(mb, Vector3(1.5, 0.62, 0.45), Vector3(x, p, z), Palette.WOOD_LIGHT, 0.05)
 			mb.add_box(Vector3(1.5, 0.05, 0.25), Palette.WOOD_LIGHT, _t(x, p + 0.38, z + 0.42))
+			for k in [-0.38, 0.38]:
+				_seat(Vector3(x + k, p, z + 0.36), "study", "class", ["kid"], null, PI)
 			for sx in [-0.65, 0.65]:
 				mb.add_box(Vector3(0.05, 0.38, 0.2), Palette.WOOD_LIGHT, _t(x + sx, p, z + 0.42))
 			# Vở, sách trên bàn
@@ -802,6 +828,7 @@ func _build_dinh(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder, fla
 	# Ban thờ trước hậu cung: hương án, bát hương đồng, chân nến, mâm bồng
 	var az := hz + 1.75
 	_table(mb, Vector3(2.8, 1.05, 0.9), Vector3(0.0, p, az), Palette.ALTAR_RED, 0.1)
+	_seat(Vector3(0.0, p, az + 1.0), "pray", "dinh_pray", ["elder"], Vector3(0.0, p, az))
 	mb.add_box(Vector3(2.6, 0.18, 0.03), Palette.GOLD, _t(0.0, p + 0.82, az + 0.45))
 	var top := p + 1.05
 	mb.add_prism(0.2, 0.24, 0.22, 10, Palette.GOLD.darkened(0.35), _t(0.0, top, az))
@@ -872,6 +899,8 @@ func _build_dinh(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder, fla
 			var mx: float = (k - 0.5) * 2.4
 			var mz := 1.0 + row * 1.25
 			mb.add_box(Vector3(2.0, 0.015, 1.0), Palette.MAT if (row + k) % 2 == 0 else Palette.MAT.darkened(0.1), _t(mx, p + 0.01, mz))
+			for e in [-0.55, 0.55]:
+				_seat(Vector3(mx + e, p, mz), "kneel", "dinh_meet", [], Vector3(mx, p, mz))
 			mb.add_box(Vector3(2.04, 0.02, 0.06), Palette.ALTAR_RED, _t(mx, p + 0.01, mz - 0.5))
 	# Đèn lồng đỏ treo
 	var beam_rows: Array[float] = [-_dep * 0.5 + 0.8 + (_dep - 1.6) / 3.0, -_dep * 0.5 + 0.8 + (_dep - 1.6) * 2.0 / 3.0]
@@ -986,6 +1015,7 @@ func _build_pagoda(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder, f
 			if bz > _front_z - 0.6:
 				continue
 			mb.add_prism(0.2, 0.22, 0.1, 10, Palette.FLOWER_YELLOW.darkened(0.25), _t(bx, p, bz))
+			_seat(Vector3(bx, p + 0.1, bz), "kneel", "pagoda_pray", [], null, PI)
 
 
 ## Tượng Phật ngồi kiết già trên toà sen, có hào quang. `s` = tỉ lệ.

@@ -76,6 +76,9 @@ func start(v: Villager, player: Node3D) -> bool:
 		var arr: Array = ANIMAL_BARKS[v.role]
 		bark(v, arr[_rng.randi_range(0, arr.size() - 1)])
 		return false
+	if v.work_anim == "sleep":
+		bark(v, ["Khò… khò…", "Ư… để mai nói…", "Zzz…"][_rng.randi_range(0, 2)])
+		return false
 	if football != null and football._find(v) >= 0:
 		bark(v, ["Đang đá, nói sau nhé!", "Chuyền đây! Chuyền đây!", "Ra cổ vũ đi!"][_rng.randi_range(0, 2)])
 		return false
@@ -91,8 +94,13 @@ func start(v: Villager, player: Node3D) -> bool:
 	_name_label.text = v.display_name
 	_panel.visible = true
 	_say(_greeting(), true)
-	_met[v] = int(_met.get(v, 0)) + 1
+	_met[_real(v)] = int(_met.get(_real(v), 0)) + 1
 	return true
+
+
+## Người trong nhà là bản sao (IndoorFolk) — nhớ, việc nhờ… tính theo người thật.
+static func _real(v: Villager) -> Villager:
+	return v.get_meta("proxy_of", v) as Villager
 
 
 func end() -> void:
@@ -253,7 +261,7 @@ func _build_options() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	# Việc nhờ / báo việc xong / nhắn tin luôn đứng đầu
 	if quests != null:
-		out.assign(quests.dialog_options(v))
+		out.assign(quests.dialog_options(_real(v)))
 	var all: Array[Dictionary] = []
 	all.append({"key": "doing", "text": "{Npc} đang làm gì đấy{a}?", "answer": _ans_doing})
 	match v.role:
@@ -294,13 +302,17 @@ func _pick(arr: Array) -> String:
 func _greeting() -> String:
 	var v := npc
 	var h := _hour()
-	var times: int = _met.get(v, 0)
+	var times: int = _met.get(_real(v), 0)
+	var at_home := str(v.activity).begins_with("home_")
 	var kid := v.role in ["kid", "herder"]
 	if times > 0:
 		if kid:
 			return _pick(["Lại là {you} ạ? Hì hì.", "{You} lại tìm {self} ạ?"])
 		return _pick(["Lại là {you} đấy à? Còn chuyện gì nữa thế?", "Ơ, {you} vẫn loanh quanh ở đây à?",
 				"{You} lại sang chơi đấy à?"])
+	if at_home and not kid:
+		return _pick(["Ơ, {you} sang chơi đấy à? Vào đây ngồi uống nước chè.", "{You} đấy à? Vào nhà đi, ngồi chơi đã.",
+				"Ai như {you}! Vào đây, {self} vừa pha ấm chè mới."])
 	if kid:
 		var g := "{Self} chào {you} ạ!"
 		if v.in_uniform and v.activity == "school" and v.state == Villager.State.WALK:
@@ -375,6 +387,32 @@ func _ans_doing() -> String:
 			return "Ra xem bọn trẻ đá bóng. " + _score_text()
 		"inside", "shelter":
 			return "Đang định về nhà đây."
+		"home_tea":
+			return _pick(["Ngồi uống bát nước chè cho ấm bụng. {You} ngồi xuống đây uống với {self} một chén.",
+					"Uống chén chè xanh, nhâm nhi tí cho đỡ mỏi."])
+		"home_rest":
+			return "Nghỉ lưng một tí, cả ngày ngoài đồng mỏi quá." if not v.role in ["kid", "herder"] else "{Self} nằm chơi tí ạ, lát nữa {self} đi tắm."
+		"home_weave":
+			return "Dệt nốt tấm vải này để phiên chợ tới mang ra bán."
+		"home_mill":
+			return "Xay mẻ thóc để mai còn giã gạo nấu cơm."
+		"home_study":
+			return "{Self} đang làm bài tập về nhà ạ, mai cô giáo kiểm tra."
+		"home_pray":
+			return "Thắp nén hương cho các cụ. Nhà nào cũng thế, sáng tối thắp hương ông bà."
+		"pagoda_pray":
+			return "{Self} đang lễ Phật, cầu cho cả nhà mạnh khoẻ, mùa màng tốt tươi."
+		"dinh_pray":
+			return "Thắp hương Thành hoàng làng, xin cho làng mình yên ổn."
+		"dinh_meet":
+			return "Ngồi bàn chuyện làng với các cụ: sắp tới hội làng phải lo nhiều việc lắm."
+		"class":
+			return "Đang học ạ! Suỵt, {you} nói khẽ thôi kẻo cô giáo nhắc."
+		"monk_chant":
+			return _pick(["{Self} đang tụng kinh, cầu cho dân làng bình an, mưa thuận gió hoà.",
+					"Sáng nào {self} cũng tụng một thời kinh. {You} có muốn thắp nén hương thì cứ tự nhiên."])
+		"dinh_keep":
+			return "Ông trông đình, sáng tối thắp hương Thành hoàng, quét dọn sân đình. Hội làng sắp tới bận lắm."
 	return "Cũng chẳng làm gì, đi loanh quanh thôi."
 
 
@@ -476,6 +514,9 @@ func _kin() -> Dictionary:
 	var title := words[0].to_lower()
 	var big := "chị" if player_female else "anh"
 	match title:
+		"sư":
+			# Sư cụ xưng "thầy", gọi người chơi là "con"
+			return {"self": "thầy", "you": "con", "npc": "sư cụ", "me": "con", "a": " ạ"}
 		"cụ":
 			# Cụ ông / cụ bà: người chơi gọi "cụ", cụ tự xưng "ông" / "bà"
 			var me_word := words[1].to_lower() if words.size() > 2 else "ông"

@@ -161,13 +161,14 @@ func _snapshot() -> Dictionary:
 
 ## Đầu người kiểu "low-poly mềm" (dùng chung cho dân làng, người câu cá, tượng nông dân):
 ## đầu bo tròn, tai, chỏm tóc (phụ nữ có búi), mắt, lông mày, má hồng. `xf`: đáy đầu, mặt hướng +z.
-static func soft_head(mb: MeshBuilder, xf: Transform3D, s: float, skin: Color, female: bool) -> void:
+static func soft_head(mb: MeshBuilder, xf: Transform3D, s: float, skin: Color, female: bool, bald: bool = false) -> void:
 	mb.add_ellipsoid(Vector3(0.112, 0.128, 0.118) * s, skin, xf, 12, 7)
 	for ex: float in [-1.0, 1.0]:
 		mb.add_ellipsoid(Vector3(0.018, 0.032, 0.026) * s, skin.darkened(0.06), xf * _t(ex * 0.11 * s, 0.1 * s, -0.005 * s), 6, 3)
 	var hair := Palette.WINDOW_DARK.lightened(0.05)
-	mb.add_ellipsoid(Vector3(0.118, 0.095, 0.124) * s, hair, xf * _t(0, 0.135 * s, -0.012 * s), 12, 6)
-	if female:
+	if not bald:
+		mb.add_ellipsoid(Vector3(0.118, 0.095, 0.124) * s, hair, xf * _t(0, 0.135 * s, -0.012 * s), 12, 6)
+	if female and not bald:
 		mb.add_ellipsoid(Vector3(0.05, 0.045, 0.045) * s, hair, xf * _t(0, 0.1 * s, -0.12 * s), 8, 4)
 	for ex: float in [-0.042, 0.042]:
 		mb.add_ellipsoid(Vector3(0.014, 0.017, 0.008) * s, Palette.WINDOW_DARK, xf * _t(ex * s, 0.125 * s, 0.108 * s), 6, 3)
@@ -205,7 +206,8 @@ func _build_person_rig(look: Dictionary) -> void:
 		knees.append(knee)
 	# Thân + hông + cổ + đầu (+ lưng còng cho cụ già)
 	var bend := 0.25 if role == "elder" else 0.0
-	var hair_key := "f" if female else "m"
+	var bald: bool = look.get("bald", false)
+	var hair_key := ("b" if bald else "") + ("f" if female else "m")
 	_part(body, _cached("torso_soft_%s_%s_%.2f_%.2f_%s" % [shirt.to_html(), pants.to_html(), s, bend, hair_key], func(mb: MeshBuilder) -> void:
 		var tilt := Transform3D(Basis(Vector3.RIGHT, bend), Vector3(0, hip, 0))
 		# Hông (quần) và thân áo: ống dẹt, vai rộng hơn eo một chút
@@ -214,7 +216,7 @@ func _build_person_rig(look: Dictionary) -> void:
 		# Vạt áo bà ba hơi xoè dưới eo
 		mb.add_prism(0.18 * s, 0.185 * s, 0.1 * s, 10, shirt.darkened(0.05), tilt * Transform3D(Basis().scaled(Vector3(1.0, 1.0, 0.8)), Vector3(0, -0.02 * s, 0)))
 		mb.add_capsule(Vector3(0, 0.5 * s, 0), Vector3(0, 0.6 * s, 0), 0.045 * s, 0.043 * s, 8, skin, tilt)
-		soft_head(mb, tilt * _t(0, 0.58 * s, 0.005 * s), s, skin, female)
+		soft_head(mb, tilt * _t(0, 0.58 * s, 0.005 * s), s, skin, female, bald)
 	), Vector3.ZERO)
 	var head_top := Vector3(0, hip + 0.86 * s * cos(bend), 0.86 * s * sin(bend))
 	match str(look.get("hat", "none")):
@@ -616,19 +618,88 @@ func _animate(delta: float) -> void:
 		"peck", "graze":
 			var dip2 := 0.5 if work_anim == "peck" else 0.18
 			body.rotation.x = dip2 * maxf(0.0, sin(_work_time * (6.0 if work_anim == "peck" else 0.8))) * idle
-		"sit":
+		"sit", "tea", "weave", "study", "kneel":
+			var kneel := work_anim == "kneel"
 			if legs.size() == 2:
-				legs[0].rotation.x = lerpf(swing, -1.45, idle)
-				legs[1].rotation.x = lerpf(-swing, -1.45, idle)
+				legs[0].rotation.x = lerpf(swing, -0.08 if kneel else -1.45, idle)
+				legs[1].rotation.x = lerpf(-swing, -0.08 if kneel else -1.45, idle)
 			if knees.size() == 2:
-				knees[0].rotation.x = lerpf(knees[0].rotation.x, 1.45, idle)
-				knees[1].rotation.x = lerpf(knees[1].rotation.x, 1.45, idle)
-			# Gập gối thì hông hạ xuống đúng một đoạn đùi (như ngồi ghế đẩu, ngồi bậc)
+				# Quỳ: đùi thẳng đứng, ống chân nằm sát nền phía sau
+				knees[0].rotation.x = lerpf(knees[0].rotation.x, 1.62 if kneel else 1.45, idle)
+				knees[1].rotation.x = lerpf(knees[1].rotation.x, 1.62 if kneel else 1.45, idle)
+			# Gập gối thì hông hạ xuống đúng một đoạn đùi (như ngồi ghế đẩu, ngồi bậc, quỳ)
 			body.position.y -= idle * (0.35 if knees.is_empty() else legs[0].position.y * 0.47)
+			if arms.size() == 2 and elbows.size() == 2:
+				var t2 := _work_time
+				match work_anim:
+					"tea":
+						# Thỉnh thoảng nâng chén nước chè lên uống
+						var sip := smoothstep(0.75, 0.85, fmod(t2 * 0.18, 1.0)) * (1.0 - smoothstep(0.92, 1.0, fmod(t2 * 0.18, 1.0)))
+						arms[1].rotation.x = -0.45 - 0.5 * sip
+						elbows[1].rotation.x = -1.2 - 0.9 * sip
+						arms[0].rotation.x = -0.35
+						elbows[0].rotation.x = -0.9
+					"weave":
+						# Hai tay đưa thoi qua lại
+						arms[0].rotation.x = -0.9 + 0.25 * sin(t2 * 3.0)
+						arms[1].rotation.x = -0.9 - 0.25 * sin(t2 * 3.0)
+						elbows[0].rotation.x = -0.6
+						elbows[1].rotation.x = -0.6
+					"study":
+						arms[0].rotation.x = -0.75
+						arms[1].rotation.x = -0.8 + 0.06 * sin(t2 * 9.0)   # tay viết
+						elbows[0].rotation.x = -1.0
+						elbows[1].rotation.x = -1.0
+						body.rotation.x = 0.18
+					"kneel":
+						# Chắp tay trước ngực, cúi lạy chậm
+						arms[0].rotation.x = -0.9
+						arms[1].rotation.x = -0.9
+						arms[0].rotation.z = 0.35
+						arms[1].rotation.z = -0.35
+						elbows[0].rotation.x = -1.6
+						elbows[1].rotation.x = -1.6
+						body.rotation.x = 0.35 * maxf(0.0, sin(t2 * 0.6))
+		"pray":
+			# Đứng chắp tay vái
+			if arms.size() == 2 and elbows.size() == 2:
+				arms[0].rotation.x = -0.9
+				arms[1].rotation.x = -0.9
+				arms[0].rotation.z = 0.35
+				arms[1].rotation.z = -0.35
+				elbows[0].rotation.x = -1.6
+				elbows[1].rotation.x = -1.6
+			body.rotation.x = 0.3 * maxf(0.0, sin(_work_time * 0.9))
+		"work":
+			# Đẩy tay cối xay: hai tay ra trước, người đưa tới đưa lui
+			var push := sin(_work_time * 2.2)
+			if arms.size() == 2 and elbows.size() == 2:
+				arms[0].rotation.x = -1.1 + 0.3 * push
+				arms[1].rotation.x = -1.1 + 0.3 * push
+				elbows[0].rotation.x = -0.5 - 0.3 * push
+				elbows[1].rotation.x = -0.5 - 0.3 * push
+			body.rotation.x = 0.12 + 0.08 * push
+		"sleep":
+			# Nằm ngửa (thân được IndoorFolk xoay nằm), tay xuôi, thở chậm
+			for l in legs:
+				l.rotation.x = 0.0
+			for k in knees:
+				k.rotation.x = 0.0
+			if arms.size() == 2:
+				arms[0].rotation.x = 0.0
+				arms[1].rotation.x = 0.0
+			for e in elbows:
+				e.rotation.x = -0.2
+			body.position.y = 0.0
+			body.rotation = Vector3.ZERO
+			body.scale = Vector3(1.0, 1.0, 1.0 + 0.02 * sin(_work_time * 1.1))
 		_:
 			if arms.size() == 2:
 				arms[0].rotation.x = -swing * 0.8
 				arms[1].rotation.x = -1.6 if _holds_pole else swing * 0.8
 			body.rotation.x = 0.0
-	if work_anim != "hoe" and work_anim != "peck" and work_anim != "graze":
+	if not work_anim in ["hoe", "peck", "graze", "pray", "work", "study", "kneel", "sleep"]:
 		body.rotation.x = move_toward(body.rotation.x, 0.0, delta * 3.0)
+	if not work_anim in ["kneel", "pray", "play"] and arms.size() == 2:
+		arms[0].rotation.z = move_toward(arms[0].rotation.z, 0.0, delta * 4.0)
+		arms[1].rotation.z = move_toward(arms[1].rotation.z, 0.0, delta * 4.0)

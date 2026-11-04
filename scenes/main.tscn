@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/first_person.gd" id="23_fp"]
 [ext_resource type="Script" path="res://scripts/dialogue.gd" id="24_dialogue"]
 [ext_resource type="Script" path="res://scripts/quests.gd" id="25_quests"]
+[ext_resource type="Script" path="res://scripts/indoor_folk.gd" id="26_indoor"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -196,6 +197,13 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 hud = NodePath("../HUD")
 villagers = NodePath("../World/Villagers")
+
+[node name="IndoorFolk" type="Node3D" parent="." node_paths=PackedStringArray("house_entry", "interior", "villagers", "day_night")]
+script = ExtResource("26_indoor")
+house_entry = NodePath("../HouseEntry")
+interior = NodePath("../Interior")
+villagers = NodePath("../World/Villagers")
+day_night = NodePath("../DayNight")
 
 [node name="Quests" type="Node3D" parent="." node_paths=PackedStringArray("village", "river", "football", "fishing", "villagers", "first_person", "outdoor_rig", "dialogue", "hud")]
 script = ExtResource("25_quests")

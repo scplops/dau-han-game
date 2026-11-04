@@ -186,6 +186,7 @@ scripts/
   first_person.gd      # nhập vai góc nhìn thứ nhất: đi lại, va chạm, tương tác (mục 18)
   dialogue.gd          # trò chuyện với dân làng: lời thoại, xưng hô, khung thoại (mục 19)
   quests.gd            # dân làng nhờ việc: gánh nước, nhắn tin, câu cá, tìm đồ, sút bóng (mục 20)
+  indoor_folk.gd       # dân làng ở trong nhà / đình / chùa / lớp học theo lịch (mục 22)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -554,4 +555,35 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   camera ở `inside_changed(true)`.
 - Chụp ảnh: `--enter=<khoá> --fp [--fp-pitch=…]`. `tools/fp_test.gd` bước 6: vào nhà mình bằng E,
   đi thẳng vào (đồ đạc chặn), V ↔ nhà búp bê, đi ra cửa về sân, vào lại rồi Esc.
+
+## 22. Dân làng ở trong nhà (giai đoạn 3e)
+
+- `scripts/indoor_folk.gd` (node `IndoorFolk`). Khi đang ở trong một toà (nhà búp bê hay đi bộ),
+  những người theo lịch đang ở đó hiện ra ở các chỗ `Interior.seats` và làm việc của họ:
+  - **nhà ở:** người nhà có `home.key` trùng toà và `state == INSIDE`;
+  - **chùa:** việc `pagoda` đã tới nơi;
+  - **đình:** việc `dinh` (người lớn);
+  - **lớp học:** việc `school` (trẻ con ngồi bàn).
+- **Bản sao:** mỗi người trong nhà là một `Villager` mới dựng từ `v._look` (bỏ nón lá, không cầm đồ;
+  học sinh mặc đồng phục), meta `proxy_of` = người thật. Người thật vẫn theo lịch ngoài làng: rời nhà
+  thì bản sao đứng dậy đi ra cửa rồi biến mất; về tới nhà thì bản sao bước vào cửa, đi tới chỗ trống.
+  Vào nhà lần đầu thì mọi người đã ngồi sẵn. Đồng bộ mỗi `sync_interval` giây.
+- **Chỗ** (`Interior._seat(pos, pose, act, tags, face)`): bàn trà (`tea`), thắp hương bàn thờ
+  (`pray`, cụ già), mép giường / chõng (`sit`), giường / phản ban đêm (`sleep`, tag `night` —
+  nằm ngửa bằng cách xoay node −90° quanh X), khung cửi (`weave`, phụ nữ), cối xay (`work`), góc học
+  và bàn lớp học (`study`, trẻ con), bồ đoàn chùa / chiếu hội đình (`kneel`), hương án đình (`pray`).
+  `_pick_seat` chấm điểm theo giờ (21h–5h30 ưu tiên chỗ ngủ ở nhà ở) và tag hợp vai.
+- **Dáng mới** trong `Villager._animate`: `tea` (thỉnh thoảng nâng chén), `weave` (đưa thoi),
+  `study` (cúi viết), `kneel` (quỳ: đùi thẳng, ống chân sát nền, chắp tay cúi lạy), `pray` (đứng
+  chắp tay vái), `work` (đẩy tay cối xay), `sleep` (nằm thẳng, thở chậm).
+- **Người trông giữ thường trực** (5h–21h): **sư cụ** ở chùa (áo nâu sồng, đầu cạo — look `bald`,
+  `soft_head(..., bald)`), quỳ tụng kinh ở bồ đoàn chính giữa; **ông thủ từ** đứng vái hương án đình.
+  Không có người thật tương ứng. Sư cụ xưng "thầy", gọi người chơi "con" (`Dialogue._kin`, chữ "sư").
+- **Hội thoại:** `Dialogue._real(v)` đổi bản sao → người thật để nhớ đã gặp và tính việc nhờ.
+  Ở nhà: chào "Ơ, cháu sang chơi đấy à? Vào đây ngồi uống nước chè."; trả lời theo việc `home_*`,
+  `pagoda_pray`, `dinh_meet`, `class`, `monk_chant`, `dinh_keep`. Người đang ngủ chỉ lầm bầm (bark).
+- `Interior.entry_point` lùi sát ngưỡng cửa (`exit_z - 0.48`) để không đứng chồng lên bàn trà.
+  Công cụ chụp ảnh giờ lên lại lịch (`replan`) TRƯỚC khi vào nhà để người trong nhà khớp giờ chụp.
+- `tools/indoor_test.gd -- --enter=house_9 --hour=12 --seconds=45` chạy thời gian thật, in ai đang
+  ở trong, tư thế, ai vào / ra, rồi thử nói chuyện với một người.
 
