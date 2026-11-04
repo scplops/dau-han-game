@@ -117,7 +117,7 @@ distance = 12.5
 min_distance = 4.5
 max_distance = 22.0
 ortho_camera_distance = 40.0
-focus_limit = 6.0
+focus_limit = 12.0
 active = false
 
 [node name="Camera3D" type="Camera3D" parent="InteriorCameraRig"]
@@ -135,10 +135,11 @@ house = NodePath("../World/House")
 script = ExtResource("13_hud")
 day_night = NodePath("../DayNight")
 
-[node name="HouseEntry" type="Node" parent="." node_paths=PackedStringArray("outdoor_rig", "interior_rig", "outdoor_root", "interior", "hud")]
+[node name="HouseEntry" type="Node" parent="." node_paths=PackedStringArray("outdoor_rig", "interior_rig", "outdoor_root", "interior", "hud", "day_night")]
 script = ExtResource("15_entry")
 outdoor_rig = NodePath("../CameraRig")
 interior_rig = NodePath("../InteriorCameraRig")
 outdoor_root = NodePath("../World")
 interior = NodePath("../Interior")
 hud = NodePath("../HUD")
+day_night = NodePath("../DayNight")

@@ -22,7 +22,7 @@ godot --path . --rendering-method gl_compatibility
 | Chuột phải + kéo | Xoay quanh cảnh |
 | Lăn chuột | Zoom |
 | Chuột giữa + kéo, WASD / mũi tên | Di chuyển tâm nhìn |
-| Bấm vào cửa nhà / `E` | Vào trong nhà (kiểu nhà búp bê) |
+| Bấm vào cửa bất kỳ toà nào / `E` | Vào trong (nhà, đình, chùa — kiểu nhà búp bê); `E` vào toà gần nhất |
 | `Esc` / `E` / nút "Ra sân" | Ra sân |
 | `P` | Đổi phối cảnh ↔ trực giao |
 | `[` / `]` (giữ) | Lùi / tiến giờ |

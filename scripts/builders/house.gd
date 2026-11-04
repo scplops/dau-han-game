@@ -127,8 +127,9 @@ func _build_main_house(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D,
 			mb.add_box(Vector3(0.6, 0.06, 0.04), Palette.WOOD, xf * _t(s * 0.36, p + yy, front_z + 0.12))
 
 	# Vùng bấm để vào nhà (xem HouseEntry)
-	HouseEntry.make_click_target(self, xf * _t(0.0, p + 1.08, front_z + 0.12),
-			Vector3(1.7, 2.2, 0.35), "Vào nhà  ·  bấm chuột hoặc E")
+	HouseEntry.make_entry_target(self, xf * _t(0.0, p + 1.08, front_z + 0.12),
+			Vector3(1.7, 2.2, 0.35), "Vào nhà mình  ·  bấm chuột hoặc E",
+			Interior.home_spec_from(self), "main")
 
 	# Cửa sổ (2 gian bên): khung gỗ, ô tối/phát sáng, song dọc
 	for s in [-1.0, 1.0]:

@@ -1,7 +1,9 @@
 class_name HouseEntry
 extends Node
-## Vào / ra ngôi nhà, không cần nhân vật:
-## - Ngoài sân: rê chuột vào cửa nhà → cửa sáng viền + gợi ý; bấm chuột trái hoặc nhấn E để vào.
+## Vào / ra các toà nhà (nhà mình, 44 nhà làng, đình, chùa), không cần nhân vật:
+## - Ngoài sân: rê chuột vào cửa → cửa sáng viền + gợi ý; bấm chuột trái để vào.
+##   Nhấn E: vào toà đang rê chuột, nếu không thì toà có cửa gần tâm camera nhất.
+## - Nội thất được dựng lại theo thông số của toà đó (Interior.load_spec) lúc màn hình tối.
 ## - Trong nhà: Esc, E, nút "Ra sân" trên HUD hoặc bấm vào ô cửa để ra.
 ## Chuyển cảnh mờ dần qua màu đen; chỉ đổi camera, ẩn/hiện và HUD nên giờ vẫn chạy liên tục.
 
@@ -9,12 +11,17 @@ signal inside_changed(inside: bool)
 
 ## Lớp va chạm dành riêng cho các vùng bấm được (cửa).
 const CLICK_LAYER := 2
+## Nhóm chứa các cửa vào được (có meta "spec").
+const ENTRY_GROUP := "entry_target"
 
 @export var outdoor_rig: CameraRig
 @export var interior_rig: CameraRig
 @export var outdoor_root: Node3D
-@export var interior: Node3D
+@export var interior: Interior
 @export var hud: Hud
+@export var day_night: DayNight
+## Nhấn E ngoài sân: chỉ vào toà có cửa trong bán kính này quanh tâm camera.
+@export var interact_radius: float = 40.0
 @export var fade_time: float = 0.35
 @export var ray_length: float = 250.0
 
@@ -23,6 +30,8 @@ var _hovered: StaticBody3D
 var _busy: bool = false
 var _fade: ColorRect
 var _mouse_moved: bool = true
+var _target: StaticBody3D
+var _place: String = ""
 
 
 ## Tạo vùng bấm (StaticBody3D) kèm khối sáng viền hiện khi rê chuột vào.
@@ -61,6 +70,16 @@ static func make_click_target(parent: Node3D, xform: Transform3D, size: Vector3,
 	return body
 
 
+## Cửa vào một toà nhà: vùng bấm + thông số nội thất + khoá (dùng cho công cụ chụp ảnh).
+static func make_entry_target(parent: Node3D, xform: Transform3D, size: Vector3, hint: String,
+		spec: Dictionary, key: String) -> StaticBody3D:
+	var body := make_click_target(parent, xform, size, hint)
+	body.set_meta("spec", spec)
+	body.set_meta("key", key)
+	body.add_to_group(ENTRY_GROUP)
+	return body
+
+
 func _ready() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 20
@@ -83,10 +102,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and mb.pressed and _hovered != null:
-			_toggle()
+			_toggle(_hovered)
 			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("interact"):
-		_toggle()
+		_toggle(_hovered if _hovered != null else _nearest_entry())
 	elif event.is_action_pressed("exit_interior") and inside:
 		exit_house()
 
@@ -107,9 +126,39 @@ func _physics_process(_delta: float) -> void:
 	_set_hovered(hit.get("collider") as StaticBody3D if not hit.is_empty() else null)
 
 
-func enter_house(instant: bool = false) -> void:
-	if not inside:
-		_switch(true, instant)
+## Vào toà có cửa `target` (null = nhà mình).
+func enter_house(instant: bool = false, target: StaticBody3D = null) -> void:
+	if inside:
+		return
+	if target == null:
+		target = find_entry("main")
+	if target == null or not target.has_meta("spec"):
+		return
+	_target = target
+	_switch(true, instant)
+
+
+## Tìm cửa theo khoá: "main", "dinh", "pagoda", "house_0"…
+func find_entry(key: String) -> StaticBody3D:
+	for n in get_tree().get_nodes_in_group(ENTRY_GROUP):
+		if str(n.get_meta("key", "")) == key:
+			return n as StaticBody3D
+	return null
+
+
+func _nearest_entry() -> StaticBody3D:
+	if outdoor_rig == null:
+		return null
+	var best: StaticBody3D = null
+	var best_d := interact_radius
+	for n in get_tree().get_nodes_in_group(ENTRY_GROUP):
+		var b := n as StaticBody3D
+		var d := Vector2(b.global_position.x - outdoor_rig.global_position.x,
+				b.global_position.z - outdoor_rig.global_position.z).length()
+		if d < best_d:
+			best_d = d
+			best = b
+	return best
 
 
 func exit_house(instant: bool = false) -> void:
@@ -117,11 +166,11 @@ func exit_house(instant: bool = false) -> void:
 		_switch(false, instant)
 
 
-func _toggle() -> void:
+func _toggle(target: StaticBody3D = null) -> void:
 	if inside:
 		exit_house()
-	else:
-		enter_house()
+	elif target != null:
+		enter_house(false, target)
 
 
 func _set_hovered(body: StaticBody3D) -> void:
@@ -145,7 +194,19 @@ func _switch(to_inside: bool, instant: bool) -> void:
 		t.tween_property(_fade, "color:a", 1.0, fade_time)
 		await t.finished
 	inside = to_inside
+	if inside and _target != null and interior != null:
+		var spec: Dictionary = _target.get_meta("spec")
+		_place = str(spec.get("name", "Trong nhà"))
+		interior.load_spec(spec)
+		if interior_rig != null:
+			var d := interior.camera_distance()
+			interior_rig.distance = d
+			interior_rig.max_distance = d * 1.9
+			interior_rig.set_focus(interior.global_position + Vector3(0.0, 0.4, -0.6))
+			interior_rig.snap()
 	_apply_state()
+	if day_night != null:
+		day_night.refresh()
 	inside_changed.emit(inside)
 	if not instant:
 		var t2 := create_tween()
@@ -168,4 +229,4 @@ func _apply_state() -> void:
 	if outdoor_root != null:
 		outdoor_root.visible = not inside
 	if hud != null:
-		hud.set_inside(inside)
+		hud.set_inside(inside, _place)

@@ -93,6 +93,18 @@ func _process(delta: float) -> void:
 		time_of_day += step
 
 
+## Áp lại ánh sáng theo giờ hiện tại (khi vừa thêm đèn / ô cửa mới vào cảnh).
+func refresh() -> void:
+	_glow_materials.clear()
+	for node in get_tree().get_nodes_in_group("night_glow"):
+		var mi := node as MeshInstance3D
+		if mi != null and mi.mesh != null:
+			var mat := mi.mesh.surface_get_material(0) as StandardMaterial3D
+			if mat != null:
+				_glow_materials.append(mat)
+	_apply()
+
+
 ## Chuỗi giờ dạng "17:05".
 func time_text() -> String:
 	var total := int(time_of_day * 60.0)

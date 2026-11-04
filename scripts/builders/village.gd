@@ -259,7 +259,13 @@ func _build_plots() -> void:
 						for key in ["bays", "roof", "form", "wall", "front", "layout"]:
 							var bucket: Dictionary = style_stats.get_or_add(key, {})
 							bucket[str(st[key])] = int(bucket.get(str(st[key]), 0)) + 1
-						VillageHouse.build_plot(stat, glow, leaves, ground, xf, w, depth, st, _rng)
+						var info := VillageHouse.build_plot(stat, glow, leaves, ground, xf, w, depth, st, _rng)
+						info["seed"] = random_seed * 31 + house_count
+						info["name"] = VillageHouse.describe(st)
+						var door: Transform3D = info["door"]
+						info.erase("door")
+						HouseEntry.make_entry_target(self, door, Vector3(1.6, 2.1, 0.4),
+								"Vào  ·  " + str(info["name"]), info, "house_%d" % house_count)
 						house_count += 1
 						prev = st
 						continue
@@ -499,6 +505,10 @@ func _build_dinh(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, gl
 	var P := 0.8
 	var H := 3.0
 	stat.add_box(Vector3(L + 2.0, P, D + 2.0), Palette.PLINTH.darkened(0.08), xf)
+	HouseEntry.make_entry_target(self, xf * _t(0.0, P + 1.5, D * 0.5 - 0.3), Vector3(4.0, 3.0, 0.8),
+			"Vào đình làng  ·  bấm chuột hoặc E",
+			{"kind": "dinh", "name": "Đình làng", "length": L, "depth": D, "plinth": P,
+			"height": H, "veranda": 0.0, "seed": random_seed + 501}, "dinh")
 	for i in 3:
 		stat.add_box(Vector3(8.0 - i * 1.2, P - i * 0.27, 0.5), Palette.PLINTH, xf * _t(0.0, 0.0, (D + 2.0) * 0.5 + 0.25 + (2 - i) * 0.5))
 	stat.add_box(Vector3(L, H, 0.3), Palette.WOOD, xf * _t(0.0, P, -D * 0.5 + 0.15))
@@ -583,6 +593,10 @@ func _build_pagoda(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, 
 	var P := 0.7
 	var H := 2.8
 	stat.add_box(Vector3(L + 1.2, P, D + 1.2), Palette.PLINTH, xf)
+	HouseEntry.make_entry_target(self, xf * _t(0.0, P + 1.1, D * 0.5 - 1.5), Vector3(2.6, 2.2, 0.5),
+			"Vào chùa  ·  bấm chuột hoặc E",
+			{"kind": "pagoda", "name": "Chùa làng", "length": L, "depth": D, "plinth": P,
+			"height": H, "veranda": 1.6, "seed": random_seed + 502}, "pagoda")
 	stat.add_box(Vector3(4.0, P * 0.5, 0.6), Palette.PLINTH, xf * _t(0.0, 0.0, (D + 1.2) * 0.5 + 0.3))
 	stat.add_box(Vector3(L, H, D - 1.6), wc, xf * _t(0.0, P, -0.8))
 	for i in 6:

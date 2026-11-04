@@ -13,7 +13,7 @@ signal exit_requested
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    H: ẩn / hiện"
 const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    H: ẩn / hiện"
 
 var _time_label: Label
@@ -24,6 +24,7 @@ var _hint_panel: PanelContainer
 var _hint_label: Label
 var _exit_button: Button
 var _inside: bool = false
+var _place: String = ""
 var _refresh: float = 0.0
 
 
@@ -123,7 +124,7 @@ func _update_text() -> void:
 	if day_night == null:
 		return
 	_time_label.text = day_night.time_text()
-	var parts: Array[String] = ["Trong nhà" if _inside else "Ngoài sân", _period_name(day_night.time_of_day)]
+	var parts: Array[String] = [(_place if _place != "" else "Trong nhà") if _inside else "Ngoài sân", _period_name(day_night.time_of_day)]
 	parts.append("Tự chạy: bật" if day_night.auto_run else "Tự chạy: tắt")
 	if show_fps:
 		parts.append("%d FPS" % Engine.get_frames_per_second())
@@ -131,8 +132,9 @@ func _update_text() -> void:
 
 
 ## Đổi giao diện khi vào / ra nhà.
-func set_inside(value: bool) -> void:
+func set_inside(value: bool, place: String = "") -> void:
 	_inside = value
+	_place = place
 	if _exit_button == null:
 		return
 	_exit_button.visible = value

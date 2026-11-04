@@ -2,7 +2,7 @@ extends SceneTree
 ## Chụp ảnh scene chính để tự kiểm tra hình ảnh.
 ## Dùng: godot --path . -s tools/screenshot.gd -- --out=screenshots/a.png [--hour=17]
 ##        [--yaw=0] [--pitch=-40] [--distance=38] [--focus=x,z] [--ortho] [--frames=30]
-##        [--inside] (chụp trong nhà) [--hover] (rê chuột lên cửa)
+##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
 	_run.call_deferred()
@@ -23,9 +23,9 @@ func _run() -> void:
 
 	# Vào trong nhà
 	var entry := scene.get_node_or_null("HouseEntry") as HouseEntry
-	var inside := args.has("inside") and entry != null
+	var inside := (args.has("inside") or args.has("enter")) and entry != null
 	if inside:
-		entry.enter_house(true)
+		entry.enter_house(true, entry.find_entry(str(args.get("enter", "main"))))
 
 	# Góc camera (camera đang dùng)
 	var rig := scene.get_node_or_null("InteriorCameraRig" if inside else "CameraRig") as CameraRig

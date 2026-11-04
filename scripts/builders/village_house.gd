@@ -213,9 +213,9 @@ static func roof(mb: MeshBuilder, xf: Transform3D, len_: float, dep: float, top_
 # --- Nhà chính ------------------------------------------------------------------------
 
 ## Dựng nhà chính theo kiểu `st`, gốc toạ độ ở giữa nền nhà, mặt trước hướng +z.
-## Trả về độ sâu nền (để đặt sân).
+## Trả về thông số nội thất (Interior.load_spec) kèm "door": vị trí ô cửa chính (world).
 static func build_house(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, st: Dictionary,
-		dims: Dictionary) -> void:
+		dims: Dictionary) -> Dictionary:
 	var bays: int = st.bays
 	var bw: float = dims.bay
 	var L := bays * bw
@@ -286,6 +286,20 @@ static func build_house(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, st:
 
 	roof(mb, xf, L, D, P + H, dims.rise, dims.over, dims.gover, st.roof, st.form, wc, wd)
 
+	var door_x := -L * 0.5 + bw * ((bays >> 1) + 0.5)
+	return {
+		"kind": "home", "bays": bays, "bay": bw, "depth": D, "veranda": veranda,
+		"height": H, "plinth": P, "wall": st.wall, "front": st.front, "roof": st.roof,
+		"door": xf * _t(door_x, P + 1.05, front_z + 0.14),
+	}
+
+
+## Mô tả ngắn cho gợi ý khi rê chuột, ví dụ "Nhà 3 gian · mái rạ · tường đất".
+static func describe(st: Dictionary) -> String:
+	var roofs := {"tile_red": "mái ngói đỏ", "tile_brown": "mái ngói nâu", "thatch": "mái rạ"}
+	var walls := {"lime_yellow": "tường vôi vàng", "lime_white": "tường vôi trắng", "brick": "tường gạch", "mud": "vách đất"}
+	return "Nhà %d gian · %s · %s" % [st.bays, roofs.get(st.roof, ""), walls.get(st.wall, "")]
+
 
 ## Nhà phụ (nhà ngang, bếp): tường, cửa tối, mái hai mái cùng loại.
 static func build_small(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, len_: float,
@@ -307,11 +321,10 @@ static func build_small(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, len
 # --- Cả lô đất -------------------------------------------------------------------------
 
 ## Dựng một lô: rào + cổng, nhà chính, nhà phụ theo bố cục, sân, lối vào, vườn.
-## `xf` đặt gốc lô ở giữa mép trước, +z hướng ra ngõ. Trả về các hình chữ nhật đã chiếm
-## (toạ độ lô) để rải cỏ tránh.
+## `xf` đặt gốc lô ở giữa mép trước, +z hướng ra ngõ. Trả về thông số nội thất nhà chính.
 static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder,
 		xf: Transform3D, width: float, depth: float, st: Dictionary,
-		rng: RandomNumberGenerator) -> void:
+		rng: RandomNumberGenerator) -> Dictionary:
 	var dims := {
 		"bay": rng.randf_range(2.75, 3.3),
 		"depth": rng.randf_range(4.8, 6.2),
@@ -335,7 +348,7 @@ static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, 
 	var hx := rng.randf_range(-1.0, 1.0) * maxf(0.0, (width - L - 2.2) * 0.5)
 	var hz := -depth + back + D * 0.5
 	var hxf := xf * Transform3D(Basis(Vector3.UP, deg_to_rad(rng.randf_range(-2.5, 2.5))), Vector3(hx, 0.0, hz))
-	build_house(mb, glow, hxf, st, dims)
+	var info := build_house(mb, glow, hxf, st, dims)
 
 	var house_front := hz + D * 0.5 + 0.35
 	var yard_z0 := house_front + 0.4
@@ -418,6 +431,7 @@ static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, 
 	# Cây ăn quả phía sau nhà luôn có
 	var bx := hx + rng.randf_range(-L * 0.4, L * 0.4)
 	_fruit_tree(mb, leaves, xf * _t(bx, 0.0, -depth + 1.4), rng)
+	return info
 
 
 ## Các khoảng trống trong lô (toạ độ lô): [tâm, kích thước].

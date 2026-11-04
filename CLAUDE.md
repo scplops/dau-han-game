@@ -3,7 +3,7 @@
 > File hướng dẫn cho Claude Code. Đặt file này ở thư mục gốc của dự án Godot.
 > Mục tiêu giai đoạn này: **chỉ dựng cảnh quan để ngắm**, CHƯA có gameplay
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
-> Ngoại lệ duy nhất: **vào/ra ngôi nhà bằng cách bấm cửa** (mục 10) — vẫn không có nhân vật điều khiển.
+> Ngoại lệ duy nhất: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10) — vẫn không có nhân vật điều khiển.
 
 ---
 
@@ -238,6 +238,22 @@ thay mesh procedural bằng model Blender, các mùa trong năm, thời tiết m
   gian trái giường, tủ; gian phải chạn bát, chum gạo, nong nia, quang gánh.
   Đèn dầu thuộc nhóm `night_light` để tự sáng khi tối.
 - **Vùng bấm** là `StaticBody3D` ở lớp va chạm 2, tạo bằng `HouseEntry.make_click_target()`.
+- **Mọi toà đều vào được** (nhà mình, 44 nhà làng, đình, chùa): cửa tạo bằng
+  `HouseEntry.make_entry_target(parent, xform, size, hint, spec, key)`. `spec` là thông số
+  nội thất; `Interior.load_spec(spec)` xoá nội thất cũ và dựng lại lúc màn hình tối, nên chỉ
+  có MỘT nội thất tồn tại tại một thời điểm (không tốn FPS ngoài làng). Khoá: `main`, `dinh`,
+  `pagoda`, `house_0`…`house_43`; chụp ảnh bằng `--enter=<khoá>`.
+- **Nhà làng:** kích thước, tường, mặt tiền khớp bên ngoài (do `VillageHouse.build_house` trả
+  về). Gian giữa luôn là bàn thờ + bàn trà; các gian bên chọn theo seed từ `Interior.ROOM_TYPES`
+  (buồng ngủ, phản + chõng tre, kho, khung cửi, cối xay thóc, góc học), luôn có chỗ ngủ.
+  Nhà tranh/vách đất: nền đất nện, đồ gỗ mộc, không hoành phi.
+- **Đình:** lưới cột lim + xà, hậu cung (khám, ngai, bài vị), hương án, hạc chầu trên lưng rùa,
+  hoành phi câu đối, trống đại, chiêng, bát bửu, kiệu, chiếu hội, đèn lồng.
+  **Chùa:** Phật điện ba cấp (Tam Thế, A Di Đà, Quan Âm – Thế Chí, Cửu Long), ban thờ, chuông,
+  mõ, hai hộ pháp, bồ đoàn.
+- Nhấn `E` ngoài sân: vào toà đang rê chuột, nếu không thì toà có cửa gần tâm camera nhất
+  (trong `HouseEntry.interact_radius`). Sau khi dựng nội thất gọi `DayNight.refresh()` để đèn
+  mới sáng đúng giờ.
 
 ## 11. Làng (giai đoạn 1c)
 
