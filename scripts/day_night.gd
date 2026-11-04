@@ -53,6 +53,10 @@ const KEYS: Array = [
 ]
 
 var night_factor: float = 0.0
+## Độ phủ mây 0..1 (Weather đặt): làm yếu nắng, trời và sương ngả xám, trời tối thì bật đèn sớm.
+var weather_cover: float = 0.0
+## Mức sương mù 0..1 (Weather đặt): màu sương ngả trắng đục.
+var weather_mist: float = 0.0
 var _fireflies: Node3D
 var _glow_materials: Array[StandardMaterial3D] = []
 
@@ -118,35 +122,50 @@ func _apply() -> void:
 	var k := _sample_keys(h)
 	night_factor = smoothstep(17.8, 19.4, h) if h >= 12.0 else 1.0 - smoothstep(5.0, 6.6, h)
 
+	var cover := weather_cover
 	if sun != null:
-		sun.light_color = k[0]
-		sun.light_energy = k[1]
+		sun.light_color = (k[0] as Color).lerp(Palette.OVERCAST, cover * 0.6)
+		sun.light_energy = k[1] * (1.0 - 0.85 * cover)
 		var dir := _light_direction(h)
 		sun.global_basis = Basis.looking_at(-dir, Vector3.UP)
 
 	if world_environment != null:
 		var env := world_environment.environment
 		var sky_mat := env.sky.sky_material as ProceduralSkyMaterial
+		var horizon := _overcast(k[2], cover)
 		if sky_mat != null:
-			sky_mat.sky_horizon_color = k[2]
-			sky_mat.sky_top_color = k[3]
-			sky_mat.ground_horizon_color = k[2]
-			sky_mat.ground_bottom_color = (k[2] as Color).darkened(0.3)
-		env.ambient_light_color = k[4]
-		env.ambient_light_energy = lerpf(k[5], maxf(k[5], night_ambient_min), night_factor)
-		env.fog_light_color = k[6]
+			sky_mat.sky_horizon_color = horizon
+			sky_mat.sky_top_color = _overcast(k[3], cover)
+			sky_mat.ground_horizon_color = horizon
+			sky_mat.ground_bottom_color = horizon.darkened(0.3)
+		env.ambient_light_color = _overcast(k[4], cover * 0.8)
+		# Trời âm u: ánh sáng môi trường gánh phần lớn (bóng mờ đi), nhưng tổng thể tối hơn
+		env.ambient_light_energy = lerpf(k[5], maxf(k[5], night_ambient_min), night_factor) * (1.0 + 0.3 * cover - 0.35 * smoothstep(0.7, 1.0, cover))
+		var fog_col := _overcast(k[6], cover)
+		var mist_col := Palette.MIST.lerp(k[6], 0.4).darkened(night_factor * 0.65)
+		env.fog_light_color = fog_col.lerp(mist_col, weather_mist)
 
+	# Trời giông tối sầm: các nhà thắp đèn sớm
+	var lit := maxf(night_factor, smoothstep(0.75, 1.0, cover) * 0.6)
 	for node in get_tree().get_nodes_in_group("night_light"):
 		var light := node as Light3D
 		if light != null:
-			light.light_energy = float(light.get_meta("max_energy", 1.0)) * night_factor
+			light.light_energy = float(light.get_meta("max_energy", 1.0)) * lit
 	for mat in _glow_materials:
-		mat.emission_energy_multiplier = window_glow_energy * night_factor
+		mat.emission_energy_multiplier = window_glow_energy * lit
 	if _fireflies != null:
 		_fireflies.visible = night_factor > 0.35
 		_fireflies.set("emitting", night_factor > 0.35)
 
 	time_changed.emit(h)
+
+
+## Màu ngả xám theo độ phủ mây, giữ độ sáng tương ứng giờ trong ngày.
+static func _overcast(c: Color, cover: float) -> Color:
+	var l := c.get_luminance()
+	var grey := Palette.OVERCAST * (l / maxf(Palette.OVERCAST.get_luminance(), 0.001)) * 0.85
+	grey.a = 1.0
+	return c.lerp(grey, clampf(cover, 0.0, 1.0) * 0.85)
 
 
 ## Nội suy mốc màu: trả về [màu đèn, cường độ, trời ngang, đỉnh trời, ambient, cường độ ambient, sương].

@@ -2,6 +2,7 @@ extends SceneTree
 ## Chụp ảnh scene chính để tự kiểm tra hình ảnh.
 ## Dùng: godot --path . -s tools/screenshot.gd -- --out=screenshots/a.png [--hour=17]
 ##        [--yaw=0] [--pitch=-40] [--distance=38] [--focus=x,z] [--ortho] [--frames=30]
+##        [--weather=storm] [--flash] (loé chớp)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -20,6 +21,12 @@ func _run() -> void:
 	var day_night := scene.get_node_or_null("DayNight")
 	if day_night != null and args.has("hour"):
 		day_night.set("time_of_day", float(args["hour"]))
+
+	# Thời tiết: --weather=clear|cloudy|drizzle|storm|fog (nhảy ngay, tắt tự đổi)
+	var weather := scene.get_node_or_null("Weather") as Weather
+	if weather != null:
+		weather.auto_change = false
+		weather.set_weather(str(args.get("weather", "clear")), true)
 
 	# Vào trong nhà
 	var entry := scene.get_node_or_null("HouseEntry") as HouseEntry
@@ -50,6 +57,10 @@ func _run() -> void:
 				var target := house.find_child("ClickTarget", true, false) as Node3D
 				door = target.global_position
 			root.warp_mouse(rig.camera.unproject_position(door))
+	if args.has("flash") and weather != null:
+		weather.flash_now()
+		weather.process_mode = Node.PROCESS_MODE_DISABLED   # giữ nguyên tia chớp cho khung chụp
+		await process_frame
 	await RenderingServer.frame_post_draw
 
 	var out := str(args.get("out", "screenshots/shot.png"))

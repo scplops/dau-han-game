@@ -27,6 +27,7 @@ godot --path . --rendering-method gl_compatibility
 | `P` | Đổi phối cảnh ↔ trực giao |
 | `[` / `]` (giữ) | Lùi / tiến giờ |
 | `T` | Bật/tắt tự chạy giờ (1 ngày = 2 phút) |
+| `R` | Thời tiết: Tự động → Nắng → Nhiều mây → Mưa phùn → Mưa giông → Sương mù |
 | `H` | Ẩn/hiện HUD |
 
 Phía bắc khu nhà là một làng Bắc Bộ xưa với 44 ngôi nhà, mỗi nhà một kiến trúc khác nhau,

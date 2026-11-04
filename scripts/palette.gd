@@ -138,3 +138,10 @@ const HIBISCUS := Color("#d9473e")       # hoa dâm bụt
 const ARECA_TRUNK := Color("#9a9580")    # thân cau
 const BANANA := Color("#86b84e")         # lá chuối
 const VEGETABLE := Color("#5f9e3e")      # luống rau
+
+# Thời tiết (bổ sung)
+const OVERCAST := Color("#a9aeb0")       # trời u ám (độ sáng điều chỉnh theo giờ)
+const STORM_CLOUD := Color("#6e7378")
+const RAIN := Color("#cfd9e2")
+const MIST := Color("#e4e6e1")           # sương mù sáng sớm
+const LIGHTNING := Color("#e8ecff")

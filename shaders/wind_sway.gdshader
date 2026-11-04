@@ -11,6 +11,7 @@ uniform vec2 direction = vec2(1.0, 0.35);
 uniform float base_height = 0.0;      // dưới độ cao này (toạ độ cục bộ) đứng yên
 uniform float sway_height = 1.0;      // khoảng cao để biên độ tăng từ 0 lên tối đa
 uniform float gust_scale = 0.08;      // độ rộng của "làn gió" chạy qua cảnh
+global uniform float weather_wind;    // hệ số gió theo thời tiết (Weather đặt), 1 = bình thường
 
 vec3 srgb_to_linear(vec3 c) {
 	return mix(pow((c + vec3(0.055)) / vec3(1.055), vec3(2.4)), c / vec3(12.92),
@@ -29,7 +30,9 @@ void vertex() {
 	float wave = sin(t + phase) * 0.65 + sin(t * 2.1 + phase * 1.7 + world.x * 0.5) * 0.35;
 	// Cơn gió mạnh yếu chậm rãi lan qua cảnh
 	float gust = 0.6 + 0.4 * sin(t * 0.23 - along * 0.05);
-	vec3 offset_world = vec3(dir.x, 0.0, dir.y) * wave * gust * strength * h;
+	// Gió mạnh: lay xa hơn và bị đẩy nghiêng hẳn theo chiều gió
+	float w = max(weather_wind, 0.0);
+	vec3 offset_world = vec3(dir.x, 0.0, dir.y) * (wave * w + max(w - 1.0, 0.0) * 0.6) * gust * strength * h;
 	VERTEX += inverse(mat3(MODEL_MATRIX)) * offset_world;
 }
 

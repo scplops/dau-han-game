@@ -7,14 +7,15 @@ extends CanvasLayer
 signal exit_requested
 
 @export var day_night: DayNight
+@export var weather: Weather
 @export var show_fps: bool = true
 @export var time_font_size: int = 34
 @export var text_font_size: int = 15
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    H: ẩn / hiện"
-const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: thời tiết    H: ẩn / hiện"
+const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
 var _info_label: Label
@@ -125,6 +126,8 @@ func _update_text() -> void:
 		return
 	_time_label.text = day_night.time_text()
 	var parts: Array[String] = [(_place if _place != "" else "Trong nhà") if _inside else "Ngoài sân", _period_name(day_night.time_of_day)]
+	if weather != null:
+		parts.append(weather.display_name())
 	parts.append("Tự chạy: bật" if day_night.auto_run else "Tự chạy: tắt")
 	if show_fps:
 		parts.append("%d FPS" % Engine.get_frames_per_second())

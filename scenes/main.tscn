@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scripts/interior.gd" id="14_interior"]
 [ext_resource type="Script" path="res://scripts/house_entry.gd" id="15_entry"]
 [ext_resource type="Script" path="res://scripts/builders/village.gd" id="16_village"]
+[ext_resource type="Script" path="res://scripts/weather.gd" id="17_weather"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -131,9 +132,10 @@ sun = NodePath("../Sun")
 world_environment = NodePath("../WorldEnvironment")
 house = NodePath("../World/House")
 
-[node name="HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("day_night")]
+[node name="HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("day_night", "weather")]
 script = ExtResource("13_hud")
 day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
 
 [node name="HouseEntry" type="Node" parent="." node_paths=PackedStringArray("outdoor_rig", "interior_rig", "outdoor_root", "interior", "hud", "day_night")]
 script = ExtResource("15_entry")
@@ -143,3 +145,11 @@ outdoor_root = NodePath("../World")
 interior = NodePath("../Interior")
 hud = NodePath("../HUD")
 day_night = NodePath("../DayNight")
+
+[node name="Weather" type="Node" parent="." node_paths=PackedStringArray("day_night", "world_environment", "clouds", "outdoor_rig", "house_entry")]
+script = ExtResource("17_weather")
+day_night = NodePath("../DayNight")
+world_environment = NodePath("../WorldEnvironment")
+clouds = NodePath("../World/Clouds")
+outdoor_rig = NodePath("../CameraRig")
+house_entry = NodePath("../HouseEntry")

@@ -132,7 +132,8 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    kèm file giấy phép `OFL.txt`).
 7. **Phím tắt** khai báo trong **Input Map** của `project.godot` (tên action tiếng Anh:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
-   `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc)),
+   `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
+   `cycle_weather` (R)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -164,6 +165,7 @@ scripts/
   house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
   day_night.gd         # giờ, màu trời/đèn, đèn cửa sổ, đom đóm, khói bếp
+  weather.gd           # thời tiết: mây, mưa, giông, chớp, sương mù (mục 12)
   hud.gd
 shaders/
   wind_sway.gdshader
@@ -222,7 +224,7 @@ screenshots/           # ảnh chụp, không commit
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
 Điều khiển nhân vật, trồng trọt, NPC và hội thoại, lưu game, âm thanh và nhạc nền,
-thay mesh procedural bằng model Blender, các mùa trong năm, thời tiết mưa.
+thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
 
@@ -277,3 +279,22 @@ thay mesh procedural bằng model Blender, các mùa trong năm, thời tiết m
   `night_glow`); chỉ đình, chùa có đèn thật (`night_light`).
 - Khi thêm chi tiết cho nhà làng: mọi khối đặt bằng `xf * ...` (toạ độ lô) — quên `xf` thì vật
   rơi về gốc toạ độ (đã từng xảy ra với cửa sổ tròn).
+
+## 12. Thời tiết (giai đoạn 1d)
+
+- `scripts/weather.gd` (node `Weather`): 5 kiểu `clear` (nắng), `cloudy` (nhiều mây),
+  `drizzle` (mưa phùn), `storm` (mưa giông, có chớp), `fog` (sương mù). Mỗi kiểu là bộ thông số
+  `PRESETS` (độ phủ mây, lượng mưa, hệ số gió, sương); giá trị hiện tại chuyển dần
+  (`transition_time`) nên đổi thời tiết không giật.
+- Tự đổi ngẫu nhiên theo `AUTO_WEIGHTS` mỗi 70–140 giây; phím `R` xoay vòng
+  Tự động → Nắng → … → Sương mù → Tự động. HUD hiện tên thời tiết.
+- **Ánh sáng:** Weather đặt `DayNight.weather_cover` / `weather_mist` rồi gọi `refresh()`;
+  DayNight làm yếu nắng, ngả xám trời/sương/ambient (giữ độ sáng theo giờ), và trời giông thì
+  nhà thắp đèn sớm. Weather chỉnh thêm `adjustment_brightness/saturation` và vùng sương
+  (`fog_depth_begin/end`). Chớp = cộng thêm vào `adjustment_brightness` trong ~0,2 s.
+- **Gió và mặt nước:** biến toàn cục shader `weather_wind`, `weather_rain` (khai báo trong
+  `[shader_globals]` của `project.godot`). Shader mới có lá/nước nên đọc các biến này.
+- **Mưa:** hạt mưa (vệt billboard) + vòng nước bắn trên mặt đất, đi theo tâm camera ngoài sân,
+  vùng mưa rộng theo độ xa camera; ẩn khi vào trong nhà. GPUParticles3D ở Forward+,
+  CPUParticles3D (bớt hạt) ở Compatibility. Mây (`Clouds.coverage`) dày và xám dần theo độ phủ.
+- Chụp ảnh: `--weather=<kiểu>` (tắt tự đổi), `--flash` (giữ khoảnh khắc chớp).
