@@ -5,7 +5,7 @@
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
-> **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20) và **chèo đò trên sông** (mục 24) — chưa có túi đồ đầy đủ,
+> **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20) và **lên đò, chèo đò trên sông** (mục 24) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -359,9 +359,10 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 ## 14. Sông quanh làng (giai đoạn 1f)
 
 - `scripts/builders/river.gd` (node `World/River`, dựng sau `Village`). Sông hình móng ngựa
-  ôm ba mặt làng (tây → bắc → đông) theo elip của làng nới ra `offset_radii` (120, 88), uốn
+  ôm ba mặt làng (tây → bắc → đông) theo elip của làng nới ra `offset_radii` (130, 98), uốn
   khúc nhẹ; hai đầu (`west_tail`, `east_tail`) vòng thoải rồi chảy xa ra đồng. Mặt nam để trống
-  (cổng làng, ruộng). Dài khoảng 1 km, rộng 11–17 m.
+  (cổng làng, ruộng). Dài khoảng 1 km, rộng 18–26 m (`width_range`). Nới rộng sông thì phải nới
+  `offset_radii` theo, nếu không chân đê phía trong lấn vào lũy tre.
 - **Cả lòng sông nằm TRÊN nền cỏ:** lòng bùn ở `bed_level` 0,06, mặt nước `water_level` 0,32,
   đê cao `levee_height` 0,85. Nếu để mặt nước sát nền y = 0 thì cỏ lộ qua làn nước trong
   (đã gặp: mảng xanh giữa sông). Mặt cắt bờ: lòng bùn → mái đất → mặt đê cỏ → mái thoải.
@@ -373,7 +374,13 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - **Sen:** 12 đầm sát bờ, mỗi đầm ~30–40 lá nổi, 6–12 lá vươn cao, 4–9 hoa (¼ sen trắng),
   3–6 nụ; tất cả MultiMesh, lá/hoa có thân dùng shader gió. `River.lotus_spots` /
   `boat_spots` lưu toạ độ để chụp ảnh.
-- **Đò:** 3 con đò mui tre neo ven bờ.
+- **Đò:** 3 con đò to (mục 24) neo ven bờ đoạn vòng quanh làng, tránh bến và đầm sen.
+- **Cây cỏ ven sông** (`_build_vegetation`, mật độ `reed_density`, `hyacinth_density`,
+  `grass_density`, `flower_density`, `banana_density`, `tree_density`): lau sậy có bông ở mép nước,
+  cụm bèo tây (có hoa tím) nổi gần bờ, cỏ + hoa dại (vàng, trắng, tím) trên mái và mặt đê, bụi chuối
+  và cây to ở chân đê phía ngoài vòng sông (không trồng ở hai đuôi ngoài đồng). Tất cả MultiMesh có
+  gió, trừ thân cây to (mesh thường → nhập vai không đi xuyên). `_veg_blocked` né bến, lối xuống
+  sông, đò neo. Chọn điểm dọc sông bằng `_bank_point(d_range)` (d = khoảng cách tới mép nước).
 - Đồi và núi sau làng đã lùi ra xa hơn (`Mountains`) để không lấn vào sông.
 - **Lối ra sông (3 lối: tây, đông, bắc):** `Village.access_paths` — hai ngõ được nối dài
   (`river_access_alleys`) và một lối đi thẳng lên bắc từ ngõ cuối (`north_access_x`), lát gạch,
@@ -607,33 +614,46 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   → ẩn. Bấm vào bản đồ ở chế độ ngắm cảnh: camera bay tới đó. Vẽ lại mỗi `redraw_interval` giây.
 - Chụp ảnh: `--map=small|large|hidden`.
 
-## 24. Chèo đò trên sông (giai đoạn 3g)
+## 24. Đò trên sông (giai đoạn 3g, 3h)
 
 - `scripts/boat_ride.gd` (node `BoatRide`, con cuối của `Main` để nhận phím trước `FirstPerson`).
-  3 con đò của `River` là node riêng (`River.boat_nodes`, nhóm `boat`, mũi đò hướng +z cục bộ):
-  `Hull` (thân, mui), `Pole` (sào dựng — ẩn khi đang chèo), `ClickTarget` (lớp 2, gợi ý "Lên đò",
-  meta `activate` = `BoatRide.board(i)`), `Lantern` + `BoatLantern` (đèn bão ở đầu mui, `night_light`).
-  Đò KHÔNG có va chạm nhập vai (`FirstPerson` bỏ qua nhóm `boat`).
-- **Lên đò:** nhập vai nhìn đò "E: Lên đò" (`FirstPerson._suspend("boat")`), hoặc bấm vào đò ở chế độ
-  ngắm cảnh. Một người chèo (Villager dựng riêng, nón lá, dáng `work`) đứng ở đuôi, mái chèo quạt
-  theo nhịp. `HouseEntry.locked`, `CameraRig.active = false`; tâm `CameraRig` bám theo đò để mưa,
-  cá nhảy, dân làng vẫn diễn ra quanh đò. V / F / P bị chặn khi đang trên đò.
+  3 con đò của `River` là node riêng (`River.boat_nodes`, nhóm `boat`, mũi đò hướng +z cục bộ).
+- **Đò to, đi bộ lên được:** dài ~9,6 m, rộng `boat_beam` 2,2 m; sàn ván ở `River.BOAT_DECK`
+  (0,52 cục bộ, mặt nước 0,15); mạn đò có khe ở `BOAT_GAP_Z` hai bên, ngoài khe có bậc gỗ
+  (`BOAT_STEP`) để từ dưới nước trèo lên (mỗi bậc ≤ `step_height`); mui tre đan `BOAT_CABIN`
+  (z −0,6…2,6) có vách, ô cửa sổ, vòm cong hai mặt (ngoài sẫm, trong sáng), cao ~1,9 m đứng thẳng
+  được; trong mui có chiếu, gối, bếp lò + nồi, chum, giỏ, lưới; cọc chèo ở đuôi.
+  Con của mỗi đò: `Hull`, `Pole` (mái chèo dựa cọc — ẩn khi đang chèo), `Solid` (StaticBody lớp 4:
+  hộp sàn, hai đầu, mạn chừa khe, vách + mái mui, bếp, chum, cọc), `ClickTarget` (hộp cả con đò,
+  "Lên đò"; viền sáng là khung phẳng trên mặt nước), `OarTarget` ("Cầm chèo"), `Plank` (ván cầu),
+  `Lantern` + `BoatLantern` (đèn bão đầu mui, `night_light`). `FirstPerson` không dựng va chạm từ
+  mesh đò (bỏ qua nhóm `boat`) vì đã có `Solid` đi theo đò.
+- **Ván cầu** (`BoatRide.deploy_plank`): khi neo, nếu mạn đò (chỗ khe) cách mép nước dưới
+  `plank_reach` thì bắc ván từ khe lên mặt đê (cách mép 2 m) phía bờ gần hơn; xa bờ thì cất ván.
+  Ván là mesh + hộp va chạm dựng lại mỗi lần neo.
+- **Nhập vai:** đi qua ván lên đò, hoặc nhìn đò từ bờ "E: Lên đò" (`step_aboard` — đặt ngay lên
+  sàn chỗ khe). Đứng trên đò thì mắt nằm trong hộp `ClickTarget` nên tia nhìn bỏ qua nó (không
+  hit_from_inside). Tới đuôi nhìn cọc chèo "E: Cầm chèo" → `board(i)` (`FirstPerson._suspend("boat")`).
+  Ngắm cảnh: bấm vào đò là chèo luôn.
+- Khi chèo: người chèo (Villager dựng riêng, nón lá, dáng `work`) đứng ở đuôi, mái chèo quạt theo
+  nhịp; ván cất đi. `HouseEntry.locked`, `CameraRig.active = false`; tâm `CameraRig` bám theo đò để
+  mưa, cá nhảy, dân làng vẫn diễn ra quanh đò. V / F / P bị chặn khi đang chèo.
 - **Chèo:** W / S tới / lùi (`max_speed`, `reverse_speed`, `accel`, `drag`), A / D rẽ (đứng yên
   vẫn xoay được — `turn_still`, đang đi — `turn_moving`), Shift chèo nhanh (`fast_speed`). Dòng sông
   trôi nhẹ theo tiếp tuyến (`current`). Đò nhấp nhô, nghiêng khi rẽ, gợn nước (`River.splash`) sau đuôi.
   Hàm `step(delta, throttle, steer, fast)` tách riêng để bài thử / công cụ chụp ảnh gọi.
 - **Giữ trong sông:** chiếu vị trí lên tim sông (`nearest_s` / `sample` / `half_width`), ra quá
-  `half_width - bank_margin` thì đẩy về và mất đà; ở hai đầu sông thì triệt phần đi quá điểm cuối
-  (KHÔNG giảm tốc ở đó — dòng chảy luôn đẩy về đầu sông, giảm tốc mỗi khung làm đò kẹt cứng).
+  `half_width - bank_margin` thì đẩy về; chỉ mất đà theo mức mũi đò đâm vào bờ (chạy dọc bờ thì
+  trượt tiếp — đò neo sát bờ hơn `bank_margin`, nếu giảm tốc mỗi khung thì không chèo đi được).
+  Hai đầu sông: triệt phần đi quá điểm cuối, KHÔNG giảm tốc (dòng chảy luôn đẩy về đầu sông).
 - **Camera:** `Camera3D` riêng bám sau đò; chuột phải kéo để xoay, lăn chuột zoom (`cam_min`…`cam_max`).
-- **Lên bờ:** E / Esc. Cách bến (`River.landings[i].spot`) dưới `landing_distance` thì lên thẳng cầu
-  ván (cầu chìa ra sông nên không cần sát mép); không thì phải cách mép nước dưới `dock_distance`,
-  lên mặt đê (`bank_height(2.6)`), quay mặt vào bờ. Ở giữa sông thì gợi ý "Chèo vào sát bờ rồi mới
-  lên được". Đò neo lại chỗ vừa rời. Lên từ nhập vai thì nhập vai tiếp; từ ngắm cảnh thì camera
-  ngắm cảnh đặt tâm ở chỗ lên bờ.
+- **Thôi chèo:** E / Esc → đò neo tại chỗ, bắc ván nếu sát bờ. Từ nhập vai thì đứng ở đuôi đò nhìn
+  về mũi, đi lại tiếp (xa bờ thì lội xuống sông, trèo lên lại bằng bậc mạn). Từ ngắm cảnh thì camera
+  ngắm cảnh đặt tâm vào đò.
 - HUD: `Hud.set_boat(on)` — dòng phím `SHORTCUTS_BOAT`, chỗ "Trên đò". Bản đồ nhỏ vẽ các đò (thoi
   gỗ theo hướng mũi) và mũi tên đỏ theo đò khi đang chèo (`BoatRide.heading_for_map`).
-- `tools/boat_test.gd` (headless): nhìn đò → E, chèo tới / rẽ / lùi (luôn cách mép ≥ `bank_margin`),
-  chèo ra đầu sông, lên bờ giữa sông (bị từ chối), chèo vào bờ rồi lên, lên đò từ ngắm cảnh → lên bến.
-  Chụp ảnh: `--boat=N [--boat-drive=giây] [--boat-cam=độ]`.
-
+- `tools/boat_test.gd` (headless): đi qua ván lên đò, vào mui, cầm chèo, chèo tới / rẽ / lùi (luôn
+  cách mép ≥ `bank_margin`), thôi chèo giữa sông (không ván), lội xuống rồi trèo bậc mạn, chèo sát bờ
+  (có ván), nhìn đò từ bờ "E: Lên đò", bấm đò từ ngắm cảnh.
+  Chụp ảnh: `--boat=N [--boat-drive=giây] [--boat-cam=độ]`; đứng trên đò:
+  `--fp --fp-board=N [--fp-at=x,z] [--fp-yaw=độ]` (toạ độ, hướng tính theo đò).

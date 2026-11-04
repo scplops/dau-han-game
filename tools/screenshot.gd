@@ -11,6 +11,8 @@ extends SceneTree
 ##        [--quest=water,lost,…] (nhận sẵn các việc nhờ từ người gần nhất có vai hợp)
 ##        [--talk] [--talk-pick=N] (cùng --fp: bắt chuyện người gần nhất, chọn câu hỏi thứ N)
 ##        [--map=small|large|hidden] (bản đồ nhỏ)
+##        [--fp --fp-board=N --fp-at=x,z] (nhập vai đứng trên đò N, toạ độ cục bộ của đò; --fp-yaw
+##        khi đó tính so với hướng mũi đò)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
 ##        xoay camera đò quanh đò; trong lúc chờ khung hình vẫn chèo để thấy dáng chèo)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
@@ -102,7 +104,17 @@ func _run() -> void:
 			fp._dollhouse_to_walk()      # --enter=… --fp: đi bộ bên trong toà nhà
 		else:
 			fp.enter()
-		if args.has("fp-yaw"): fp.rotation.y = deg_to_rad(float(args["fp-yaw"]))
+		# --fp-board=N [--fp-at=x,z]: đứng trên đò thứ N (toạ độ cục bộ của đò, mũi +z)
+		if args.has("fp-board"):
+			var brd := scene.get_node("BoatRide") as BoatRide
+			var bi := int(args["fp-board"])
+			brd.step_aboard(bi)
+			if args.has("fp-at"):
+				var at := str(args["fp-at"]).split(",")
+				fp.global_position = brd.river.boat_nodes[bi].to_global(Vector3(float(at[0]), River.BOAT_DECK + 0.05, float(at[1])))
+			if args.has("fp-yaw"):
+				fp.rotation.y = brd.river.boat_nodes[bi].rotation.y + PI + deg_to_rad(float(args["fp-yaw"]))
+		elif args.has("fp-yaw"): fp.rotation.y = deg_to_rad(float(args["fp-yaw"]))
 		if args.has("fp-pitch"):
 			fp._pitch = deg_to_rad(float(args["fp-pitch"]))
 			fp.camera.rotation.x = fp._pitch

@@ -18,7 +18,7 @@ const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột gi
 const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi    Shift: chạy    Space: nhảy    E / chuột trái: tương tác    V / Esc: thôi nhập vai    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
 const SHORTCUTS_FP_IN := "Chuột: nhìn    WASD: đi    Shift: chạy    E / chuột trái: tương tác    Esc / bước ra cửa: ra sân    V: xem kiểu nhà búp bê    [ ]: chỉnh giờ    H: ẩn / hiện"
-const SHORTCUTS_BOAT := "W / S: chèo tới / lùi    A / D: rẽ    Shift: chèo nhanh    Chuột phải: xoay    Lăn chuột: zoom    E / Esc: lên bờ (khi sát bờ)    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
+const SHORTCUTS_BOAT := "W / S: chèo tới / lùi    A / D: rẽ    Shift: chèo nhanh    Chuột phải: xoay    Lăn chuột: zoom    E / Esc: thôi chèo    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
 const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label

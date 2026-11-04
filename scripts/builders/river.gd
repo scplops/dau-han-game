@@ -12,11 +12,11 @@ extends Node3D
 @export var random_seed: int = 5150
 
 @export_group("Hình dáng")
-@export var offset_radii: Vector2 = Vector2(120.0, 88.0)
+@export var offset_radii: Vector2 = Vector2(130.0, 98.0)
 @export var arc_degrees: Vector2 = Vector2(180.0, 360.0)     # từ tây, qua bắc, sang đông
 @export var west_tail: PackedVector2Array = PackedVector2Array([Vector2(-430, -40), Vector2(-320, -44), Vector2(-225, -48), Vector2(-160, -55), Vector2(-130, -72)])
 @export var east_tail: PackedVector2Array = PackedVector2Array([Vector2(130, -72), Vector2(160, -55), Vector2(225, -48), Vector2(320, -44), Vector2(430, -40)])
-@export var width_range: Vector2 = Vector2(11.0, 17.0)
+@export var width_range: Vector2 = Vector2(18.0, 26.0)
 ## Cả lòng sông nằm TRÊN nền cỏ (y = 0) để nền không lộ qua làn nước trong.
 @export var bed_level: float = 0.06
 @export var water_level: float = 0.32
@@ -33,8 +33,25 @@ extends Node3D
 @export_range(0, 40) var lotus_patches: int = 12
 @export var lotus_wind: float = 0.05
 
+@export_group("Cây cỏ ven sông")
+## Mật độ (số khóm mỗi mét dọc một bên bờ).
+@export var reed_density: float = 0.5
+@export var hyacinth_density: float = 0.08
+@export var grass_density: float = 3.0
+@export var flower_density: float = 0.5
+## Cây chuối / cây to phía ngoài đê (mỗi mét, chỉ bờ ngoài vòng sông).
+@export var banana_density: float = 0.035
+@export var tree_density: float = 0.022
+@export var vegetation_wind: float = 0.1
+
 @export_group("Đò")
 @export_range(0, 6) var boats: int = 3
+@export var boat_beam: float = 2.2
+## Sàn đò (toạ độ cục bộ của đò; mặt nước ở 0,15), bậc mạn, khe lên xuống, đoạn mui (z đầu, z cuối).
+const BOAT_DECK := 0.52
+const BOAT_STEP := 0.22
+const BOAT_GAP_Z := -1.8
+const BOAT_CABIN := Vector2(-0.6, 2.6)
 
 ## Chiều dài sông (m), có sau build().
 var length: float = 0.0
@@ -72,6 +89,7 @@ func build() -> void:
 	_build_landings()
 	_build_lotus()
 	_build_boats()
+	_build_vegetation()
 	_build_fish()
 	print("River: dài %d m, %d cá, %d đầm sen" % [int(length), fish_count, lotus_patches])
 
@@ -546,49 +564,423 @@ func _bud_mesh() -> ArrayMesh:
 func _build_boats() -> void:
 	if boats <= 0:
 		return
-	# Một mesh đò dùng chung (toạ độ cục bộ: mũi đò hướng +z), mỗi con một node riêng để chèo được
-	var mb := MeshBuilder.new(random_seed + 7, 0.04)
-	var hull := Palette.WOOD.darkened(0.15)
-	# Thân đò dài, hai đầu vót nhọn hơi vểnh
-	mb.add_box(Vector3(1.0, 0.4, 3.2), hull)
-	mb.add_box(Vector3(0.84, 0.04, 3.0), Palette.WOOD_LIGHT, _t(0, 0.39, 0))
-	for e: float in [-1.0, 1.0]:
-		var tip := Transform3D(Basis(Vector3.RIGHT, e * (PI * 0.5 - 0.35)), Vector3(0, 0.0, e * 1.6))
-		mb.add_pyramid(0.5, 1.0, 4, hull, tip)
-	# Mui đò bằng tre đan (nửa ống) + mép mui sẫm hai đầu
-	var mui := Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.2, 0.75))
-	mb.add_prism(0.62, 0.62, 1.5, 12, Palette.THATCH_DARK, mui, 0.0, false)
-	for e: float in [-1.0, 1.0]:
-		mb.add_prism(0.66, 0.66, 0.06, 12, Palette.BAMBOO_NODE, mui * _t(0, 0.72 + e * 0.72, 0), 0.0, false)
-	var boat_mesh := mb.commit()
+	var boat_mesh := _boat_mesh()
+	# Mái chèo dựa vào cọc chèo ở đuôi (ẩn đi khi có người cầm chèo)
 	var pole := MeshBuilder.new(random_seed + 8, 0.04)
-	pole.add_limb(Vector3(0.3, 0.4, -1.2), Vector3(0.6, 3.2, -2.2), 0.025, 0.02, 4, Palette.BAMBOO_STEM)
+	pole.add_limb(Vector3(0.62, 1.45, -2.95), Vector3(0.25, -0.2, -4.7), 0.035, 0.03, 5, Palette.BAMBOO_STEM)
+	pole.add_box(Vector3(0.06, 0.6, 0.24), Palette.WOOD_LIGHT,
+			Transform3D(Basis(Vector3.RIGHT, 0.75), Vector3(0.22, -0.45, -4.85)))
 	var pole_mesh := pole.commit()
 	for i in boats:
-		var s := length * (0.22 + 0.56 * float(i) / maxf(boats - 1, 1)) + _rng.randf_range(-20, 20)
+		# Neo ven bờ, tránh bến nước và đầm sen
+		var s := 0.0
+		for attempt in 20:
+			s = length * (0.36 + 0.28 * float(i) / maxf(boats - 1, 1)) + _rng.randf_range(-15, 15) + attempt * 9.0
+			var q: Vector2 = sample(s)[0]
+			var clear := true
+			for l: Dictionary in landings:
+				var e: Vector3 = l.edge
+				if Vector2(e.x, e.z).distance_to(q) < 26.0:
+					clear = false
+			for ls: Vector3 in lotus_spots:
+				if Vector2(ls.x, ls.z).distance_to(q) < 16.0:
+					clear = false
+			if clear:
+				break
 		var smp := sample(s)
 		var p: Vector2 = smp[0]
 		var tan: Vector2 = smp[1]
 		var side := -1.0 if i % 2 == 0 else 1.0
-		var pos := p + tan.orthogonal() * side * (half_width(s) - 1.7)
-		var yaw := atan2(tan.x, tan.y) + _rng.randf_range(-0.15, 0.15)
+		var pos := p + tan.orthogonal() * side * (half_width(s) - boat_beam * 0.5 - 0.5)
+		var yaw := atan2(tan.x, tan.y) + _rng.randf_range(-0.05, 0.05)
 		var node := Node3D.new()
 		node.name = "Boat%d" % i
 		node.transform = Transform3D(Basis(Vector3.UP, yaw), Vector3(pos.x, water_level - 0.15, pos.y))
-		node.add_to_group("boat")             # không dựng va chạm tĩnh cho đò (đò di chuyển được)
+		node.add_to_group("boat")             # va chạm riêng (đi theo đò), không dựng từ mesh tĩnh
 		add_child(node)
 		var mi := MeshInstance3D.new()
 		mi.name = "Hull"
 		mi.mesh = boat_mesh
 		node.add_child(mi)
 		var pm := MeshInstance3D.new()
-		pm.name = "Pole"                      # sào chống dựng sẵn, ẩn đi khi có người chèo
+		pm.name = "Pole"
 		pm.mesh = pole_mesh
 		node.add_child(pm)
-		var target := HouseEntry.make_click_target(node, _t(0, 0.6, 0), Vector3(1.4, 1.2, 3.6), "Lên đò")
+		_boat_solid(node)
+		# Vùng bấm cả con đò (ngắm cảnh: bấm để chèo; nhập vai: bước lên đò) — đứng trên đò thì
+		# mắt nằm trong hộp nên tia nhìn không chạm hộp này nữa
+		var target := HouseEntry.make_click_target(node, _t(0, 1.25, 0), Vector3(2.7, 2.7, 9.6), "Lên đò")
 		target.set_meta("boat_index", i)
+		# Viền sáng khi rê chuột: một khung phẳng trên mặt nước quanh đò thay cho hộp to che mất đò
+		var hl := target.get_node("Highlight") as MeshInstance3D
+		var bm := (hl.mesh as BoxMesh).duplicate() as BoxMesh
+		bm.size = Vector3(boat_beam + 0.7, 0.03, 10.2)
+		hl.mesh = bm
+		hl.position = Vector3(0, 0.17 - 1.25, 0)
+		var oar := HouseEntry.make_click_target(node, _t(0.55, 0.9, -2.95), Vector3(0.7, 1.1, 0.7), "Cầm chèo")
+		oar.name = "OarTarget"
+		oar.set_meta("boat_index", i)
 		boat_spots.append(node.position)
 		boat_nodes.append(node)
+
+
+## Đò to (toạ độ cục bộ: mũi +z, đáy y = 0, sàn y = `BOAT_DECK`): thân gỗ, hai đầu vểnh,
+## mạn có khe lên xuống ở hai bên đuôi, mui tre đan cao đủ đứng thẳng, bên trong có chiếu,
+## bếp lò, nồi, giỏ, lưới; cọc chèo ở đuôi.
+func _boat_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new(random_seed + 7, 0.04)
+	var hull := Palette.WOOD.darkened(0.15)
+	var half := boat_beam * 0.5
+	var body_len := 6.0
+	var dk := BOAT_DECK
+	mb.add_box(Vector3(boat_beam, dk - 0.04, body_len), hull)
+	# Ván sàn từng tấm
+	for k in 9:
+		var x := -half + 0.14 + k * (boat_beam - 0.28) / 8.0
+		mb.add_box(Vector3((boat_beam - 0.28) / 8.0 - 0.02, 0.04, body_len - 0.2), Palette.WOOD_LIGHT, _t(x, dk - 0.04, 0))
+	# Hai đầu vót nhọn, vểnh lên
+	for e: float in [-1.0, 1.0]:
+		var tip := Transform3D(Basis(Vector3.RIGHT, e * (PI * 0.5 - 0.3)), Vector3(0, 0.3, e * body_len * 0.5))
+		mb.add_pyramid(half, 1.9, 4, hull, tip)
+		mb.add_box(Vector3(0.9, 0.04, 0.6), Palette.WOOD_LIGHT, _t(0, dk - 0.02, e * (body_len * 0.5 + 0.25)))
+	# Mạn đò (khe lên xuống ở z = BOAT_GAP_Z)
+	for sx: float in [-1.0, 1.0]:
+		var z0 := -body_len * 0.5
+		var z1 := BOAT_GAP_Z - 0.35
+		var z2 := BOAT_GAP_Z + 0.35
+		var z3 := body_len * 0.5
+		mb.add_box(Vector3(0.1, 0.22, z1 - z0), hull.darkened(0.1), _t(sx * (half - 0.05), dk - 0.02, (z0 + z1) * 0.5))
+		mb.add_box(Vector3(0.1, 0.22, z3 - z2), hull.darkened(0.1), _t(sx * (half - 0.05), dk - 0.02, (z2 + z3) * 0.5))
+		# Bậc gỗ ngoài mạn để từ dưới nước trèo lên
+		mb.add_box(Vector3(0.34, 0.06, 0.6), Palette.WOOD_LIGHT, _t(sx * (half + 0.17), BOAT_STEP - 0.06, BOAT_GAP_Z))
+		mb.add_box(Vector3(0.06, 0.2, 0.06), Palette.WOOD, _t(sx * (half + 0.3), BOAT_STEP - 0.24, BOAT_GAP_Z - 0.22))
+		mb.add_box(Vector3(0.06, 0.2, 0.06), Palette.WOOD, _t(sx * (half + 0.3), BOAT_STEP - 0.24, BOAT_GAP_Z + 0.22))
+	# Mui: vách tre đan hai bên + vòm cong (mặt ngoài sẫm, mặt trong sáng) + vành tre
+	var mz0 := BOAT_CABIN.x
+	var mz1 := BOAT_CABIN.y
+	var wall_h := 1.0
+	var wall_top := dk + wall_h
+	for sx: float in [-1.0, 1.0]:
+		mb.add_box(Vector3(0.08, wall_h, mz1 - mz0), Palette.THATCH_DARK, _t(sx * (half - 0.08), dk, (mz0 + mz1) * 0.5))
+		# Ô cửa sổ nhỏ (khung tre sẫm) giữa vách
+		mb.add_box(Vector3(0.1, 0.36, 0.7), Palette.WINDOW_DARK, _t(sx * (half - 0.08), dk + 0.45, (mz0 + mz1) * 0.5))
+	var seg := 10
+	var r := half - 0.04
+	var rise := 0.85
+	for k in seg:
+		var a0 := PI * float(k) / seg
+		var a1 := PI * float(k + 1) / seg
+		var p0 := Vector3(cos(a0) * r, wall_top + sin(a0) * rise, 0)
+		var p1 := Vector3(cos(a1) * r, wall_top + sin(a1) * rise, 0)
+		var za := Vector3(0, 0, mz0 - 0.1)
+		var zb := Vector3(0, 0, mz1 + 0.1)
+		var mid := (p0 + p1) * 0.5
+		var out := Vector3(mid.x, mid.y - wall_top, 0).normalized()
+		var center := Vector3(0, wall_top, (mz0 + mz1) * 0.5)
+		mb.add_quad(p0 + za, p1 + za, p1 + zb, p0 + zb, Palette.THATCH_DARK, center)
+		mb.add_quad(p0 + za, p1 + za, p1 + zb, p0 + zb, Palette.THATCH, center + out * 20.0)
+		# Vành tre ở hai đầu mui và giữa
+		for zr: float in [mz0 - 0.1, (mz0 + mz1) * 0.5, mz1 + 0.1]:
+			mb.add_limb(p0 + Vector3(0, 0, zr) + out * 0.02, p1 + Vector3(0, 0, zr) + out * 0.02, 0.035, 0.035, 4, Palette.BAMBOO_NODE)
+	# Đồ đạc trong mui
+	mb.add_box(Vector3(boat_beam - 0.5, 0.02, mz1 - mz0 - 0.9), Palette.MAT, _t(0, dk, (mz0 + mz1) * 0.5 - 0.2))
+	var stove := _t(0.55, dk, mz1 - 0.35)
+	mb.add_prism(0.26, 0.22, 0.32, 8, Palette.JAR.lightened(0.15), stove)
+	mb.add_prism(0.12, 0.12, 0.04, 8, Palette.WINDOW_DARK, stove * _t(0, 0.31, 0))
+	mb.add_prism(0.2, 0.17, 0.2, 8, Palette.WINDOW_DARK.lightened(0.15), stove * _t(0, 0.34, 0))
+	mb.add_prism(0.2, 0.26, 0.18, 9, Palette.JAR, _t(-0.6, dk, mz1 - 0.35))
+	mb.add_prism(0.24, 0.18, 0.22, 9, Palette.JAR, _t(-0.6, dk + 0.18, mz1 - 0.35))
+	mb.add_prism(0.2, 0.26, 0.26, 8, Palette.STRAW.darkened(0.2), _t(-0.65, dk, mz0 + 0.5))   # giỏ
+	mb.add_blob(Vector3(0.4, 0.12, 0.3), Palette.SACK.darkened(0.25), _rng, 0.2, _t(0.55, dk + 0.08, mz0 + 0.5))  # lưới cuộn
+	mb.add_box(Vector3(0.5, 0.06, 0.7), Palette.PILLOW, _t(0.0, dk + 0.02, mz0 + 0.55))
+	# Cọc chèo ở đuôi
+	mb.add_prism(0.05, 0.04, 1.0, 6, Palette.WOOD, _t(0.62, dk, -2.95))
+	return mb.commit()
+
+
+## Va chạm của đò (nhập vai đi lên được): sàn, hai đầu, mạn (chừa khe), vách mui, mái mui, bậc mạn.
+func _boat_solid(node: Node3D) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Solid"
+	body.collision_layer = 1 << (FirstPerson.SOLID_LAYER - 1)
+	body.collision_mask = 0
+	node.add_child(body)
+	var half := boat_beam * 0.5
+	var dk := BOAT_DECK
+	var add := func(size: Vector3, center: Vector3) -> void:
+		var cs := CollisionShape3D.new()
+		var bs := BoxShape3D.new()
+		bs.size = size
+		cs.shape = bs
+		cs.position = center
+		body.add_child(cs)
+	add.call(Vector3(boat_beam, dk, 6.0), Vector3(0, dk * 0.5, 0))
+	for e: float in [-1.0, 1.0]:
+		add.call(Vector3(1.2, dk, 1.3), Vector3(0, dk * 0.5, e * 3.6))
+	for sx: float in [-1.0, 1.0]:
+		var z1 := BOAT_GAP_Z - 0.35
+		var z2 := BOAT_GAP_Z + 0.35
+		add.call(Vector3(0.1, 0.22, z1 + 3.0), Vector3(sx * (half - 0.05), dk + 0.11, (z1 - 3.0) * 0.5))
+		add.call(Vector3(0.1, 0.22, 3.0 - z2), Vector3(sx * (half - 0.05), dk + 0.11, (z2 + 3.0) * 0.5))
+		add.call(Vector3(0.1, 1.0, BOAT_CABIN.y - BOAT_CABIN.x), Vector3(sx * (half - 0.08), dk + 0.5, (BOAT_CABIN.x + BOAT_CABIN.y) * 0.5))
+		add.call(Vector3(0.36, BOAT_STEP, 0.6), Vector3(sx * (half + 0.17), BOAT_STEP * 0.5, BOAT_GAP_Z))
+	add.call(Vector3(boat_beam, 0.12, BOAT_CABIN.y - BOAT_CABIN.x + 0.2), Vector3(0, dk + 1.95, (BOAT_CABIN.x + BOAT_CABIN.y) * 0.5))
+	# Đồ trong mui (bếp, chum) để không đi xuyên
+	add.call(Vector3(0.55, 0.6, 0.55), Vector3(0.55, dk + 0.3, BOAT_CABIN.y - 0.35))
+	add.call(Vector3(0.55, 0.6, 0.55), Vector3(-0.6, dk + 0.3, BOAT_CABIN.y - 0.35))
+	add.call(Vector3(0.14, 1.0, 0.14), Vector3(0.62, dk + 0.5, -2.95))
+
+
+# --- Cây cỏ ven sông ---------------------------------------------------------------------
+# Lau sậy ở mép nước, bèo tây nổi gần bờ, cỏ + hoa dại trên đê, chuối và cây to ở chân đê
+# phía ngoài vòng sông. Tất cả MultiMesh (lá dùng shader gió); thân cây to gộp một mesh thường
+# để nhập vai không đi xuyên.
+
+## Chỗ này có vướng bến nước / lối xuống sông / đò neo không.
+func _veg_blocked(q: Vector2, pad: float) -> bool:
+	for l: Dictionary in landings:
+		var e: Vector3 = l.edge
+		if Vector2(e.x, e.z).distance_to(q) < 7.0 + pad:
+			return true
+		var path: PackedVector3Array = l.path
+		for k in range(0, path.size(), 2):
+			if Vector2(path[k].x, path[k].z).distance_to(q) < 2.6 + pad:
+				return true
+	for b: Vector3 in boat_spots:
+		if Vector2(b.x, b.z).distance_to(q) < 6.0 + pad:
+			return true
+	return false
+
+
+## Điểm ngẫu nhiên dọc sông: [vị trí (x, z), pháp tuyến hướng ra bờ, khoảng cách tới mép nước d,
+## có phải bờ ngoài vòng sông không].
+func _bank_point(d_range: Vector2) -> Array:
+	var s := _rng.randf() * length
+	var smp := sample(s)
+	var c: Vector2 = smp[0]
+	var n: Vector2 = (smp[1] as Vector2).orthogonal()
+	if _rng.randf() < 0.5:
+		n = -n
+	var d := _rng.randf_range(d_range.x, d_range.y)
+	var q := c + n * (half_width(s) + d)
+	var vc := village.center if village != null else Vector2(0, -105)
+	var outer := q.distance_to(vc) > c.distance_to(vc)
+	return [q, n, d, outer, c]
+
+
+func _build_vegetation() -> void:
+	var span := length * 2.0       # hai bên bờ
+	var wind := MeshBuilder.wind_material(vegetation_wind, 0.0, 1.6, 1.2)
+	var wind_low := MeshBuilder.wind_material(vegetation_wind * 0.6, 0.0, 0.5, 1.5)
+	var wind_tree := MeshBuilder.wind_material(vegetation_wind * 1.4, 1.5, 4.0, 0.9)
+	# Lau sậy: mép nước, nửa dưới nước nửa trên bờ
+	var reeds: Array[Array] = [[], [], []]
+	for i in int(span * reed_density):
+		var bp := _bank_point(Vector2(-1.6, 0.9))
+		var q: Vector2 = bp[0]
+		if _veg_blocked(q, 0.0):
+			continue
+		var y := maxf(bank_height(float(bp[2])), water_level - 0.08)
+		var sc := _rng.randf_range(0.75, 1.3)
+		(reeds[_rng.randi() % 3] as Array).append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3(sc, sc * _rng.randf_range(0.85, 1.2), sc)), Vector3(q.x, y - 0.05, q.y)))
+	for k in 3:
+		_multimesh("Reeds%d" % k, _reed_mesh(k), _typed(reeds[k]), [], wind, true)
+	# Bèo tây: cụm nổi trong nước gần bờ
+	var hy: Array[Transform3D] = []
+	var hyf: Array[Transform3D] = []
+	for i in int(span * hyacinth_density):
+		var bp := _bank_point(Vector2(-5.0, -1.2))
+		var q0: Vector2 = bp[0]
+		if _veg_blocked(q0, -2.0):
+			continue
+		var n: Vector2 = bp[1]
+		var tan := n.orthogonal()
+		for k in _rng.randi_range(5, 14):
+			var q := q0 + tan * _rng.randfn(0.0, 1.4) + n * _rng.randfn(0.0, 0.5)
+			var sc := _rng.randf_range(0.7, 1.25)
+			var xf := Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * sc), Vector3(q.x, water_level - 0.02, q.y))
+			hy.append(xf)
+			if _rng.randf() < 0.22:
+				hyf.append(xf)
+	_multimesh("Hyacinth", _hyacinth_mesh(), hy, [], wind_low, false)
+	_multimesh("HyacinthFlowers", _hyacinth_flower_mesh(), hyf, [], wind_low, false)
+	# Cỏ trên mái đê, mặt đê, chân đê
+	var grass: Array[Array] = [[], []]
+	var flowers: Array[Array] = [[], [], []]
+	for i in int(span * grass_density):
+		var bp := _bank_point(Vector2(0.3, 8.5))
+		var q: Vector2 = bp[0]
+		if _veg_blocked(q, -1.2):
+			continue
+		var sc := _rng.randf_range(0.6, 1.3)
+		(grass[_rng.randi() % 2] as Array).append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * sc), Vector3(q.x, bank_height(float(bp[2])) - 0.02, q.y)))
+	for i in int(span * flower_density):
+		var bp := _bank_point(Vector2(1.2, 7.0))
+		var q: Vector2 = bp[0]
+		if _veg_blocked(q, -1.2):
+			continue
+		(flowers[_rng.randi() % 3] as Array).append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.8, 1.2)),
+				Vector3(q.x, bank_height(float(bp[2])) - 0.01, q.y)))
+	_multimesh("BankGrass0", _tuft_mesh(Palette.GRASS.darkened(0.12), 0), _typed(grass[0]), [], wind_low, false)
+	_multimesh("BankGrass1", _tuft_mesh(Palette.DIKE.lightened(0.08), 1), _typed(grass[1]), [], wind_low, false)
+	var fcols := [Palette.FLOWER_YELLOW, Palette.FLOWER_WHITE, Palette.FLOWER_PURPLE]
+	for k in 3:
+		_multimesh("BankFlowers%d" % k, _wildflower_mesh(fcols[k], k), _typed(flowers[k]), [], wind_low, false)
+	# Chuối và cây to ở chân đê phía ngoài (không trồng ở hai đuôi sông ngoài đồng)
+	var trunks := MeshBuilder.new(random_seed + 60, 0.05)
+	trunks.contact_shade_height = 0.6
+	var crowns := MeshBuilder.new(random_seed + 61, 0.05)
+	var bananas: Array[Transform3D] = []
+	var placed: Array[Vector2] = []
+	for big: bool in [true, false]:
+		var want := int(length * (tree_density if big else banana_density))
+		var got := 0
+		for attempt in want * 8:
+			if got >= want:
+				break
+			var bp := _bank_point(Vector2(7.5, 14.0) if big else Vector2(6.6, 11.0))
+			var q: Vector2 = bp[0]
+			var c: Vector2 = bp[4]
+			if not bool(bp[3]) or c.y > -78.0 or _veg_blocked(q, 2.0):
+				continue
+			var crowd := false
+			for o in placed:
+				if o.distance_to(q) < (7.0 if big else 3.5):
+					crowd = true
+					break
+			if crowd:
+				continue
+			placed.append(q)
+			got += 1
+			if big:
+				_river_tree(trunks, crowns, Vector3(q.x, 0.0, q.y))
+			else:
+				for k in _rng.randi_range(1, 3):
+					var off := Vector2(_rng.randf_range(-1.2, 1.2), _rng.randf_range(-1.2, 1.2))
+					var sc := _rng.randf_range(0.75, 1.15)
+					bananas.append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * sc), Vector3(q.x + off.x, 0.0, q.y + off.y)))
+	_multimesh("Bananas", _banana_mesh(), bananas, [], wind_tree, true)
+	add_child(trunks.commit_instance("RiverTreeTrunks"))
+	var cr := crowns.commit_instance("RiverTreeCrowns", MeshBuilder.wind_material(vegetation_wind * 0.8, 3.0, 5.0, 0.8))
+	add_child(cr)
+
+
+static func _typed(a: Array) -> Array[Transform3D]:
+	var out: Array[Transform3D] = []
+	for x in a:
+		out.append(x)
+	return out
+
+
+## Khóm lau: nhiều lá mảnh dài cong ra ngoài, vài cây có bông lau trắng ngà.
+func _reed_mesh(variant: int) -> ArrayMesh:
+	var mb := MeshBuilder.new(70 + variant, 0.06)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 900 + variant
+	for k in 11 + variant * 2:
+		var a := rng.randf() * TAU
+		var lean := rng.randf_range(0.05, 0.35)
+		var h := rng.randf_range(1.1, 2.1)
+		var tip := Vector3(cos(a) * lean * h, h, sin(a) * lean * h)
+		var col := Palette.REED if rng.randf() < 0.75 else Palette.REED_DRY
+		mb.add_limb(Vector3(cos(a) * 0.08, 0, sin(a) * 0.08), tip, 0.025, 0.004, 3, col)
+		if k % 4 == 0:
+			# Bông lau ở ngọn
+			mb.add_limb(tip, tip + Vector3(cos(a) * 0.12, 0.42, sin(a) * 0.12), 0.05, 0.012, 4, Palette.REED_PLUME)
+	return mb.commit()
+
+
+## Một cây bèo tây: hoa thị lá tròn bóng, cuống phồng.
+func _hyacinth_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new(80, 0.08)
+	for k in 6:
+		var a := TAU * k / 6.0 + 0.3
+		var dir := Vector3(cos(a), 0, sin(a))
+		var axis := Vector3.UP.cross(dir).normalized()
+		mb.add_prism(0.03, 0.045, 0.14, 5, Palette.HYACINTH.darkened(0.1), Transform3D(Basis(axis, 0.5), dir * 0.04))
+		mb.add_prism(0.11, 0.12, 0.02, 7, Palette.HYACINTH, Transform3D(Basis(axis, 1.1), dir * 0.13 + Vector3(0, 0.12, 0)))
+	return mb.commit()
+
+
+func _hyacinth_flower_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new(81, 0.06)
+	mb.add_limb(Vector3(0, 0.05, 0), Vector3(0, 0.38, 0), 0.015, 0.012, 4, Palette.HYACINTH)
+	for k in 6:
+		var y := 0.3 + k * 0.035
+		var a := k * 2.1
+		mb.add_ellipsoid(Vector3(0.045, 0.03, 0.045), Palette.HYACINTH_FLOWER if k % 2 == 0 else Palette.HYACINTH_FLOWER.lightened(0.15),
+				_t(cos(a) * 0.04, y, sin(a) * 0.04), 5, 3)
+	return mb.commit()
+
+
+func _tuft_mesh(col: Color, variant: int) -> ArrayMesh:
+	var mb := MeshBuilder.new(90 + variant, 0.08)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 950 + variant
+	for k in 10:
+		var a := rng.randf() * TAU
+		var h := rng.randf_range(0.3, 0.6)
+		mb.add_pyramid(0.045, h, 3, col, Transform3D(Basis(Vector3(cos(a + 1.57), 0, sin(a + 1.57)), rng.randf_range(0.1, 0.45)),
+				Vector3(cos(a) * 0.06, 0, sin(a) * 0.06)))
+	return mb.commit()
+
+
+func _wildflower_mesh(col: Color, variant: int) -> ArrayMesh:
+	var mb := MeshBuilder.new(100 + variant, 0.05)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 990 + variant
+	for k in 3:
+		var a := rng.randf() * TAU
+		var top := Vector3(cos(a) * 0.08, rng.randf_range(0.2, 0.38), sin(a) * 0.08)
+		mb.add_limb(Vector3.ZERO, top, 0.008, 0.006, 3, Palette.GRASS.darkened(0.2))
+		mb.add_prism(0.05, 0.04, 0.025, 5, col, _t(top.x, top.y, top.z))
+		mb.add_prism(0.015, 0.015, 0.03, 4, Palette.FLOWER_YELLOW.darkened(0.2) if col != Palette.FLOWER_YELLOW else Palette.WOOD_LIGHT, _t(top.x, top.y + 0.01, top.z))
+	return mb.commit()
+
+
+## Bụi chuối: thân giả có bẹ, 7 tàu lá to xoè rủ, đôi khi có buồng.
+func _banana_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new(110, 0.05)
+	var h := 2.3
+	mb.add_prism(0.14, 0.1, h, 7, Palette.BANANA_TRUNK)
+	mb.add_prism(0.16, 0.14, 0.5, 7, Palette.BANANA_TRUNK.darkened(0.15))
+	for k in 7:
+		var a := TAU * k / 7.0 + 0.4
+		var dir := Vector3(cos(a), 0, sin(a))
+		var tilt := 0.55 + 0.35 * float(k % 3) / 2.0
+		var base := Vector3(0, h - 0.05, 0)
+		var mid := base + dir * 0.9 * sin(tilt) + Vector3(0, 0.9 * cos(tilt), 0)
+		var tip := mid + dir * 0.9 + Vector3(0, -0.35 - 0.2 * float(k % 2), 0)
+		var side := Vector3.UP.cross(dir).normalized() * 0.32
+		var col := Palette.BANANA_LEAF if k % 3 != 1 else Palette.BANANA_LEAF.darkened(0.12)
+		# Gân lá + phiến lá hai nửa (hai mặt để nhìn từ dưới vẫn thấy)
+		mb.add_limb(base, mid, 0.03, 0.02, 3, Palette.BANANA_TRUNK)
+		for sgn: float in [-1.0, 1.0]:
+			var e1 := mid + side * sgn
+			var e2 := (mid + tip) * 0.5 + side * sgn * 0.9
+			mb.add_quad(base + dir * 0.15, mid, e1, base + dir * 0.15 + side * sgn * 0.25, col, mid + Vector3(0, -3, 0))
+			mb.add_quad(base + dir * 0.15, mid, e1, base + dir * 0.15 + side * sgn * 0.25, col.darkened(0.08), mid + Vector3(0, 3, 0))
+			mb.add_quad(mid, tip, e2, e1, col, mid + Vector3(0, -3, 0))
+			mb.add_quad(mid, tip, e2, e1, col.darkened(0.08), mid + Vector3(0, 3, 0))
+	return mb.commit()
+
+
+## Cây to ven đê (gạo / sung): thân + vài cành vào `trunks` (va chạm được), tán khối vào `crowns`.
+func _river_tree(trunks: MeshBuilder, crowns: MeshBuilder, base: Vector3) -> void:
+	var h := _rng.randf_range(5.5, 8.5)
+	var r := _rng.randf_range(0.22, 0.34)
+	trunks.add_prism(r * 1.6, r, 0.5, 7, Palette.BANYAN_TRUNK.darkened(0.08), Transform3D(Basis(), base))
+	trunks.add_limb(base, base + Vector3(_rng.randf_range(-0.3, 0.3), h * 0.7, _rng.randf_range(-0.3, 0.3)), r, r * 0.7, 7, Palette.BANYAN_TRUNK)
+	var top := base + Vector3(0, h * 0.7, 0)
+	var cols := [Palette.BANYAN_LEAF_1, Palette.BANYAN_LEAF_2, Palette.BANYAN_LEAF_DARK]
+	for k in _rng.randi_range(3, 5):
+		var a := _rng.randf() * TAU
+		var reach := _rng.randf_range(1.2, 2.4)
+		var end := top + Vector3(cos(a) * reach, _rng.randf_range(0.6, 1.8), sin(a) * reach)
+		trunks.add_limb(top, end, r * 0.55, r * 0.25, 5, Palette.BANYAN_TRUNK)
+		crowns.add_blob(Vector3(_rng.randf_range(1.4, 2.1), _rng.randf_range(1.0, 1.5), _rng.randf_range(1.4, 2.1)),
+				cols[_rng.randi() % 3], _rng, 0.25, Transform3D(Basis(), end - Vector3(0, 0.5, 0)))
+	crowns.add_blob(Vector3(2.2, 1.6, 2.2), cols[_rng.randi() % 3], _rng, 0.25, Transform3D(Basis(), top + Vector3(0, 1.6, 0)))
 
 
 # --- Cá --------------------------------------------------------------------------------

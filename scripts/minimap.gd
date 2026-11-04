@@ -197,8 +197,8 @@ func _draw() -> void:
 		for b: Node3D in river.boat_nodes:
 			var bp := Vector2(b.global_position.x, b.global_position.z)
 			var f := Vector2(sin(b.rotation.y), cos(b.rotation.y))
-			var half := maxf(1.8 * _scale, 3.5)
-			var side := f.orthogonal() * maxf(0.6 * _scale, 1.5)
+			var half := maxf(4.8 * _scale, 4.0)
+			var side := f.orthogonal() * maxf(1.1 * _scale, 1.6)
 			var m := _w2m(bp)
 			# _w2m: x giữ, z → y; hướng trên bản đồ cũng vậy
 			draw_colored_polygon(PackedVector2Array([m + f * half, m + side, m - f * half, m - side]), Palette.WOOD)
