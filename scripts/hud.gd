@@ -14,8 +14,8 @@ signal exit_requested
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: thời tiết    H: ẩn / hiện"
-const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: thời tiết    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
 var _info_label: Label

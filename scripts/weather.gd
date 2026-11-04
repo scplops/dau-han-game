@@ -7,7 +7,8 @@ extends Node
 ## - Gió, mưa trên mặt nước: biến toàn cục của shader `weather_wind`, `weather_rain`.
 ## - Sương: kéo vùng sương lại gần (fog_depth_begin/end).
 ## - Chớp: loé sáng toàn cảnh (adjustment_brightness) từng đợt khi giông.
-## Phím R: Tự động → Nắng → Nhiều mây → Mưa phùn → Mưa giông → Sương mù → Tự động.
+## Thời tiết luôn ngẫu nhiên: lúc mở game bắt đầu bằng một kiểu bất kỳ, rồi tự đổi theo
+## AUTO_WEIGHTS; mỗi lần chạy mỗi khác. Phím R: đổi ngay sang một kiểu ngẫu nhiên khác.
 
 signal weather_changed(kind: String)
 
@@ -36,6 +37,10 @@ const AUTO_WEIGHTS := {"clear": 4.0, "cloudy": 3.0, "drizzle": 2.0, "storm": 1.0
 @export var auto_interval: Vector2 = Vector2(70.0, 140.0)
 @export var transition_time: float = 8.0
 @export var random_seed: int = 77
+## Bật để thời tiết lặp lại y hệt mỗi lần chạy (dùng `random_seed`); tắt = mỗi lần một khác.
+@export var fixed_seed: bool = false
+## Lúc mở game chọn ngẫu nhiên kiểu thời tiết (tắt = bắt đầu bằng `kind`).
+@export var random_start: bool = true
 
 @export_group("Mưa")
 @export_range(0, 20000) var rain_drops: int = 9000
@@ -72,7 +77,12 @@ var _brightness: float = 1.0   # độ sáng nền theo mây (chớp cộng thê
 
 
 func _ready() -> void:
-	_rng.seed = random_seed
+	if fixed_seed:
+		_rng.seed = random_seed
+	else:
+		_rng.randomize()
+	if random_start:
+		kind = _pick_weighted("")
 	_gpu = RenderingServer.get_current_rendering_method() != "gl_compatibility"
 	if world_environment != null:
 		var env := world_environment.environment
@@ -84,9 +94,9 @@ func _ready() -> void:
 	set_weather(kind, true)
 
 
-## Tên hiển thị ("Mưa giông"…), thêm "(tự đổi)" khi đang tự động.
+## Tên hiển thị ("Mưa giông"…).
 func display_name() -> String:
-	return str(NAMES.get(kind, kind)) + (" (tự đổi)" if auto_change else "")
+	return str(NAMES.get(kind, kind))
 
 
 ## Đổi thời tiết. `instant` = nhảy ngay, không chuyển dần (dùng khi chụp ảnh).
@@ -106,18 +116,9 @@ func set_weather(new_kind: String, instant: bool = false) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("cycle_weather"):
-		# Tự động → Nắng → … → Sương mù → Tự động
-		if auto_change:
-			auto_change = false
-			set_weather(ORDER[0])
-		else:
-			var i := ORDER.find(kind)
-			if i == ORDER.size() - 1:
-				auto_change = true
-				_auto_timer = _rng.randf_range(auto_interval.x, auto_interval.y)
-				weather_changed.emit(kind)
-			else:
-				set_weather(ORDER[i + 1])
+		# Đổi ngay sang kiểu ngẫu nhiên khác, vẫn tiếp tục tự đổi sau đó
+		_auto_timer = _rng.randf_range(auto_interval.x, auto_interval.y)
+		set_weather(_pick_next())
 
 
 func _process(delta: float) -> void:
@@ -145,13 +146,18 @@ func _process(delta: float) -> void:
 
 
 func _pick_next() -> String:
+	return _pick_weighted(kind)
+
+
+## Chọn kiểu theo AUTO_WEIGHTS, bỏ qua `exclude`.
+func _pick_weighted(exclude: String) -> String:
 	var total := 0.0
 	for k in AUTO_WEIGHTS:
-		if k != kind:
+		if k != exclude:
 			total += AUTO_WEIGHTS[k]
 	var r := _rng.randf() * total
 	for k in AUTO_WEIGHTS:
-		if k == kind:
+		if k == exclude:
 			continue
 		r -= AUTO_WEIGHTS[k]
 		if r <= 0.0:

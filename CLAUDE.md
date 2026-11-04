@@ -286,8 +286,9 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   `drizzle` (mưa phùn), `storm` (mưa giông, có chớp), `fog` (sương mù). Mỗi kiểu là bộ thông số
   `PRESETS` (độ phủ mây, lượng mưa, hệ số gió, sương); giá trị hiện tại chuyển dần
   (`transition_time`) nên đổi thời tiết không giật.
-- Tự đổi ngẫu nhiên theo `AUTO_WEIGHTS` mỗi 70–140 giây; phím `R` xoay vòng
-  Tự động → Nắng → … → Sương mù → Tự động. HUD hiện tên thời tiết.
+- **Luôn ngẫu nhiên:** mở game bắt đầu bằng một kiểu bất kỳ, rồi tự đổi theo `AUTO_WEIGHTS`
+  mỗi 70–140 giây; mỗi lần chạy mỗi khác (ngoại lệ có chủ đích với quy tắc seed cố định —
+  bật `fixed_seed` để lặp lại). Phím `R`: đổi ngay sang kiểu ngẫu nhiên khác. HUD hiện tên.
 - **Ánh sáng:** Weather đặt `DayNight.weather_cover` / `weather_mist` rồi gọi `refresh()`;
   DayNight làm yếu nắng, ngả xám trời/sương/ambient (giữ độ sáng theo giờ), và trời giông thì
   nhà thắp đèn sớm. Weather chỉnh thêm `adjustment_brightness/saturation` và vùng sương
