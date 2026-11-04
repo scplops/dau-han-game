@@ -6,6 +6,7 @@ extends SceneTree
 ##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
+##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -84,6 +85,18 @@ func _run() -> void:
 			var f := str(args["focus"]).split(",")
 			rig.set_focus(Vector3(float(f[0]), 0.0, float(f[1])))
 		rig.snap()
+
+	# Nhập vai: đứng ở tâm camera, quay theo --fp-yaw / --fp-pitch
+	var fp := scene.get_node_or_null("FirstPerson") as FirstPerson
+	if fp != null and args.has("fp"):
+		await process_frame
+		await physics_frame
+		fp.enter()
+		if args.has("fp-yaw"): fp.rotation.y = deg_to_rad(float(args["fp-yaw"]))
+		if args.has("fp-pitch"):
+			fp._pitch = deg_to_rad(float(args["fp-pitch"]))
+			fp.camera.rotation.x = fp._pitch
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 	# Chờ vài khung hình cho bóng đổ, shader ổn định
 	for i in int(args.get("frames", "30")):

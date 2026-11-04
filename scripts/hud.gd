@@ -14,8 +14,9 @@ signal exit_requested
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    Bấm bóng: sút    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    Bấm bóng: sút    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    V: nhập vai    H: ẩn / hiện"
 const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi    Shift: chạy    Space: nhảy    E / chuột trái: tương tác    V / Esc: thôi nhập vai    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
@@ -31,6 +32,7 @@ var _info_body: Label
 var _inside: bool = false
 var _place: String = ""
 var _fish_place: String = ""
+var _first_person: bool = false
 var _refresh: float = 0.0
 
 
@@ -148,7 +150,7 @@ func _update_text() -> void:
 		return
 	_time_label.text = day_night.time_text()
 	var where := ((_place if _place != "" else "Trong nhà") if _inside
-			else (_fish_place if _fish_place != "" else "Ngoài sân"))
+			else (_fish_place if _fish_place != "" else ("Nhập vai" if _first_person else "Ngoài sân")))
 	var parts: Array[String] = [where, _period_name(day_night.time_of_day)]
 	if weather != null:
 		parts.append(weather.display_name())
@@ -183,6 +185,16 @@ func set_fishing(place: String) -> void:
 	if place != "":
 		hide_info()
 	set_hint("")
+	_update_text()
+
+
+## Đổi giao diện khi bật / tắt nhập vai góc nhìn thứ nhất.
+func set_first_person(on: bool) -> void:
+	_first_person = on
+	if _keys_label == null:
+		return
+	_keys_label.text = SHORTCUTS_FP if on else (SHORTCUTS_IN if _inside else SHORTCUTS_OUT)
+	_fit_bottom(_keys_panel, _keys_label)
 	_update_text()
 
 

@@ -331,7 +331,31 @@ func _update_score() -> void:
 	_score_labels[1].text = "%d - %d" % [score[0], score[1]]
 
 
-# --- Người xem sút bóng -----------------------------------------------------------------
+# --- Người xem / người nhập vai -------------------------------------------------------------
+
+func ball_node() -> Node3D:
+	return _ball
+
+
+func ball_position() -> Vector3:
+	return _ball_pos
+
+
+## Người nhập vai sút: theo hướng nhìn, `up` là độ bổng (0..1).
+func kick_from_player(dir: Vector3, up: float) -> void:
+	_kick(dir, user_kick_speed * _rng.randf_range(0.85, 1.05), lerpf(0.5, 7.0, up))
+	_touch_gap = 0.3
+
+
+## Người nhập vai đi vào bóng: đẩy nhẹ theo hướng chân (dẫn bóng).
+func nudge(dir: Vector3, speed: float) -> void:
+	if _ball_pos.y > ball_radius + 0.15:
+		return
+	var h := Vector3(_ball_vel.x, 0, _ball_vel.z)
+	if h.dot(dir) >= speed * 0.9:
+		return
+	_kick(dir, speed, 0.0)
+
 
 ## Bấm vào bóng: sút bay ra xa phía camera đang nhìn.
 func user_kick() -> void:

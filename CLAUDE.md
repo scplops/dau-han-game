@@ -3,8 +3,9 @@
 > File hướng dẫn cho Claude Code. Đặt file này ở thư mục gốc của dự án Godot.
 > Mục tiêu giai đoạn này: **chỉ dựng cảnh quan để ngắm**, CHƯA có gameplay
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
-> Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10) và **dân làng tự đi lại** (mục 13)
-> — vẫn không có nhân vật do người xem điều khiển, chưa có hội thoại.
+> Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
+> mini-game câu cá (mục 16), sân bóng (mục 17) và **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
+> — chưa có hội thoại, túi đồ, nhiệm vụ.
 
 ---
 
@@ -134,7 +135,8 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
 7. **Phím tắt** khai báo trong **Input Map** của `project.godot` (tên action tiếng Anh:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
-   `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái)),
+   `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái),
+   `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -174,6 +176,7 @@ scripts/
   villager.gd          # một NPC: hình có khớp, dáng đi/làm việc, đi theo đường
   hud.gd
   fishing.gd           # mini-game câu cá ở các bến sông (mục 16)
+  first_person.gd      # nhập vai góc nhìn thứ nhất: đi lại, va chạm, tương tác (mục 18)
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
@@ -225,13 +228,14 @@ screenshots/           # ảnh chụp, không commit
 - **Hiệu năng:** mục tiêu ≥ 60 FPS ở 1080p trên máy tầm trung. Vật thể lặp lại nhiều
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
-- Không thêm gameplay (điều khiển nhân vật, inventory, nhiệm vụ) ở giai đoạn này.
+- Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại);
+  inventory, nhiệm vụ, hội thoại vẫn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Điều khiển nhân vật, trồng trọt, hội thoại với NPC, lưu game, âm thanh và nhạc nền,
+Trồng trọt, hội thoại với NPC, lưu game, âm thanh và nhạc nền,
 thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -435,3 +439,29 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - Chụp ảnh: `--football=<số người>` đưa người ra sân đá ngay (chạy trước 6 s), camera nhìn vào
   sân. `tools/football_test.gd -- --players=12 --seconds=240` mô phỏng một trận không giao diện,
   in bàn thắng / số lần chạm bóng / bóng ra biên (thường 2–7 bàn mỗi 4 phút).
+
+## 18. Nhập vai góc nhìn thứ nhất (giai đoạn 3a)
+
+- `scripts/first_person.gd` (node `FirstPerson`, `CharacterBody3D`, con cuối của `Main` để nhận
+  chuột/phím trước cả `Fishing`). Phím `V` bật/tắt (chỉ khi đang ở ngoài sân, không câu):
+  bật thì đứng ở tâm camera ngắm cảnh, tắt thì camera ngắm cảnh quay về chỗ đang đứng.
+- **Điều khiển:** chuột nhìn (chuột bị giữ; bấm vào cửa sổ để giữ lại), WASD đi (dùng lại action
+  `cam_*`), Shift chạy, Space nhảy, `Esc` hoặc `V` thôi nhập vai. Tự bước lên bậc thấp
+  (`step_height` 0,35 m: thềm nhà, bậc đá); lội được ra sông/ao (mặt nước không có va chạm).
+- **Va chạm lấy từ mesh tĩnh** dưới `World` (`_build_colliders`): mỗi `MeshInstance3D` dùng
+  `StandardMaterial3D` thành một `ConcavePolygonShape3D` ở lớp 4 (`SOLID_LAYER`); bỏ mesh dùng
+  `ShaderMaterial` (lá có gió, mặt nước), MultiMesh (lúa, cỏ, cá, sen), dân làng, mây, quả bóng.
+  Chỉ dựng lần đầu bật nhập vai (~220 nghìn tam giác, ~0,6 s trên máy cloud). Vật mới thêm vào
+  `World` tự có va chạm nếu dùng vật liệu thường; lá/vật mềm nên dùng shader gió để đi xuyên qua.
+- **Tương tác bằng tâm ngắm** (tia dài `reach` 3,2 m, lớp 2 + 3 + 4): cửa → "E: vào · tên nhà";
+  chỗ câu → "E: ngồi câu cá"; quả bóng → "E / chuột trái: sút bóng" (`Football.kick_from_player`,
+  sút theo hướng nhìn, nhìn lên thì bóng bổng); dân làng → "E: xem tin". Đi vào bóng thì dẫn bóng
+  (`Football.nudge`). Gợi ý hiện ở `Hud.set_hint`, tâm ngắm là chấm trắng giữa màn hình.
+- **Nhường camera:** vào nhà → `HouseEntry` dùng camera trong nhà như cũ, ra sân
+  (`inside_changed`) thì nhập vai tiếp. Ngồi câu → `Fishing` dùng camera ngắm cảnh, thôi câu
+  (signal `Fishing.stopped`) thì nhập vai tiếp. Trong lúc đi lại `HouseEntry.locked = true`
+  (không bắt chuột theo kiểu ngắm cảnh), `CameraRig` bị tắt nhưng tâm của nó bám theo người chơi
+  để mưa, dân làng, cá nhảy vẫn diễn ra quanh chỗ đứng.
+- Chụp ảnh: `--fp --focus=x,z --fp-yaw=độ --fp-pitch=độ`. `tools/fp_test.gd` (headless) thử đi
+  vào tường nhà, nhìn cửa → vào → ra, dẫn bóng và sút, ngồi câu → thôi câu, thoát nhập vai.
+

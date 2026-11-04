@@ -8,6 +8,9 @@ extends Node3D
 ##   → kéo cá: giữ để cuộn dây, thả khi dây căng; căng quá thì đứt, chùng lâu thì cá sổng.
 ## - Cá ăn mạnh lúc sáng sớm, chiều muộn; kém buổi trưa, ban đêm; mưa phùn ăn hơn; giông thì nghỉ.
 
+## Thôi câu (người nhập vai lấy lại camera).
+signal stopped
+
 enum State { OFF, READY, CHARGE, CAST, WAIT, NIBBLE, BITE, REEL, CAUGHT, LOST }
 
 ## Loài cá theo thứ tự màu cá trong River (cam, đỏ, vàng, xám, xám sẫm, trắng).
@@ -340,6 +343,7 @@ func stop() -> void:
 		outdoor_rig.pitch_deg = _saved_cam.pitch
 		outdoor_rig.distance = _saved_cam.distance
 		outdoor_rig.set_focus(_saved_cam.focus)
+	stopped.emit()
 
 
 func _enter_ready() -> void:
