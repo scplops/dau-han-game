@@ -245,6 +245,8 @@ func _spawn_people() -> void:
 				v.speed = _rng.randf_range(1.2, 1.5) if role != "carrier" else 1.15
 		add_child(v)
 		v.build_person(look)
+		if role == "kid" and school != null:
+			v.add_uniform(look)
 		if role in ["farmer", "carrier", "elder"] and lanterns < lantern_walkers:
 			v.add_lantern(true)
 			v.set_meta("lantern", true)
@@ -256,7 +258,7 @@ func _spawn_people() -> void:
 func _look(role: String, female: bool) -> Dictionary:
 	var male_shirts: Array[Color] = [Palette.FARMER_SHIRT, Palette.PILLOW, Palette.BLANKET.darkened(0.2), Palette.WOOD_LIGHT, Palette.MUD]
 	var female_shirts: Array[Color] = [Palette.WINDOW_DARK, Palette.BANYAN_TRUNK, Palette.FLOWER_WHITE, Palette.ALTAR_RED.darkened(0.25), Palette.LILY.darkened(0.3)]
-	var kid_shirts: Array[Color] = [Palette.BLANKET, Palette.HIBISCUS, Palette.PILLOW, Palette.FLOWER_YELLOW.darkened(0.2)]
+	var kid_shirts: Array[Color] = [Palette.BLANKET, Palette.HIBISCUS, Palette.LILY, Palette.FLOWER_YELLOW.darkened(0.2)]
 	var shirts := female_shirts if female else male_shirts
 	var look := {
 		"shirt": shirts[_rng.randi_range(0, shirts.size() - 1)],
@@ -463,6 +465,14 @@ func _target(v: Villager, act: String) -> Vector3:
 	return h.front
 
 
+## Lên lại lịch cho mọi người theo giờ hiện tại (khi giờ bị đổi đột ngột, vd. công cụ chụp ảnh).
+func replan() -> void:
+	for v in people:
+		v.state = Villager.State.IDLE
+		v.visible = true
+		_start(v)
+
+
 ## Bắt đầu: chọn việc theo giờ, đặt NPC ở giữa đường đi tới đó cho làng không "đổ ra cùng lúc".
 func _start(v: Villager) -> void:
 	v.global_position = v.home.front
@@ -505,6 +515,13 @@ func _next_activity(v: Villager, forced: String = "") -> void:
 	else:
 		p = _route(v, from, _target(v, act), at_home)
 	v.set_meta("at_home", act in ["inside", "shelter", "yard"])
+	# Học sinh: mặc đồng phục khi đi học (thay ở nhà — lúc ra khỏi cửa), về nhà thì thay ra
+	if not v._outfits.is_empty():
+		# Mặc vào khi bắt đầu đi học; cởi ra khi đã về trong nhà (không thay giữa đường)
+		if act == "school":
+			v.set_outfit(true)
+		elif v.state == Villager.State.INSIDE or at_home:
+			v.set_outfit(false)
 	v.walk_path(p)
 	v.speed_mul = 1.7 if act == "shelter" else (1.3 if weather != null and weather.kind == "drizzle" else 1.0)
 	v.work_anim = "idle"

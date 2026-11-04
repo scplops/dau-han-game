@@ -374,3 +374,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   hiệu "TIÊN HỌC LỄ - HẬU HỌC VĂN", bàn giáo viên, 2 dãy bàn ghế băng, vở sách, tủ đồ dùng.
 - Trẻ con trong làng đi học 7–11h và 13:30–16:30 (việc `school`): đi theo đường đất vào cổng,
   chơi ở sân trường (giờ ra chơi). Cửa sổ trường sáng nhẹ ban đêm (`night_glow`).
+- **Đồng phục:** mỗi trẻ con có thêm một bộ khung hình thứ hai (`Villager.add_uniform`): áo
+  trắng, quần xanh sẫm, khăn quàng đỏ. `set_outfit(true)` khi bắt đầu việc `school`, thay ra khi
+  đã về trong nhà. Áo thường của trẻ con không dùng màu trắng để khỏi lẫn.
+- `Villagers.replan()` lên lại lịch theo giờ hiện tại (công cụ chụp ảnh gọi khi có `--hour`).

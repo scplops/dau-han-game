@@ -41,6 +41,8 @@ var _walk_amount: float = 0.0
 var _work_time: float = 0.0
 var _trail: Array[Vector3] = []   # vệt đường đã đi (cho con vật đi theo)
 var _holds_pole: bool = false
+var _outfits: Array = []          # [{body, legs, arms}] thường / đồng phục
+var in_uniform: bool = false
 var _walk_start: Vector3 = Vector3.ZERO   # điểm bắt đầu đoạn đường đầu tiên (lấy độ cao)
 var _path_y: float = 0.05                 # độ cao nội suy theo đường (leo đê, lên cầu ván)
 
@@ -82,6 +84,40 @@ func _pivot(parent: Node3D, pos: Vector3) -> Node3D:
 
 ## look: {shirt, pants, skin, hat ("non"|"khan"|"none"), scale, female, prop ("hoe"|"pole"|"stick"|"none")}
 func build_person(look: Dictionary) -> void:
+	_build_person_rig(look)
+	_add_click_body(Vector3(0.7, 1.75 * float(look.get("scale", 1.0)), 0.7))
+
+
+## Bộ đồ thứ hai (đồng phục học sinh): dựng thêm một bộ khung hình riêng, ẩn đi; `set_outfit`
+## đổi qua lại. Áo sơ mi trắng, quần xanh sẫm, khăn quàng đỏ thắt ở cổ.
+func add_uniform(look: Dictionary) -> void:
+	var casual := {"body": body, "legs": legs, "arms": arms}
+	legs = []
+	arms = []
+	var u := look.duplicate()
+	u.shirt = Palette.SCHOOL_TRIM
+	u.pants = Palette.SIGN_BLUE.darkened(0.45)
+	u.hat = "none" if look.get("hat", "none") == "non" else look.get("hat", "none")
+	u.scarf = true
+	_build_person_rig(u)
+	_outfits = [casual, {"body": body, "legs": legs, "arms": arms}]
+	set_outfit(false)
+
+
+## true = mặc đồng phục.
+func set_outfit(uniform: bool) -> void:
+	if _outfits.is_empty():
+		return
+	var o: Dictionary = _outfits[1 if uniform else 0]
+	(_outfits[0].body as Node3D).visible = not uniform
+	(_outfits[1].body as Node3D).visible = uniform
+	body = o.body
+	legs.assign(o.legs)
+	arms.assign(o.arms)
+	in_uniform = uniform
+
+
+func _build_person_rig(look: Dictionary) -> void:
 	var s: float = look.get("scale", 1.0)
 	var shirt: Color = look.shirt
 	var pants: Color = look.pants
@@ -154,7 +190,19 @@ func build_person(look: Dictionary) -> void:
 			), Vector3(0, sh + 0.02, 0))
 			arms[1].rotation.x = -1.6
 			_holds_pole = true
-	_add_click_body(Vector3(0.7, 1.75 * s, 0.7))
+	# Khăn quàng đỏ: tam giác vắt quanh cổ, hai vạt thắt nút trước ngực
+	if look.get("scarf", false):
+		_part(body, _cached("scarf_%.2f" % s, func(mb: MeshBuilder) -> void:
+			var y := hip + 0.53 * s
+			mb.add_prism(0.17 * s, 0.13 * s, 0.07 * s, 8, Palette.FLAG_RED, _t(0, y - 0.01, 0))
+			mb.add_blob(Vector3(0.035, 0.035, 0.03) * s, Palette.FLAG_RED.darkened(0.15), RandomNumberGenerator.new(), 0.05, _t(0, y - 0.03 * s, 0.15 * s))
+			for side in [-1.0, 1.0]:
+				var top := Vector3(side * 0.01, y - 0.02 * s, 0.16 * s)
+				var tip := Vector3(side * 0.08 * s, y - 0.3 * s, 0.19 * s)
+				mb.add_limb(top, tip, 0.045 * s, 0.01 * s, 3, Palette.FLAG_RED, Transform3D.IDENTITY)
+			# Vạt sau lưng
+			mb.add_pyramid(0.12 * s, 0.2 * s, 3, Palette.FLAG_RED, Transform3D(Basis(Vector3.RIGHT, PI), Vector3(0, y + 0.02, -0.12 * s)))
+		), Vector3.ZERO)
 
 
 # --- Dựng con vật ----------------------------------------------------------------------

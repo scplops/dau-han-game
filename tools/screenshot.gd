@@ -35,6 +35,11 @@ func _run() -> void:
 	if inside:
 		entry.enter_house(true, entry.find_entry(str(args.get("enter", "main"))))
 
+	# Giờ đổi sau khi dân làng đã lên lịch lúc 17:00 → lên lại lịch theo giờ chụp
+	var vs0 := scene.get_node_or_null("World/Villagers") as Villagers
+	if vs0 != null and args.has("hour"):
+		vs0.replan()
+
 	# Chọn NPC thứ N, đặt camera vào họ (--npc=N), hoặc NPC đầu tiên có vai trò --npc=farmer
 	var vs := scene.get_node_or_null("World/Villagers") as Villagers
 	var npc: Villager = null
