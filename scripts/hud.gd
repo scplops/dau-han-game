@@ -17,6 +17,7 @@ const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
 const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    Bấm bóng: sút    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    V: nhập vai    H: ẩn / hiện"
 const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi    Shift: chạy    Space: nhảy    E / chuột trái: tương tác    V / Esc: thôi nhập vai    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_FP_IN := "Chuột: nhìn    WASD: đi    Shift: chạy    E / chuột trái: tương tác    Esc / bước ra cửa: ra sân    V: xem kiểu nhà búp bê    [ ]: chỉnh giờ    H: ẩn / hiện"
 const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
@@ -193,7 +194,11 @@ func set_first_person(on: bool) -> void:
 	_first_person = on
 	if _keys_label == null:
 		return
-	_keys_label.text = SHORTCUTS_FP if on else (SHORTCUTS_IN if _inside else SHORTCUTS_OUT)
+	if on:
+		_keys_label.text = SHORTCUTS_FP_IN if _inside else SHORTCUTS_FP
+	else:
+		_keys_label.text = SHORTCUTS_IN if _inside else SHORTCUTS_OUT
+	_exit_button.visible = _inside and not on   # đi bộ trong nhà: chuột bị giữ, ra bằng Esc / cửa
 	_fit_bottom(_keys_panel, _keys_label)
 	_update_text()
 

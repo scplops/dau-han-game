@@ -42,7 +42,10 @@ var speed_scale: float = 1.0
 var camera: Camera3D
 var _pitch: float = 0.0
 var _colliders_built: bool = false
-var _suspended: String = ""        # "house" | "fish" khi đang tạm nhường camera
+var _suspended: String = ""
+var _inside_walk: bool = false      # đang đi bộ bên trong một toà nhà (nội thất ở z = 1000)
+var _outside_spot := Vector3.INF    # chỗ đứng trước cửa lúc bước vào (ra thì về đây)
+var _outside_yaw: float = 0.0        # "house" | "fish" khi đang tạm nhường camera
 var _look_target: Object = null
 var _crosshair: Control
 var _bob: float = 0.0
@@ -83,16 +86,23 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_first_person"):
 		if _suspended != "":
 			return
-		if active:
+		if active and _inside_walk:
+			_to_dollhouse()            # trong nhà: chuyển sang xem kiểu nhà búp bê
+		elif active:
 			exit()
-		elif not (house_entry != null and house_entry.inside) and not (fishing != null and fishing.state != Fishing.State.OFF):
+		elif house_entry != null and house_entry.inside:
+			_dollhouse_to_walk()       # đang xem nhà búp bê: xuống đi bộ bên trong
+		elif not (fishing != null and fishing.state != Fishing.State.OFF):
 			enter()
 		get_viewport().set_input_as_handled()
 		return
 	if not active or _suspended != "":
 		return
 	if event.is_action_pressed("exit_interior"):
-		exit()
+		if _inside_walk:
+			_leave_building()
+		else:
+			exit()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		var mm := event as InputEventMouseMotion
@@ -170,8 +180,86 @@ func _resume() -> void:
 func _on_inside_changed(inside: bool) -> void:
 	if not active:
 		return
-	if not inside and _suspended == "house":
-		_resume.call_deferred()
+	if inside and _suspended == "house" and house_entry.walk_inside:
+		_walk_in.call_deferred()
+	elif not inside and (_suspended == "house" or _inside_walk):
+		_come_out.call_deferred()
+
+
+# --- Đi bộ bên trong toà nhà --------------------------------------------------------------
+
+## Nội thất (kiểu đi bộ) vừa dựng xong: dựng va chạm, đứng ngay sau ô cửa, nhìn vào trong.
+func _walk_in() -> void:
+	var it := house_entry.interior
+	_build_colliders_for(it)
+	global_position = it.to_global(it.entry_point)
+	rotation = Vector3(0, it.global_rotation.y, 0)   # mặt hướng -z cục bộ = vào trong nhà
+	_pitch = -0.05
+	camera.rotation.x = _pitch
+	velocity = Vector3.ZERO
+	_inside_walk = true
+	_resume()
+
+
+## Bước ra khỏi nền nhà / Esc / "E: Ra sân": chuyển cảnh ra sân.
+func _leave_building() -> void:
+	_suspend("house")
+	house_entry.exit_house()
+
+
+## Đã ra sân: đứng lại chỗ trước cửa lúc vào, quay lưng lại cửa.
+func _come_out() -> void:
+	_inside_walk = false
+	house_entry.walk_inside = false
+	if _outside_spot != Vector3.INF:
+		global_position = _outside_spot
+		rotation.y = _outside_yaw + PI
+	else:
+		global_position = _ground_spawn(outdoor_rig.global_position if outdoor_rig != null else Vector3.ZERO)
+	_outside_spot = Vector3.INF
+	velocity = Vector3.ZERO
+	_resume()
+
+
+## Đang xem nhà búp bê → dựng lại nội thất kiểu đi bộ và xuống đi bên trong.
+func _dollhouse_to_walk() -> void:
+	if not _colliders_built:
+		_build_colliders()
+	var it := house_entry.interior
+	it.walk_mode = true
+	it.load_spec(it.spec)
+	house_entry.walk_inside = true
+	if house_entry.day_night != null:
+		house_entry.day_night.refresh()
+	if house_entry.interior_rig != null:
+		house_entry.interior_rig.active = false
+	_outside_spot = Vector3.INF
+	active = true
+	_walk_in()
+
+
+## Đang đi bộ trong nhà → thôi nhập vai, xem nhà búp bê (bỏ mái) bằng camera trong nhà.
+func _to_dollhouse() -> void:
+	var it := house_entry.interior
+	it.walk_mode = false
+	it.load_spec(it.spec)
+	house_entry.walk_inside = false
+	if house_entry.day_night != null:
+		house_entry.day_night.refresh()
+	_inside_walk = false
+	active = false
+	_suspended = ""
+	set_physics_process(false)
+	visible = false
+	_crosshair.visible = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	house_entry.locked = false
+	if house_entry.interior_rig != null:
+		house_entry.interior_rig.active = true
+		house_entry.interior_rig.camera.make_current()
+	if hud != null:
+		hud.set_first_person(false)
+		hud.set_hint("")
 
 
 func _on_fishing_stopped() -> void:
@@ -223,6 +311,14 @@ func _physics_process(delta: float) -> void:
 	var hs := Vector2(velocity.x, velocity.z).length()
 	_bob += hs * delta * 2.2
 	camera.position.y = eye_height + (sin(_bob * PI) * 0.025 * clampf(hs / walk_speed, 0.0, 1.5) if is_on_floor() else 0.0)
+	if _inside_walk:
+		# Bước ra khỏi nền nhà là ra sân
+		var it := house_entry.interior
+		if it.is_outside(it.to_local(global_position)):
+			_leave_building()
+			return
+		_update_look()
+		return
 	# Camera ngắm cảnh, mưa đi theo người chơi
 	if outdoor_rig != null:
 		outdoor_rig.global_position = Vector3(global_position.x, 0.0, global_position.z)
@@ -294,9 +390,14 @@ func _act() -> void:
 		football.kick_from_player(Vector3(d.x, 0, d.z), clampf(d.y + 0.25, 0.05, 0.6))
 		return
 	if body.has_meta("spec") and house_entry != null:
+		_outside_spot = global_position
+		_outside_yaw = rotation.y
+		house_entry.walk_inside = true
 		_suspend("house")
 		house_entry.locked = false
 		house_entry.enter_house(false, body)
+	elif _inside_walk and str(body.get_meta("hint", "")).begins_with("Ra sân"):
+		_leave_building()
 	elif body.has_meta("activate"):
 		if fishing != null and str(body.get_meta("hint", "")).begins_with("Ngồi câu"):
 			_suspend("fish")
@@ -345,12 +446,16 @@ func _dribble(speed: float) -> void:
 ## Mesh tĩnh dưới `world` thành va chạm (bỏ lá cây có gió, mặt nước, dân làng, mây, bóng).
 func _build_colliders() -> void:
 	_colliders_built = true
-	if world == null:
-		return
+	if world != null:
+		_build_colliders_for(world)
+
+
+## Va chạm cho mọi mesh tĩnh dưới `root` (ngoài làng: World; trong nhà: Interior).
+func _build_colliders_for(root: Node) -> void:
 	var t0 := Time.get_ticks_msec()
 	var count := 0
 	var tris := 0
-	var stack: Array[Node] = [world]
+	var stack: Array[Node] = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
 		if n is Villagers or n is Clouds or n.name == "Ball":

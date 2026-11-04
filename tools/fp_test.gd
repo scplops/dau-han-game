@@ -86,6 +86,52 @@ func _run() -> void:
 	fishing.stop()
 	await _frames(3)
 	print("   thôi câu: nhập vai tiếp=%s, camera nhập vai=%s" % [fp._suspended == "", fp.camera.current])
+	# 6) Đi bộ vào trong nhà mình: nhìn cửa → E → đứng trong nhà; đi thẳng vào phải bị tường chặn;
+	#    quay ra đi ra cửa → về sân, đứng lại chỗ trước cửa; V trong nhà → nhà búp bê → V lại đi bộ
+	var it := he.interior
+	rig.global_position = door.global_position + fwd * 3.0
+	fp.global_position = door.global_position + fwd * 1.0 + Vector3(0, 0.1, 0)
+	await _frames(10)
+	_face(fp, door.global_position)
+	await _frames(2)
+	var before := fp.global_position
+	print("   nhìn vào: %s · gợi ý '%s'" % [fp._look_target, (scene.get_node("HUD") as Hud)._hint_label.text])
+	fp._act()
+	await create_timer(1.2).timeout
+	await _frames(3)
+	var local := it.to_local(fp.global_position)
+	print("6) đi bộ vào nhà: trong nhà=%s, camera nhập vai=%s, chỗ đứng (cục bộ)=%s" % [he.inside, fp.camera.current, local])
+	Input.action_press("cam_forward")
+	await _frames(300)
+	Input.action_release("cam_forward")
+	local = it.to_local(fp.global_position)
+	print("   đi thẳng vào: dừng ở z=%.2f (tường sau ở z=%.2f) — không xuyên tường: %s" % [local.z, -it.size.y * 0.5, str(local.z > -it.size.y * 0.5)])
+	fp._to_dollhouse()
+	await _frames(3)
+	print("   V → nhà búp bê: camera trong nhà=%s, nhập vai=%s" % [he.interior_rig.camera.current, fp.active])
+	fp._dollhouse_to_walk()
+	await _frames(3)
+	print("   V → đi bộ lại: camera nhập vai=%s, trong nhà=%s" % [fp.camera.current, he.inside])
+	fp.rotation.y = it.global_rotation.y + PI    # quay ra cửa
+	fp.global_position = it.to_global(it.entry_point)
+	Input.action_press("cam_forward")
+	await _frames(200)
+	Input.action_release("cam_forward")
+	await create_timer(1.2).timeout
+	await _frames(3)
+	print("   đi ra cửa: trong nhà=%s, nhập vai tiếp=%s, cách chỗ đứng lúc vào %.2f m (không có chỗ cũ vì đã đổi chế độ)" % [he.inside, fp._suspended == "" and fp.active, fp.global_position.distance_to(before)])
+	# Vào lại rồi Esc
+	fp.global_position = before
+	await _frames(5)
+	_face(fp, door.global_position)
+	await _frames(2)
+	fp._act()
+	await create_timer(1.2).timeout
+	await _frames(3)
+	fp._leave_building()
+	await create_timer(1.2).timeout
+	await _frames(3)
+	print("   vào lại rồi Esc: trong nhà=%s, về đúng chỗ cũ (lệch %.2f m), camera nhập vai=%s" % [he.inside, fp.global_position.distance_to(before), fp.camera.current])
 	fp.exit()
 	print("5) thoát nhập vai: camera ngắm cảnh=%s, tâm=%s" % [rig.camera.current, rig.global_position])
 	quit()

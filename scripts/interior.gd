@@ -19,12 +19,29 @@ const ROOM_TYPES: Array[String] = ["bedroom", "plank", "storage", "loom", "mill"
 @export var column_cut: float = 1.1          # cột hiên cắt ngang
 @export var wall_thickness: float = 0.15
 
+@export_group("Đi bộ bên trong (nhập vai)")
+## Ô cửa cao bao nhiêu (m) khi dựng kiểu đi bộ.
+@export var door_height: float = 2.05
+## Cửa sổ song gỗ ở tường trước: từ bậu tới đỉnh.
+@export var window_sill: float = 0.9
+@export var window_top: float = 1.85
+## Ánh sáng hắt vào trong nhà ban ngày (đèn phụ không đổ bóng).
+@export var daylight_fill: float = 0.6
+
 @export_group("Đèn")
 @export var lamp_energy: float = 1.8
 @export var lamp_range: float = 6.0
 
 ## Thông số toà nhà đang hiện (xem đầu file).
 var spec: Dictionary = {}
+## true: dựng kiểu đi bộ bên trong (tường đủ cao, ô cửa có lanh tô, cửa sổ song, trần mái);
+## false: kiểu nhà búp bê (bỏ mái, tường trước cắt thấp) để nhìn từ trên xuống.
+var walk_mode: bool = false
+## Toạ độ (cục bộ) cho người nhập vai: chỗ đứng khi vào, ô cửa ra.
+var entry_point := Vector3.ZERO
+var door_x: float = 0.0
+var exit_z: float = 0.0
+var size := Vector2(10.0, 5.6)
 
 # Kích thước của toà đang dựng
 var _len: float = 10.0
@@ -91,6 +108,11 @@ func build() -> void:
 	if kind == "home":
 		_door_x = -_len * 0.5 + _gian * ((_bays >> 1) + 0.5)
 
+	# Kiểu đi bộ: tường trước, cột hiên, cánh cửa giữ đủ chiều cao (dựng xong trả lại giá trị cũ)
+	var saved_cut := Vector2(front_wall_cut, column_cut)
+	if walk_mode:
+		front_wall_cut = _h
+		column_cut = _h - 0.14
 	var shell := MeshBuilder.new(_rng.seed, 0.035)
 	shell.contact_shade_height = _p + 0.5
 	shell.contact_shade_strength = 0.18
@@ -112,6 +134,10 @@ func build() -> void:
 		_:
 			_build_home(shell, floor_mb, furn, flames, lamps)
 
+	if walk_mode:
+		_build_ceiling(shell, kind)
+	front_wall_cut = saved_cut.x
+	column_cut = saved_cut.y
 	add_child(shell.commit_instance("Shell"))
 	var floor_node := floor_mb.commit_instance("Floor")
 	floor_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -134,10 +160,56 @@ func build() -> void:
 		light.add_to_group("night_light")
 		add_child(light)
 
+	if walk_mode and daylight_fill > 0.0:
+		# Ánh sáng hắt qua cửa vào nhà (không đổ bóng), để trong nhà có mái không tối om ban ngày
+		var fill := OmniLight3D.new()
+		fill.name = "DaylightFill"
+		fill.position = Vector3(0.0, _p + _h * 0.8, 0.0)
+		fill.light_color = Palette.AMBIENT
+		fill.light_energy = daylight_fill
+		fill.omni_range = maxf(_len, _dep) * 0.9
+		fill.shadow_enabled = false
+		fill.set_meta("max_energy", daylight_fill)
+		fill.add_to_group("day_fill")      # DayNight tắt dần khi trời tối
+		add_child(fill)
+
 	# Bấm vào ô cửa / bậc thềm để ra sân
-	var exit_z := _front_z if _ver > 0.0 or kind == "home" else _dep * 0.5
+	exit_z = _front_z if _ver > 0.0 or kind == "home" else _dep * 0.5
+	door_x = _door_x
+	size = Vector2(_len, _dep)
+	entry_point = Vector3(_door_x, _p + 0.05, exit_z - 0.9)
 	HouseEntry.make_click_target(self, _t(_door_x, _p + 0.5, exit_z), Vector3(1.6, 1.0, 0.5),
 			"Ra sân  ·  bấm chuột, E hoặc Esc")
+
+
+## Điểm (cục bộ) đã ra khỏi nền nhà chưa — người nhập vai bước ra là về sân.
+func is_outside(local: Vector3) -> bool:
+	var m := 1.3
+	return absf(local.x) > _len * 0.5 + m or local.z > _dep * 0.5 + m or local.z < -_dep * 0.5 - m
+
+
+## Trần mái cho kiểu đi bộ: khối mái hai dốc úp trên đỉnh tường (mặt dưới là trần phẳng),
+## thêm hàng xà, rui sẫm màu bên dưới cho có cảm giác gầm mái nhà cổ.
+func _build_ceiling(mb: MeshBuilder, kind: String) -> void:
+	var top := _p + _h
+	var under := Palette.WOOD_LIGHT.darkened(0.25)
+	if _poor:
+		under = Palette.THATCH_DARK
+	elif kind == "school":
+		under = Palette.SCHOOL_TRIM.darkened(0.08)
+	var over := 1.0 if kind in ["dinh", "pagoda"] else 0.5
+	if kind == "school":
+		mb.add_box(Vector3(_len + 0.4, 0.18, _dep + 0.4), under, _t(0.0, top, 0.0))
+		return
+	mb.add_wedge(Vector3(_len + over * 2.0, 1.6, _dep + over * 2.0), under, _t(0.0, top, 0.0))
+	# Xà ngang theo gian, rui dọc
+	var n := maxi(_bays, int(_len / 2.5))
+	for i in n + 1:
+		var x := lerpf(-_len * 0.5 + 0.1, _len * 0.5 - 0.1, float(i) / n)
+		mb.add_box(Vector3(0.14, 0.16, _dep), Palette.WOOD.darkened(0.15), _t(x, top - 0.16, 0.0))
+	for k in 5:
+		var z := lerpf(-_dep * 0.5 + 0.3, _dep * 0.5 - 0.3, k / 4.0)
+		mb.add_box(Vector3(_len, 0.07, 0.07), Palette.WOOD.darkened(0.25), _t(0.0, top - 0.07, z))
 
 
 static func _t(x: float, y: float, z: float) -> Transform3D:
@@ -183,10 +255,27 @@ func _build_shell(mb: MeshBuilder, wall_col: Color, wall_dk: Color, door_w: floa
 	var left_w := (_door_x - door_w * 0.5) + _len * 0.5
 	var right_w := _len * 0.5 - (_door_x + door_w * 0.5)
 	var front_col := wall_col if _front != "panel_doors" else Palette.WOOD_LIGHT
-	if left_w > 0.05:
-		walls.append([Vector3(left_w, front_wall_cut, t), Vector3(-_len * 0.5 + left_w * 0.5, _p, _front_z - t * 0.5), front_col])
-	if right_w > 0.05:
-		walls.append([Vector3(right_w, front_wall_cut, t), Vector3(_len * 0.5 - right_w * 0.5, _p, _front_z - t * 0.5), front_col])
+	if walk_mode:
+		# Tường trước đủ cao: phần dưới bậu, dải cửa sổ song gỗ, phần trên; lanh tô trên ô cửa
+		for seg: Array in [[left_w, -_len * 0.5 + left_w * 0.5], [right_w, _len * 0.5 - right_w * 0.5]]:
+			var w: float = seg[0]
+			var cx: float = seg[1]
+			if w <= 0.05:
+				continue
+			walls.append([Vector3(w, window_sill, t), Vector3(cx, _p, _front_z - t * 0.5), front_col])
+			walls.append([Vector3(w, _h - window_top, t), Vector3(cx, _p + window_top, _front_z - t * 0.5), front_col])
+			for e: float in [-1.0, 1.0]:
+				walls.append([Vector3(0.35, window_top - window_sill, t), Vector3(cx + e * (w * 0.5 - 0.175), _p + window_sill, _front_z - t * 0.5), front_col])
+			var x := cx - w * 0.5 + 0.45
+			while x < cx + w * 0.5 - 0.4:
+				mb.add_box(Vector3(0.045, window_top - window_sill, 0.06), Palette.WOOD, _t(x, _p + window_sill, _front_z - t * 0.5))
+				x += 0.14
+		walls.append([Vector3(door_w + 0.02, _h - door_height, t), Vector3(_door_x, _p + door_height, _front_z - t * 0.5), front_col])
+	else:
+		if left_w > 0.05:
+			walls.append([Vector3(left_w, front_wall_cut, t), Vector3(-_len * 0.5 + left_w * 0.5, _p, _front_z - t * 0.5), front_col])
+		if right_w > 0.05:
+			walls.append([Vector3(right_w, front_wall_cut, t), Vector3(_len * 0.5 - right_w * 0.5, _p, _front_z - t * 0.5), front_col])
 	for w in walls:
 		var size: Vector3 = w[0]
 		var pos: Vector3 = w[1]
@@ -203,8 +292,11 @@ func _build_shell(mb: MeshBuilder, wall_col: Color, wall_dk: Color, door_w: floa
 	for s in [-1.0, 1.0]:
 		mb.add_box(Vector3(0.03, 0.22, core - t), wall_dk, _t(s * (_len * 0.5 - t - 0.015), _p, core_z))
 	# Khung cửa + bậu cửa
+	var post_h := door_height if walk_mode else front_wall_cut + 0.15
 	for s in [-1.0, 1.0]:
-		mb.add_box(Vector3(0.12, front_wall_cut + 0.15, t + 0.06), Palette.WOOD, _t(_door_x + s * (door_w * 0.5 + 0.06), _p, _front_z - t * 0.5))
+		mb.add_box(Vector3(0.12, post_h, t + 0.06), Palette.WOOD, _t(_door_x + s * (door_w * 0.5 + 0.06), _p, _front_z - t * 0.5))
+	if walk_mode:
+		mb.add_box(Vector3(door_w + 0.24, 0.1, t + 0.08), Palette.WOOD, _t(_door_x, _p + door_height, _front_z - t * 0.5))
 	mb.add_box(Vector3(door_w, 0.08, t + 0.06), Palette.WOOD, _t(_door_x, _p, _front_z - t * 0.5))
 
 

@@ -147,6 +147,10 @@ func _apply() -> void:
 
 	# Trời giông tối sầm: các nhà thắp đèn sớm
 	var lit := maxf(night_factor, smoothstep(0.75, 1.0, cover) * 0.6)
+	for node in get_tree().get_nodes_in_group("day_fill"):
+		var fl := node as Light3D
+		if fl != null:
+			fl.light_energy = float(fl.get_meta("max_energy", 0.6)) * (1.0 - night_factor) * (1.0 - 0.5 * cover)
 	for node in get_tree().get_nodes_in_group("night_light"):
 		var light := node as Light3D
 		if light != null:

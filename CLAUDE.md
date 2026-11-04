@@ -186,6 +186,7 @@ scripts/
   first_person.gd      # nhập vai góc nhìn thứ nhất: đi lại, va chạm, tương tác (mục 18)
   dialogue.gd          # trò chuyện với dân làng: lời thoại, xưng hô, khung thoại (mục 19)
   quests.gd            # dân làng nhờ việc: gánh nước, nhắn tin, câu cá, tìm đồ, sút bóng (mục 20)
+                       # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
@@ -530,4 +531,27 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - Dialogue hỗ trợ lựa chọn có bước con: option có `next` (Callable trả về danh sách lựa chọn).
 - `tools/quest_test.gd` chạy trọn 5 loại việc (nhận qua hội thoại → làm → báo → quà).
   Chụp ảnh: `--fp --quest=water,message,lost` nhận sẵn việc từ người gần nhất có vai hợp.
+
+## 21. Đi bộ bên trong các công trình (giai đoạn 3d)
+
+- Khi đang nhập vai, nhìn vào cửa (nhà mình, 41 nhà làng, đình, chùa, lớp học) và nhấn E: vẫn
+  chuyển cảnh mờ đen như mục 10, nhưng `HouseEntry.walk_inside = true` → `Interior.walk_mode = true`
+  và người chơi đứng ngay sau ô cửa (`Interior.entry_point`), đi bộ tự do bên trong.
+- **Nội thất kiểu đi bộ** (`Interior.walk_mode`): tường trước đủ cao gồm phần dưới bậu, dải cửa sổ
+  song gỗ (`window_sill` … `window_top`), phần trên và lanh tô trên ô cửa (`door_height`); cột hiên,
+  cánh cửa bức bàn / cửa son đủ chiều cao (tạm đặt `front_wall_cut = _h`, `column_cut = _h - 0.14`
+  lúc dựng rồi trả lại); trần mái (`_build_ceiling`: khối mái hai dốc úp trên đỉnh tường + xà, rui;
+  lớp học là trần phẳng). Đèn phụ `DaylightFill` (nhóm `day_fill`, DayNight tắt dần khi tối / âm u)
+  để trong nhà có mái không tối om ban ngày. Kiểu nhà búp bê (mục 10) giữ nguyên khi không nhập vai.
+- **Va chạm trong nhà:** `FirstPerson._build_colliders_for(interior)` sau mỗi lần dựng nội thất
+  (tường, cột, đồ đạc, nền); nội thất bị xoá thì va chạm đi theo.
+- **Ra sân:** bước ra khỏi nền nhà (`Interior.is_outside`), `Esc`, hoặc nhìn ô cửa "E: Ra sân" →
+  chuyển cảnh, về đúng chỗ đứng trước cửa lúc vào (`_outside_spot`), quay lưng lại cửa.
+- **Phím V trong nhà:** đang đi bộ → xem kiểu nhà búp bê (`_to_dollhouse`, dựng lại nội thất bỏ
+  mái); đang xem nhà búp bê → xuống đi bộ (`_dollhouse_to_walk`). HUD có dòng phím riêng
+  (`SHORTCUTS_FP_IN`), nút "Ra sân" ẩn khi đi bộ (chuột bị giữ).
+- `HouseEntry._apply_state` không bật camera nhà búp bê khi `walk_inside` — `FirstPerson` tự lấy
+  camera ở `inside_changed(true)`.
+- Chụp ảnh: `--enter=<khoá> --fp [--fp-pitch=…]`. `tools/fp_test.gd` bước 6: vào nhà mình bằng E,
+  đi thẳng vào (đồ đạc chặn), V ↔ nhà búp bê, đi ra cửa về sân, vào lại rồi Esc.
 

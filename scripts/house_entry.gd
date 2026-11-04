@@ -28,6 +28,9 @@ const ACTIVATE_GROUP := "activate_target"
 @export var ray_length: float = 250.0
 
 var inside: bool = false
+## Người nhập vai đi bộ vào trong (FirstPerson đặt): nội thất dựng kiểu đi bộ, không dùng
+## camera nhà búp bê — FirstPerson tự lấy camera khi `inside_changed(true)`.
+var walk_inside: bool = false
 ## Khoá vào/ra nhà (khi đang câu cá): bỏ qua chuột, E, Esc.
 var locked: bool = false:
 	set(value):
@@ -208,6 +211,7 @@ func _switch(to_inside: bool, instant: bool) -> void:
 	if inside and _target != null and interior != null:
 		var spec: Dictionary = _target.get_meta("spec")
 		_place = str(spec.get("name", "Trong nhà"))
+		interior.walk_mode = walk_inside
 		interior.load_spec(spec)
 		if interior_rig != null:
 			var d := interior.camera_distance()
@@ -230,10 +234,11 @@ func _switch(to_inside: bool, instant: bool) -> void:
 func _apply_state() -> void:
 	if outdoor_rig != null:
 		outdoor_rig.active = not inside
+	var walking := inside and walk_inside
 	if interior_rig != null:
-		interior_rig.active = inside
+		interior_rig.active = inside and not walking
 	var rig := interior_rig if inside else outdoor_rig
-	if rig != null:
+	if rig != null and not walking:
 		rig.camera.make_current()
 	if interior != null:
 		interior.visible = inside

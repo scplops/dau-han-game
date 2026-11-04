@@ -6,7 +6,8 @@ extends SceneTree
 ##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
-##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus)
+##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus;
+##        cùng --enter=khoá thì đi bộ bên trong toà nhà đó)
 ##        [--quest=water,lost,…] (nhận sẵn các việc nhờ từ người gần nhất có vai hợp)
 ##        [--talk] [--talk-pick=N] (cùng --fp: bắt chuyện người gần nhất, chọn câu hỏi thứ N)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
@@ -93,7 +94,10 @@ func _run() -> void:
 	if fp != null and args.has("fp"):
 		await process_frame
 		await physics_frame
-		fp.enter()
+		if inside:
+			fp._dollhouse_to_walk()      # --enter=… --fp: đi bộ bên trong toà nhà
+		else:
+			fp.enter()
 		if args.has("fp-yaw"): fp.rotation.y = deg_to_rad(float(args["fp-yaw"]))
 		if args.has("fp-pitch"):
 			fp._pitch = deg_to_rad(float(args["fp-pitch"]))
