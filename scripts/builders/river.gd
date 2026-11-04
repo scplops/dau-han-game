@@ -42,8 +42,12 @@ var length: float = 0.0
 var lotus_spots: Array[Vector3] = []
 var boat_spots: Array[Vector3] = []
 ## Bến nước ở cuối mỗi lối ra sông: {path (từ khe lũy tre tới đầu cầu ván, có độ cao),
-## spot (chỗ đứng trên cầu ván), face (góc quay mặt ra sông), name}. Có sau build().
+## spot (chỗ đứng trên cầu ván), face (góc quay mặt ra sông), name,
+## fish_spot (ghế ngồi câu cạnh cầu ván, mục 16)}. Có sau build().
 var landings: Array[Dictionary] = []
+## Chỗ ngồi câu: lệch dọc bờ so với cầu ván (m), ghế đẩu cao (m).
+@export var fish_spot_offset: float = 3.0
+@export var stool_height: float = 0.3
 
 var _pts := PackedVector2Array()        # tim sông, mỗi ~2,5 m một điểm
 var _cum := PackedFloat32Array()        # độ dài cộng dồn tới từng điểm
@@ -219,6 +223,7 @@ func _build_landings() -> void:
 	if village == null or village.access_paths.is_empty():
 		return
 	var path_mb := MeshBuilder.new(random_seed + 30, 0.06)
+	var glow := MeshBuilder.new(random_seed + 32, 0.0)
 	var wharf := MeshBuilder.new(random_seed + 31, 0.05)
 	wharf.contact_shade_height = water_level + 0.4
 	var names: Array[String] = ["Bến sông phía tây", "Bến sông phía đông", "Bến sông phía bắc"]
@@ -271,16 +276,73 @@ func _build_landings() -> void:
 		var jy := bank_height(1.3) 
 		wharf.add_prism(0.2, 0.3, 0.3, 9, Palette.JAR, _t(jar.x, jy, jar.y))
 		wharf.add_prism(0.3, 0.18, 0.28, 9, Palette.JAR, _t(jar.x, jy + 0.3, jar.y))
+		var fish_spot := _build_fish_seat(wharf, glow, edge, n, tan, face)
 		var spot3 := start - n * (deck_len - 0.6)
 		pts3.append(Vector3(start.x, deck_y + 0.04, start.y))
 		pts3.append(Vector3(spot3.x, deck_y + 0.04, spot3.y))
 		landings.append({"path": pts3, "spot": Vector3(spot3.x, deck_y + 0.04, spot3.y), "face": face,
 				"wash": Vector3(wash.x, water_level + 0.12, wash.y), "edge": Vector3(edge.x, water_level + 0.05, edge.y),
-				"name": names[ai] if ai < names.size() else "Bến sông"})
+				"name": names[ai] if ai < names.size() else "Bến sông", "fish_spot": fish_spot})
 	var pn := path_mb.commit_instance("RiverPaths")
 	pn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(pn)
 	add_child(wharf.commit_instance("Wharves"))
+	# Kính đèn bão ở chỗ ngồi câu: sáng ban đêm (DayNight chỉnh độ phát sáng)
+	var gm := StandardMaterial3D.new()
+	gm.vertex_color_use_as_albedo = true
+	gm.vertex_color_is_srgb = true
+	gm.emission_enabled = true
+	gm.emission = Palette.WINDOW_GLOW
+	gm.emission_energy_multiplier = 0.0
+	var gl := glow.commit_instance("FishLanternGlass", gm)
+	gl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gl.add_to_group("night_glow")
+	add_child(gl)
+
+
+## Chỗ ngồi câu cạnh cầu ván: phiến đá kê phẳng trên mái bờ, ghế đẩu, giỏ cá, đèn bão
+## treo trên cọc tre. Trả về vị trí mặt đất dưới ghế (người câu ngồi quay mặt ra sông).
+func _build_fish_seat(mb: MeshBuilder, glow: MeshBuilder, edge: Vector2, n: Vector2, tan: Vector2,
+		face: float) -> Vector3:
+	var p := edge - tan * fish_spot_offset + n * 0.45
+	var top := bank_height(0.45) + 0.05
+	var base := water_level - 0.08
+	var rot := Basis(Vector3.UP, face)
+	# Phiến đá kê (đỉnh phẳng ngang)
+	mb.add_box(Vector3(1.2, top - base, 1.1), Palette.ROCK, Transform3D(rot.rotated(Vector3.UP, 0.08), Vector3(p.x, base, p.y)))
+	var seat := Transform3D(rot, Vector3(p.x, top, p.y))
+	# Ghế đẩu gỗ thấp
+	for sx: float in [-0.13, 0.13]:
+		for sz: float in [-0.11, 0.11]:
+			mb.add_box(Vector3(0.04, stool_height - 0.04, 0.04), Palette.WOOD, seat * _t(sx, 0.0, sz - 0.12))
+	mb.add_box(Vector3(0.36, 0.04, 0.3), Palette.WOOD_LIGHT, seat * _t(0.0, stool_height - 0.04, -0.12))
+	# Giỏ cá tre đan (bầu, miệng thắt) bên phải người ngồi
+	var basket := seat * _t(-0.55, 0.0, 0.05)
+	mb.add_prism(0.13, 0.19, 0.16, 8, Palette.THATCH_DARK, basket)
+	mb.add_prism(0.19, 0.09, 0.14, 8, Palette.THATCH, basket * _t(0, 0.16, 0))
+	mb.add_prism(0.1, 0.11, 0.05, 8, Palette.BAMBOO_NODE, basket * _t(0, 0.3, 0))
+	# Hộp mồi nhỏ bên trái
+	mb.add_box(Vector3(0.16, 0.08, 0.12), Palette.JAR, seat * _t(0.42, 0.0, 0.1))
+	# Cọc tre cắm sau ghế, đèn bão treo ở móc
+	var post := seat * _t(-0.8, 0.0, -0.35)
+	mb.add_prism(0.03, 0.025, 1.35, 5, Palette.BAMBOO_STEM, post)
+	mb.add_limb(Vector3(0, 1.3, 0), Vector3(0, 1.3, 0.22), 0.015, 0.015, 4, Palette.BAMBOO_STEM, post)
+	var lamp := post * _t(0, 0.86, 0.22)
+	mb.add_prism(0.07, 0.07, 0.03, 6, Palette.WINDOW_DARK, lamp)
+	mb.add_prism(0.05, 0.03, 0.06, 6, Palette.WINDOW_DARK, lamp * _t(0, 0.2, 0))
+	mb.add_limb(Vector3(0, 0.26, 0), Vector3(0, 0.44, 0), 0.006, 0.006, 3, Palette.WINDOW_DARK, lamp)
+	glow.add_prism(0.055, 0.045, 0.17, 6, Palette.WINDOW_GLOW.lightened(0.2), lamp * _t(0, 0.03, 0))
+	var light := OmniLight3D.new()
+	light.name = "FishLantern"
+	light.light_color = Palette.WINDOW_GLOW
+	light.omni_range = 5.0
+	light.light_energy = 0.0
+	light.set_meta("max_energy", 1.3)
+	light.shadow_enabled = false
+	light.position = (lamp * _t(0, 0.12, 0)).origin
+	light.add_to_group("night_light")
+	add_child(light)
+	return Vector3(p.x, top, p.y)
 
 
 ## Dải đường theo các điểm 3D (giữ độ cao từng điểm), bề rộng `w`.
@@ -536,6 +598,10 @@ func _build_fish() -> void:
 		var col := colors[_rng.randi_range(0, colors.size() - 1)]
 		_fish_mm.set_instance_color(i, col)
 		_fish.append({
+			"kind": colors.find(col),
+			"held": false,
+			"pos": Vector3.ZERO,
+			"yaw": 0.0,
 			"s": _rng.randf_range(5.0, length - 5.0),
 			"lat": _rng.randf_range(-0.6, 0.6),
 			"dir": -1.0 if _rng.randf() < 0.5 else 1.0,
@@ -552,8 +618,8 @@ func _build_fish() -> void:
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mmi)
 	_jump_timer = _rng.randf_range(jump_interval.x, jump_interval.y)
-	# Vài vòng gợn sóng dùng lại khi cá nhảy
-	for i in 4:
+	# Vài vòng gợn sóng dùng lại khi cá nhảy / khi câu
+	for i in 8:
 		var rp := MeshInstance3D.new()
 		var tm := TorusMesh.new()
 		tm.inner_radius = 0.9
@@ -593,11 +659,13 @@ func _update_fish(delta: float) -> void:
 				var f: Dictionary = _fish[_rng.randi_range(0, _fish.size() - 1)]
 				var smp := sample(f.s)
 				var p: Vector2 = smp[0]
-				if float(f.jump) < 0.0 and Vector2(cam.global_position.x, cam.global_position.z).distance_to(p) < jump_view_distance:
+				if float(f.jump) < 0.0 and not f.held and Vector2(cam.global_position.x, cam.global_position.z).distance_to(p) < jump_view_distance:
 					f.jump = 0.0
 					break
 	for i in _fish.size():
 		var f: Dictionary = _fish[i]
+		if f.held:
+			continue          # đang do Fishing điều khiển (bơi tới mồi, mắc câu)
 		var s: float = f.s
 		s += float(f.dir) * float(f.speed) * delta
 		if s < 4.0 or s > length - 4.0:
@@ -626,7 +694,81 @@ func _update_fish(delta: float) -> void:
 					_spawn_ripple(Vector3(pos2.x, water_level + 0.02, pos2.y))
 			f.jump = jt
 		var basis := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch)
+		f.pos = Vector3(pos2.x, y, pos2.y)
+		f.yaw = yaw
 		_fish_mm.set_instance_transform(i, Transform3D(basis.scaled(Vector3.ONE * float(f.size)), Vector3(pos2.x, y, pos2.y)))
+
+
+# --- Cá cho mini-game câu (mục 16) ----------------------------------------------------
+
+## Vị trí (x, z) có nằm trong lòng sông không, chừa `margin` m tới mép nước.
+func is_water(q: Vector2, margin: float = 0.5) -> bool:
+	var s := nearest_s(q)
+	var smp := sample(s)
+	var lat := absf((q - (smp[0] as Vector2)).dot((smp[1] as Vector2).orthogonal()))
+	return lat < half_width(s) - margin
+
+
+## Con cá (không đang nhảy, không bị giữ) gần `pos` nhất trong bán kính; -1 nếu không có.
+func fish_near(pos: Vector3, radius: float) -> int:
+	var best := -1
+	var bd := radius * radius
+	for i in _fish.size():
+		var f: Dictionary = _fish[i]
+		if f.held or float(f.jump) >= 0.0:
+			continue
+		var o: Vector3 = f.pos
+		var d := Vector2(o.x - pos.x, o.z - pos.z).length_squared()
+		if d < bd:
+			bd = d
+			best = i
+	return best
+
+
+## Giữ một con cá để Fishing tự đặt vị trí. Trả về {pos, yaw, kind, size}.
+func grab_fish(i: int) -> Dictionary:
+	var f: Dictionary = _fish[i]
+	f.held = true
+	return {"pos": f.pos, "yaw": float(f.yaw), "kind": int(f.kind), "size": float(f.size)}
+
+
+## Đặt vị trí con cá đang giữ (yaw quanh trục đứng, pitch chúc đầu).
+func pose_fish(i: int, pos: Vector3, yaw: float, pitch: float = 0.0, roll: float = 0.0) -> void:
+	var f: Dictionary = _fish[i]
+	var basis := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch) * Basis(Vector3.BACK, roll)
+	f.pos = pos
+	f.yaw = yaw
+	_fish_mm.set_instance_transform(i, Transform3D(basis.scaled(Vector3.ONE * float(f.size)), pos))
+
+
+## Thả con cá đang giữ: bơi tiếp theo dòng từ chỗ hiện tại, quay đuôi chạy khỏi `away_from`.
+func release_fish(i: int, away_from: Vector3) -> void:
+	var f: Dictionary = _fish[i]
+	var o: Vector3 = f.pos
+	var q := Vector2(o.x, o.z)
+	var s := nearest_s(q)
+	var smp := sample(s)
+	var tan: Vector2 = smp[1]
+	var lat := (q - (smp[0] as Vector2)).dot(tan.orthogonal()) / maxf(half_width(s) - 0.8, 0.5)
+	f.s = s
+	f.lat = clampf(lat - 0.25 * sin(_time * 0.35 + float(f.phase)), -0.6, 0.6)
+	f.dir = 1.0 if (q - Vector2(away_from.x, away_from.z)).dot(tan) >= 0.0 else -1.0
+	f.held = false
+
+
+## Cá đã câu lên: sinh lại một con ở đoạn sông xa chỗ câu.
+func respawn_fish(i: int, away_from: Vector3) -> void:
+	var f: Dictionary = _fish[i]
+	var s0 := nearest_s(Vector2(away_from.x, away_from.z))
+	f.s = wrapf(s0 + length * _rng.randf_range(0.3, 0.7), 5.0, length - 5.0)
+	f.lat = _rng.randf_range(-0.6, 0.6)
+	f.jump = -1.0
+	f.held = false
+
+
+## Gợn tròn trên mặt nước (cá giãy, phao rơi).
+func splash(pos: Vector3) -> void:
+	_spawn_ripple(Vector3(pos.x, water_level + 0.02, pos.z))
 
 
 func _spawn_ripple(pos: Vector3) -> void:

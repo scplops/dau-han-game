@@ -14,7 +14,8 @@ signal exit_requested
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa / E: vào nhà gần nhất    Bấm người: xem tin    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
@@ -29,6 +30,7 @@ var _info_title: Label
 var _info_body: Label
 var _inside: bool = false
 var _place: String = ""
+var _fish_place: String = ""
 var _refresh: float = 0.0
 
 
@@ -145,7 +147,9 @@ func _update_text() -> void:
 	if day_night == null:
 		return
 	_time_label.text = day_night.time_text()
-	var parts: Array[String] = [(_place if _place != "" else "Trong nhà") if _inside else "Ngoài sân", _period_name(day_night.time_of_day)]
+	var where := ((_place if _place != "" else "Trong nhà") if _inside
+			else (_fish_place if _fish_place != "" else "Ngoài sân"))
+	var parts: Array[String] = [where, _period_name(day_night.time_of_day)]
 	if weather != null:
 		parts.append(weather.display_name())
 	parts.append("Tự chạy: bật" if day_night.auto_run else "Tự chạy: tắt")
@@ -167,6 +171,24 @@ func set_inside(value: bool, place: String = "") -> void:
 	_fit_bottom(_keys_panel, _keys_label)
 	set_hint("")
 	_update_text()
+
+
+## Đổi giao diện khi bắt đầu / thôi câu cá (`place` = tên bến, rỗng = thôi câu).
+func set_fishing(place: String) -> void:
+	_fish_place = place
+	if _keys_label == null:
+		return
+	_keys_label.text = SHORTCUTS_FISH if place != "" else (SHORTCUTS_IN if _inside else SHORTCUTS_OUT)
+	_fit_bottom(_keys_panel, _keys_label)
+	if place != "":
+		hide_info()
+	set_hint("")
+	_update_text()
+
+
+## Font dùng chung cho các khung khác (mini-game).
+static func font(semibold: bool) -> Font:
+	return load(FONT_SEMIBOLD if semibold else FONT_REGULAR) as Font
 
 
 ## Hiện khung thông tin (tên + các dòng mô tả).

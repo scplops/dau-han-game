@@ -4,6 +4,7 @@ extends SceneTree
 ##        [--yaw=0] [--pitch=-40] [--distance=38] [--focus=x,z] [--ortho] [--frames=30]
 ##        [--weather=storm] [--flash] (loé chớp)
 ##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
+##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -52,6 +53,13 @@ func _run() -> void:
 		if npc != null:
 			vs.select_villager(npc)
 			vs._following = true   # camera đi theo để NPC luôn ở giữa khung
+
+	# Câu cá ở bến thứ N, dựng sẵn trạng thái
+	var fishing := scene.get_node_or_null("Fishing") as Fishing
+	if fishing != null and args.has("fish"):
+		fishing.start(int(args["fish"]), true)
+		if args.has("fish-state"):
+			fishing.debug_state(str(args["fish-state"]))
 
 	# Góc camera (camera đang dùng)
 	var rig := scene.get_node_or_null("InteriorCameraRig" if inside else "CameraRig") as CameraRig

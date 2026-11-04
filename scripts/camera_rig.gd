@@ -28,6 +28,8 @@ extends Node3D
 @export var orthographic: bool = false
 ## Chỉ camera đang dùng mới nhận chuột/phím (ngoài sân hoặc trong nhà).
 @export var active: bool = true
+## Khoá kéo tâm (chuột giữa, WASD) — dùng khi đang câu cá; vẫn xoay / zoom được.
+var pan_locked: bool = false
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -85,7 +87,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			yaw_deg = wrapf(yaw_deg - mm.relative.x * rotate_sensitivity, -180.0, 180.0)
 			pitch_deg = clampf(pitch_deg - mm.relative.y * rotate_sensitivity,
 					min_pitch_deg, max_pitch_deg)
-		elif _panning:
+		elif _panning and not pan_locked:
 			# Kéo chuột: cảnh đi theo tay, tốc độ tỉ lệ với độ xa camera
 			var px_to_world := distance / 600.0
 			_move_focus(Vector2(-mm.relative.x, -mm.relative.y) * px_to_world)
@@ -98,7 +100,7 @@ func _process(delta: float) -> void:
 		return
 	# WASD / phím mũi tên: di chuyển tâm trên mặt đất
 	var dir := Input.get_vector("cam_left", "cam_right", "cam_forward", "cam_back")
-	if dir != Vector2.ZERO:
+	if dir != Vector2.ZERO and not pan_locked:
 		_move_focus(dir * pan_speed * distance * delta)
 
 	# Nội suy mượt, không phụ thuộc FPS

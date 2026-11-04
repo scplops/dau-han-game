@@ -13,6 +13,8 @@ signal inside_changed(inside: bool)
 const CLICK_LAYER := 2
 ## Nhóm chứa các cửa vào được (có meta "spec").
 const ENTRY_GROUP := "entry_target"
+## Nhóm các vùng bấm khác (có meta "activate" là Callable), ví dụ chỗ ngồi câu cá.
+const ACTIVATE_GROUP := "activate_target"
 
 @export var outdoor_rig: CameraRig
 @export var interior_rig: CameraRig
@@ -26,6 +28,12 @@ const ENTRY_GROUP := "entry_target"
 @export var ray_length: float = 250.0
 
 var inside: bool = false
+## Khoá vào/ra nhà (khi đang câu cá): bỏ qua chuột, E, Esc.
+var locked: bool = false:
+	set(value):
+		locked = value
+		if locked and _fade != null:
+			_set_hovered(null)
 var _hovered: StaticBody3D
 var _busy: bool = false
 var _fade: ColorRect
@@ -95,7 +103,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _busy:
+	if _busy or locked:
 		return
 	if event is InputEventMouseMotion:
 		_mouse_moved = true
@@ -112,7 +120,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(_delta: float) -> void:
 	# Dò tia từ chuột vào cảnh (chỉ lớp vùng bấm) để biết đang rê vào cửa nào
-	if _busy or not _mouse_moved:
+	if _busy or locked or not _mouse_moved:
 		return
 	_mouse_moved = false
 	var cam := get_viewport().get_camera_3d()
@@ -151,7 +159,7 @@ func _nearest_entry() -> StaticBody3D:
 		return null
 	var best: StaticBody3D = null
 	var best_d := interact_radius
-	for n in get_tree().get_nodes_in_group(ENTRY_GROUP):
+	for n in get_tree().get_nodes_in_group(ENTRY_GROUP) + get_tree().get_nodes_in_group(ACTIVATE_GROUP):
 		var b := n as StaticBody3D
 		var d := Vector2(b.global_position.x - outdoor_rig.global_position.x,
 				b.global_position.z - outdoor_rig.global_position.z).length()
@@ -169,6 +177,9 @@ func exit_house(instant: bool = false) -> void:
 func _toggle(target: StaticBody3D = null) -> void:
 	if inside:
 		exit_house()
+	elif target != null and target.has_meta("activate"):
+		_set_hovered(null)
+		(target.get_meta("activate") as Callable).call()
 	elif target != null:
 		enter_house(false, target)
 

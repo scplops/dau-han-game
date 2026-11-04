@@ -134,7 +134,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
 7. **Phím tắt** khai báo trong **Input Map** của `project.godot` (tên action tiếng Anh:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
-   `cycle_weather` (R), `follow_npc` (F)),
+   `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -172,6 +172,7 @@ scripts/
   villagers.gd         # dân làng + con vật: đồ thị đường, lịch sinh hoạt, chọn xem tin (mục 13)
   villager.gd          # một NPC: hình có khớp, dáng đi/làm việc, đi theo đường
   hud.gd
+  fishing.gd           # mini-game câu cá ở các bến sông (mục 16)
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
@@ -378,3 +379,27 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   trắng, quần xanh sẫm, khăn quàng đỏ. `set_outfit(true)` khi bắt đầu việc `school`, thay ra khi
   đã về trong nhà. Áo thường của trẻ con không dùng màu trắng để khỏi lẫn.
 - `Villagers.replan()` lên lại lịch theo giờ hiện tại (công cụ chụp ảnh gọi khi có `--hour`).
+
+## 16. Mini-game câu cá (giai đoạn 2a)
+
+- Ngoại lệ có chủ đích với "không gameplay": một mini-game câu cá, **không có nhân vật
+  điều khiển đi lại** — người câu là hình ngồi cố định, chỉ hiện khi đang câu.
+- `scripts/fishing.gd` (node `Fishing`, con cuối của `Main` để nhận chuột trước). Mỗi bến sông
+  (`River.landings`) có một **chỗ ngồi câu** (`fish_spot`: ghế đẩu, cần tre dựng, giỏ cá) cạnh
+  cầu ván. Rê chuột vào chỗ ngồi → gợi ý "Ngồi câu cá"; bấm hoặc `E` để vào (vùng bấm lớp 2,
+  meta `activate` — `HouseEntry` gọi Callable thay vì vào nhà). `Esc` / `E` để thôi câu.
+- **Diễn biến:** giữ chuột trái (hoặc `Space`, action `fish_reel`) để lấy đà → thả để quăng phao
+  → chờ một con cá THẬT trong MultiMesh sông bơi tới (`River.lure_fish`) → phao nhấp vài lần
+  (giật lúc này cá sợ bỏ đi) → phao chìm hẳn: bấm trong `bite_window` giây để giật cần →
+  kéo cá: giữ chuột để cuộn dây, thả khi dây căng; dây căng quá thì đứt, chùng lâu thì cá sổng.
+- **Loài cá** lấy theo màu của con cá mắc câu (chép, chép đỏ, diếc, trắm cỏ, trê, mè trắng);
+  cân nặng theo cỡ con cá, loài to giãy khoẻ hơn. Câu được thì cá về giỏ, con cá trong sông
+  sinh lại ở đoạn xa. Sổ câu (số con, con nặng nhất từng loài) chỉ giữ trong lần chạy (chưa lưu game).
+- **Giờ & thời tiết:** cá ăn mạnh lúc sáng sớm và chiều muộn, kém buổi trưa, rất kém ban đêm;
+  mưa phùn cá ăn hơn; mưa giông thì không câu được (đang câu thì tự thu cần về).
+  Ban đêm đèn bão cạnh chỗ ngồi tự sáng (nhóm `night_light`).
+- Chụp ảnh: `--fish=<chỉ số bến>` vào câu, `--fish-state=charge|wait|nibble|bite|reel|caught`
+  dựng sẵn trạng thái để kiểm tra giao diện. `tools/fish_test.gd` chơi thử tự động (headless), in
+  diễn biến từng lượt câu.
+- **Cá giữ vị trí riêng** (`_fish[i].pos`): renderer headless không lưu transform MultiMesh,
+  nên không đọc ngược vị trí cá từ MultiMesh.

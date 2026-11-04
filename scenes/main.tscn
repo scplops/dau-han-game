@@ -20,6 +20,7 @@
 [ext_resource type="Script" path="res://scripts/villagers.gd" id="18_villagers"]
 [ext_resource type="Script" path="res://scripts/builders/river.gd" id="19_river"]
 [ext_resource type="Script" path="res://scripts/builders/school.gd" id="20_school"]
+[ext_resource type="Script" path="res://scripts/fishing.gd" id="21_fishing"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -175,3 +176,13 @@ world_environment = NodePath("../WorldEnvironment")
 clouds = NodePath("../World/Clouds")
 outdoor_rig = NodePath("../CameraRig")
 house_entry = NodePath("../HouseEntry")
+
+[node name="Fishing" type="Node3D" parent="." node_paths=PackedStringArray("river", "house_entry", "outdoor_rig", "day_night", "weather", "hud", "villagers")]
+script = ExtResource("21_fishing")
+river = NodePath("../World/River")
+house_entry = NodePath("../HouseEntry")
+outdoor_rig = NodePath("../CameraRig")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+hud = NodePath("../HUD")
+villagers = NodePath("../World/Villagers")
