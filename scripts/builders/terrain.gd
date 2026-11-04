@@ -55,7 +55,7 @@ extends Node3D
 @export var road_width: float = 3.6
 ## Cánh đồng bao quanh (chỉ mặt ruộng + bờ, không có khóm lúa để nhẹ máy).
 @export var outer_fields: Array[Rect2] = [
-	Rect2(-104, -28, 74, 68), Rect2(33, -28, 71, 68),
+	Rect2(-104, -2, 74, 42), Rect2(33, -28, 71, 68),   # góc tây bắc nhường chỗ cho trường học
 	Rect2(-104, 46, 74, 58), Rect2(-20, 46, 42, 58), Rect2(33, 46, 71, 58),
 ]
 @export var outer_paddy_size: Vector2 = Vector2(16.0, 13.0)

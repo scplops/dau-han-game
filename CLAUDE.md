@@ -163,6 +163,7 @@ scripts/
     village.gd         # làng: lũy tre, cổng, đường trục, ngõ, lô đất, đình, chùa, ao, giếng (mục 11)
     village_house.gd   # sinh kiểu nhà không trùng + dựng từng lô (nhà, mái, rào, sân, vườn)
     river.gd           # sông móng ngựa quanh làng: đê, lòng sông, nước, cá, đầm sen, đò (mục 14)
+    school.gd          # trường tiểu học kiểu năm 2000 phía tây nhà mình (mục 15)
   interior.gd          # không gian trong nhà kiểu nhà búp bê (mục 10)
   house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
@@ -356,3 +357,20 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   tắm sông), `fishing` (cụ già ngồi câu trên cầu ván); chỉ ban ngày, không khi mưa. Đồ thị
   AStar có thêm đường ra bến kèm độ cao; `Villager` nội suy độ cao theo đường (`_path_y`) để
   leo đê, lên cầu ván.
+
+## 15. Trường học kiểu năm 2000 (giai đoạn 1g)
+
+- `scripts/builders/school.gd` (node `World/School`): khu đất `site` (x −98…−42, z −42…−4),
+  phía tây khu nhà mình; thửa ruộng tây bắc (`Terrain.outer_fields[0]`) đã thu nhỏ để nhường chỗ.
+  Cổng mở về hướng đông ra đường đất `Terrain.roads[0]` (x ≈ −24,5), biển "TRƯỜNG TIỂU HỌC"
+  bằng `Label3D` (font Be Vietnam Pro).
+- Kiến trúc nông thôn Bắc Bộ khoảng năm 2000: dãy lớp học 2 tầng 5 phòng (tường vôi vàng
+  `SCHOOL_WALL`, viền/cột trắng `SCHOOL_TRIM`, hành lang trước có lan can con tiện, cửa chớp xanh
+  `SHUTTER`, mái ngói đỏ 4 mái KHÔNG có đầu đao — dùng `_hip_roof` riêng, không dùng
+  `VillageHouse.roof`), cầu thang ngoài ở đầu hồi, trống trường ở hiên; dãy hiệu bộ 1 tầng;
+  nhà xe mái tôn có xe đạp; khu vệ sinh; sân xi măng kẻ ô; cột cờ đỏ sao vàng; bồn hoa; cây
+  bàng (tán xếp tầng) và phượng (hoa đỏ); tường rào vàng thấp có song sắt.
+- Vào được một lớp học (khoá `school`, `Interior._build_classroom`): bục giảng, bảng đen, khẩu
+  hiệu "TIÊN HỌC LỄ - HẬU HỌC VĂN", bàn giáo viên, 2 dãy bàn ghế băng, vở sách, tủ đồ dùng.
+- Trẻ con trong làng đi học 7–11h và 13:30–16:30 (việc `school`): đi theo đường đất vào cổng,
+  chơi ở sân trường (giờ ra chơi). Cửa sổ trường sáng nhẹ ban đêm (`night_glow`).

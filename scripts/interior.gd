@@ -107,6 +107,8 @@ func build() -> void:
 			_build_dinh(shell, floor_mb, furn, flames, lamps)
 		"pagoda":
 			_build_pagoda(shell, floor_mb, furn, flames, lamps)
+		"school":
+			_build_classroom(shell, floor_mb, furn)
 		_:
 			_build_home(shell, floor_mb, furn, flames, lamps)
 
@@ -596,6 +598,60 @@ func _room_study(mb: MeshBuilder, flames: MeshBuilder, lamps: Array[Vector3], x0
 			mb.add_box(Vector3(0.1, h, 0.2), [Palette.ALTAR_RED, Palette.STRAW, Palette.BLANKET, Palette.SACK][k % 4],
 					_t(cx - 0.42 + k * 0.17, y + 0.03, bz))
 	_lamp(mb, flames, lamps, Vector3(cx + 0.35, p + 0.32, cz - 0.05))
+
+
+# --- Lớp học (trường kiểu năm 2000) ----------------------------------------------------
+
+func _build_classroom(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder) -> void:
+	var p := _p
+	_front = "veranda_brick"
+	_door_x = _len * 0.25
+	_build_shell(shell, Palette.SCHOOL_WALL, Palette.SCHOOL_WALL_DARK, 1.2)
+	_build_veranda(shell, 3, Palette.SCHOOL_TRIM, true)
+	# Chân tường sơn sẫm cao 1,2 m
+	var t := wall_thickness
+	shell.add_box(Vector3(_len - t * 2.0, 1.2, 0.02), Palette.SCHOOL_WALL_DARK, _t(0.0, p, _back_z + t + 0.01))
+	_build_floor(floor_mb, Palette.SCHOOL_TRIM.darkened(0.1), 0.4)
+	var wall_z := _back_z + t
+	# Bục giảng + bàn giáo viên, bảng đen, khẩu hiệu trên bảng
+	shell.add_box(Vector3(_len - 0.4, 0.2, 1.4), Palette.WOOD, _t(0.0, p, wall_z + 0.7))
+	mb.add_box(Vector3(3.2, 1.25, 0.06), Palette.WOOD, _t(0.0, p + 0.9, wall_z + 0.03))
+	mb.add_box(Vector3(3.0, 1.1, 0.04), Palette.BLACKBOARD, _t(0.0, p + 0.97, wall_z + 0.07))
+	mb.add_box(Vector3(3.0, 0.04, 0.1), Palette.WOOD, _t(0.0, p + 0.92, wall_z + 0.1))
+	for i in 4:   # vài dòng phấn trắng trên bảng
+		mb.add_box(Vector3(_rng.randf_range(1.0, 2.4), 0.03, 0.01), Palette.PILLOW, _t(-1.3 + 0.0, p + 1.85 - i * 0.22, wall_z + 0.1) * _t(0.5, 0, 0))
+	var font := load("res://assets/fonts/BeVietnamPro-SemiBold.ttf") as Font
+	var motto := Label3D.new()
+	motto.text = "TIÊN HỌC LỄ - HẬU HỌC VĂN"
+	motto.font = font
+	motto.font_size = 48
+	motto.pixel_size = 0.005
+	motto.modulate = Palette.FLAG_RED
+	motto.position = Vector3(0.0, p + 2.45, wall_z + 0.05)
+	add_child(motto)
+	var td := Vector3(_len * 0.5 - 1.6, p + 0.2, wall_z + 1.0)
+	_table(mb, Vector3(1.2, 0.75, 0.6), td, Palette.WOOD, 0.05)
+	_chair(mb, td + Vector3(0, 0, -0.5), 0.0)
+	mb.add_prism(0.06, 0.08, 0.2, 7, Palette.CERAMIC, _t(td.x - 0.35, td.y + 0.75, td.z))
+	mb.add_blob(Vector3(0.1, 0.08, 0.1), Palette.PHUONG, _rng, 0.2, _t(td.x - 0.35, td.y + 0.95, td.z))
+	mb.add_box(Vector3(0.3, 0.04, 0.22), Palette.SIGN_BLUE, _t(td.x + 0.2, td.y + 0.75, td.z))
+	# Bàn học 2 chỗ + ghế băng, 2 dãy × 4 hàng, quay về phía bảng
+	var rows := int((_front_z - (wall_z + 2.2)) / 1.0)
+	for r in rows:
+		for c in [-1.0, 1.0]:
+			var x: float = c * _len * 0.22
+			var z := wall_z + 2.4 + r * 1.0
+			_table(mb, Vector3(1.5, 0.62, 0.45), Vector3(x, p, z), Palette.WOOD_LIGHT, 0.05)
+			mb.add_box(Vector3(1.5, 0.05, 0.25), Palette.WOOD_LIGHT, _t(x, p + 0.38, z + 0.42))
+			for sx in [-0.65, 0.65]:
+				mb.add_box(Vector3(0.05, 0.38, 0.2), Palette.WOOD_LIGHT, _t(x + sx, p, z + 0.42))
+			# Vở, sách trên bàn
+			for k in 2:
+				if _rng.randf() < 0.7:
+					var col := [Palette.SIGN_BLUE, Palette.FLOWER_WHITE, Palette.FLOWER_YELLOW][_rng.randi_range(0, 2)] as Color
+					mb.add_box(Vector3(0.22, 0.02, 0.3), col, Transform3D(Basis(Vector3.UP, _rng.randf_range(-0.3, 0.3)), Vector3(x - 0.35 + k * 0.7, p + 0.62, z)))
+	# Tủ đồ dùng sát tường hồi
+	mb.add_box(Vector3(0.5, 1.6, 1.4), Palette.WOOD, _t(-_len * 0.5 + t + 0.3, p, _front_z - 1.2))
 
 
 # --- Đình làng ------------------------------------------------------------------------

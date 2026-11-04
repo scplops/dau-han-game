@@ -146,3 +146,16 @@ const RAIN := Color("#cfd9e2")
 const MIST := Color("#e4e6e1")           # sương mù sáng sớm
 const LIGHTNING := Color("#e8ecff")
 const RIVER_BED := Color("#5e5a3c")      # bùn lòng sông (bổ sung)
+
+# Trường học kiểu năm 2000 (bổ sung)
+const SCHOOL_WALL := Color("#efcf62")    # vôi vàng đậm
+const SCHOOL_WALL_DARK := Color("#d6b54e")
+const SCHOOL_TRIM := Color("#f4efe2")    # viền, cột, lan can quét vôi trắng
+const SHUTTER := Color("#4f8a63")        # cửa chớp sơn xanh lá
+const SCHOOL_YARD := Color("#cfc8b6")    # sân xi măng
+const TIN_ROOF := Color("#9aa4a9")       # mái tôn
+const FLAG_RED := Color("#d8262a")
+const FLAG_STAR := Color("#ffd23a")
+const PHUONG := Color("#e2442f")         # hoa phượng
+const BLACKBOARD := Color("#2f4a3a")
+const SIGN_BLUE := Color("#2b5ea8")

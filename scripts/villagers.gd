@@ -14,6 +14,7 @@ const NIGHT_END := 5.2
 
 @export var village: Village
 @export var river: River
+@export var school: School
 @export var terrain: Terrain
 @export var house: House
 @export var day_night: DayNight
@@ -76,6 +77,7 @@ const ACTIVITY_TEXT := {
 	"shelter": ["đang chạy về nhà trú mưa", "đang trú mưa trong nhà"],
 	"lantern": ["đang cầm đèn đi chơi tối", "đang ngồi chơi tối với hàng xóm"],
 	"river": ["đang ra bến sông", "đang giặt giũ ở bến sông"],
+	"school": ["đang đi học", "đang ra chơi ở sân trường"],
 	"swim": ["đang ra sông tắm", "đang tắm sông"],
 	"fishing": ["đang vác cần ra sông", "đang ngồi câu cá ở bến sông"],
 }
@@ -128,6 +130,9 @@ func _build_graph() -> void:
 		for r in terrain.roads:
 			_join_to_graph(r, 6.0)
 		_join_to_graph(terrain.path_points, 2.0)
+	# Đường vào trường
+	if school != null and not school.entry_path.is_empty():
+		_join_to_graph(school.entry_path, 3.0)
 	# Lối ra sông: đoạn gạch trong làng + đường đất qua đê + cầu ván (có độ cao)
 	if river != null:
 		for i in mini(village.access_paths.size(), river.landings.size()):
@@ -379,6 +384,10 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			c = {"banyan": 3.0, "pagoda": 2.0, "visit": 2.0, "dinh": 1.0, "yard": 2.0, "inside": 1.0}
 		"kid":
 			c = {"inside": 2.0, "yard": 1.0} if noon else {"dinh": 4.0, "pond": 2.0, "banyan": 1.0, "visit": 1.0, "yard": 1.0}
+	# Trẻ con đi học: buổi sáng 7–11h và đầu giờ chiều 13:30–16:30
+	if school != null and v.role == "kid" and ((h >= 6.8 and h < 10.8) or (h >= 13.3 and h < 16.3)):
+		c = {"school": 8.0, "inside": 0.5}
+		return c
 	# Ra sông (ban ngày, trời không mưa)
 	if river != null and not river.landings.is_empty() and h >= 7.0 and h < 18.0 and not noon:
 		match v.role:
@@ -439,6 +448,8 @@ func _target(v: Villager, act: String) -> Vector3:
 		"visit", "lantern":
 			var other: Dictionary = _homes[_rng.randi_range(0, _homes.size() - 1)]
 			return (other.gate as Vector3) + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(0.2, 1.0))
+		"school":
+			return school.yard_spots[_rng.randi_range(0, school.yard_spots.size() - 1)] + Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1))
 		"river", "swim", "fishing":
 			var l: Dictionary = river.landings[_rng.randi_range(0, river.landings.size() - 1)]
 			v.set_meta("landing", l)
@@ -531,7 +542,7 @@ func _arrive(v: Villager) -> void:
 		"dinh", "pond": v.work_anim = "play" if v.role in ["kid", "herder"] else "chat"
 		"banyan": v.work_anim = "sit" if v.role == "elder" else "chat"
 		"visit", "pagoda", "lantern": v.work_anim = "chat"
-		"swim": v.work_anim = "play"
+		"swim", "school": v.work_anim = "play"
 		"fishing": v.work_anim = "sit"
 		"river": v.work_anim = "hoe"   # cúi lên cúi xuống giặt giũ
 		_: v.work_anim = "idle"
