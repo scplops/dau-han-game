@@ -13,6 +13,7 @@ const NIGHT_START := 20.5
 const NIGHT_END := 5.2
 
 @export var village: Village
+@export var river: River
 @export var terrain: Terrain
 @export var house: House
 @export var day_night: DayNight
@@ -74,6 +75,9 @@ const ACTIVITY_TEXT := {
 	"inside": ["đang về nhà", "đang ở trong nhà"],
 	"shelter": ["đang chạy về nhà trú mưa", "đang trú mưa trong nhà"],
 	"lantern": ["đang cầm đèn đi chơi tối", "đang ngồi chơi tối với hàng xóm"],
+	"river": ["đang ra bến sông", "đang giặt giũ ở bến sông"],
+	"swim": ["đang ra sông tắm", "đang tắm sông"],
+	"fishing": ["đang vác cần ra sông", "đang ngồi câu cá ở bến sông"],
 }
 
 
@@ -124,6 +128,23 @@ func _build_graph() -> void:
 		for r in terrain.roads:
 			_join_to_graph(r, 6.0)
 		_join_to_graph(terrain.path_points, 2.0)
+	# Lối ra sông: đoạn gạch trong làng + đường đất qua đê + cầu ván (có độ cao)
+	if river != null:
+		for i in mini(village.access_paths.size(), river.landings.size()):
+			var line := PackedVector3Array()
+			for p in Terrain._densify(village.access_paths[i].points, 4.0):
+				line.append(Vector3(p.x, 0.05, p.y))
+			line.append_array(river.landings[i].path)
+			var near := _astar.get_closest_point(line[0])
+			var prev := -1
+			for p3 in line:
+				var id := _next_id
+				_next_id += 1
+				_astar.add_point(id, p3)
+				if prev >= 0:
+					_astar.connect_points(prev, id)
+				prev = id
+			_astar.connect_points(_next_id - line.size(), near)
 
 
 func _nearest(p: Vector3) -> int:
@@ -358,11 +379,20 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			c = {"banyan": 3.0, "pagoda": 2.0, "visit": 2.0, "dinh": 1.0, "yard": 2.0, "inside": 1.0}
 		"kid":
 			c = {"inside": 2.0, "yard": 1.0} if noon else {"dinh": 4.0, "pond": 2.0, "banyan": 1.0, "visit": 1.0, "yard": 1.0}
+	# Ra sông (ban ngày, trời không mưa)
+	if river != null and not river.landings.is_empty() and h >= 7.0 and h < 18.0 and not noon:
+		match v.role:
+			"carrier": c["river"] = 2.5
+			"farmer": c["river"] = 0.8
+			"kid": c["swim"] = 2.0
+			"elder": c["fishing"] = 2.0
 	if h < 7.0:
 		c.erase("dinh")
 		c.erase("pond")
 		c.erase("pagoda")
 	if drizzle:
+		c.erase("swim")
+		c.erase("fishing")
 		c.erase("pond")
 		c.erase("dinh")
 		c["inside"] = float(c.get("inside", 0.0)) + 2.0
@@ -409,6 +439,13 @@ func _target(v: Villager, act: String) -> Vector3:
 		"visit", "lantern":
 			var other: Dictionary = _homes[_rng.randi_range(0, _homes.size() - 1)]
 			return (other.gate as Vector3) + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(0.2, 1.0))
+		"river", "swim", "fishing":
+			var l: Dictionary = river.landings[_rng.randi_range(0, river.landings.size() - 1)]
+			v.set_meta("landing", l)
+			match act:
+				"fishing": return l.spot
+				"swim": return (l.edge as Vector3) + Vector3(_rng.randf_range(-2.5, 2.5), 0, _rng.randf_range(-1.0, 1.0))
+				_: return (l.wash as Vector3) + Vector3(_rng.randf_range(-0.4, 0.4), 0, _rng.randf_range(-0.4, 0.4))
 		"yard":
 			var side := (h.forward as Vector3).cross(Vector3.UP)
 			return (h.front as Vector3) + (h.forward as Vector3) * _rng.randf_range(0.8, 2.2) + side * _rng.randf_range(-2.0, 2.0)
@@ -487,16 +524,21 @@ func _arrive(v: Villager) -> void:
 		v.visible = false
 		v.dwell = _rng.randf_range(20.0, 50.0)
 		return
-	v.dwell = _rng.randf_range(45.0, 100.0) if act in ["field", "graze"] else _rng.randf_range(20.0, 50.0)
+	v.dwell = _rng.randf_range(45.0, 100.0) if act in ["field", "graze", "fishing", "river"] else _rng.randf_range(20.0, 50.0)
 	match act:
 		"field": v.work_anim = "hoe" if v.role == "farmer" else "idle"
 		"graze": v.work_anim = "idle"
 		"dinh", "pond": v.work_anim = "play" if v.role in ["kid", "herder"] else "chat"
 		"banyan": v.work_anim = "sit" if v.role == "elder" else "chat"
 		"visit", "pagoda", "lantern": v.work_anim = "chat"
+		"swim": v.work_anim = "play"
+		"fishing": v.work_anim = "sit"
+		"river": v.work_anim = "hoe"   # cúi lên cúi xuống giặt giũ
 		_: v.work_anim = "idle"
 	# Quay mặt về phía giếng / gốc đa / bạn chơi cho tự nhiên
 	var look_at_pt := Vector3.ZERO
+	if act in ["river", "swim", "fishing"] and v.has_meta("landing"):
+		v.rotation.y = float(v.get_meta("landing").face)
 	match act:
 		"well": look_at_pt = village.well_position
 		"banyan": look_at_pt = village.banyan_position

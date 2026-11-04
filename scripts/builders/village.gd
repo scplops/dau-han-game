@@ -30,6 +30,14 @@ extends Node3D
 @export var banyan_position: Vector3 = Vector3(16.0, 0.0, -44.0)
 @export var well_position: Vector3 = Vector3(7.5, 0.0, -47.0)
 
+@export_group("Lối ra sông")
+## Các ngõ được nối dài xuyên lũy tre ra sông (chỉ số trong alley_lines: ngõ thứ i có
+## hai nửa 2i = tây, 2i + 1 = đông).
+@export var river_access_alleys: PackedInt32Array = PackedInt32Array([4, 3])
+## Lối ra sông phía bắc: rẽ từ ngõ cuối (phía tây) tại x này, đi thẳng lên bắc.
+@export var north_access_x: float = -27.0
+@export var access_width: float = 2.6
+
 @export_group("Lũy tre")
 @export var hedge_spacing: float = 3.0
 @export var gate_gap: float = 6.5
@@ -37,6 +45,9 @@ extends Node3D
 @export_group("Gió")
 @export var leaf_wind: float = 0.12
 @export var hedge_wind: float = 0.28
+
+## Lối ra sông: {points (x,z) từ ngõ tới khe lũy tre, exit (x,z) ngay ngoài lũy, out (hướng ra)}.
+var access_paths: Array[Dictionary] = []
 
 ## Số nhà và số kiểu khác nhau (để kiểm tra), có sau build().
 var house_count: int = 0
@@ -61,9 +72,12 @@ func build() -> void:
 	_rng.seed = random_seed
 	_glow_mat = _make_glow_material()
 	_plan_lanes()
+	_plan_access()
 
 	var ground := MeshBuilder.new(random_seed, 0.07)
 	_build_lanes(ground)
+	for a in access_paths:
+		_paved_strip(ground, a.points, access_width, 0.045)
 	var stat := MeshBuilder.new(random_seed + 1, 0.04)
 	stat.contact_shade_height = 0.6
 	stat.contact_shade_strength = 0.18
@@ -221,7 +235,52 @@ func _paved_strip(mb: MeshBuilder, pts: PackedVector2Array, width: float, y: flo
 
 # --- Lô đất + nhà -------------------------------------------------------------------------
 
+## Lên kế hoạch lối ra sông: nối dài vài ngõ ra tới lũy tre, cộng một lối đi lên phía bắc.
+func _plan_access() -> void:
+	for idx in river_access_alleys:
+		if idx < 0 or idx >= _alleys.size():
+			continue
+		var al := _alleys[idx]
+		var a := al[al.size() - 1]
+		var side := signf(a.x)
+		var b := Vector2(side * half_width_at(a.y), a.y)
+		_add_access(PackedVector2Array([a, a.lerp(b, 0.5), b]))
+	# Phía bắc: rẽ từ ngõ cuối, phía tây đình
+	var last := _alleys[(alley_z.size() - 1) * 2]
+	var start := Vector2(north_access_x, _alley_z_at(last, north_access_x))
+	var dz := (north_access_x / radii.x)
+	var hedge_z := center.y - radii.y * sqrt(maxf(0.0, 1.0 - dz * dz))
+	_add_access(PackedVector2Array([start, Vector2(north_access_x + 0.8, lerpf(start.y, hedge_z, 0.5)), Vector2(north_access_x, hedge_z)]))
+
+
+func _add_access(pts: PackedVector2Array) -> void:
+	var b := pts[pts.size() - 1]
+	var out := (b - center) / (radii * radii)    # pháp tuyến elip tại b
+	out = out.normalized()
+	# Kéo dài thêm vài mét để xuyên qua dải lũy tre
+	var exit := b + out * 6.0
+	pts.append(exit)
+	access_paths.append({"points": pts, "exit": exit, "out": out})
+
+
+## Điểm có nằm trong hành lang lối ra sông không (để không xây nhà / trồng cây lên đó).
+func _on_access(p: Vector2, margin: float) -> bool:
+	for a in access_paths:
+		var pts: PackedVector2Array = a.points
+		for i in pts.size() - 1:
+			if Terrain._segment_distance(p, pts[i], pts[i + 1]) < access_width * 0.5 + margin:
+				return true
+	return false
+
+
 func _reserved(r: Rect2) -> bool:
+	# Lô chạm hành lang lối ra sông thì bỏ
+	for a in access_paths:
+		var pts: PackedVector2Array = a.points
+		for i in pts.size() - 1:
+			var seg := Rect2(pts[i], Vector2.ZERO).expand(pts[i + 1]).grow(access_width * 0.5 + 0.8)
+			if r.intersects(seg):
+				return true
 	if r.intersects(pagoda_rect.grow(1.0)):
 		return true
 	if r.end.y > alley_z[alley_z.size() - 1] - 30.0 and r.position.y < alley_z[alley_z.size() - 1] \
@@ -317,6 +376,8 @@ func _build_hedge() -> void:
 		var p := center + Vector2(cos(a) * radii.x, sin(a) * radii.y)
 		if p.distance_to(g) < gate_gap:
 			continue
+		if _on_access(p, 3.5):
+			continue   # khe lũy tre cho lối ra sông
 		var out := Vector3(cos(a) * radii.y, 0.0, sin(a) * radii.x).normalized()  # pháp tuyến elip
 		var jit := Vector3(out.x, 0.0, out.z) * _rng.randf_range(-1.0, 1.0)
 		_bamboo_clump(stems, leaves, Vector3(p.x, 0.0, p.y) + jit, out)
@@ -677,7 +738,7 @@ func _build_wild_gardens() -> void:
 		var p := Vector2(_rng.randf_range(-radii.x, radii.x), _rng.randf_range(center.y - radii.y, center.y + radii.y))
 		if not _inside(p, 0.9) or _is_lane(p, 1.2):
 			continue
-		if dinh_rect.has_point(p) or pagoda_rect.grow(1.0).has_point(p) or entrance.has_point(p):
+		if dinh_rect.has_point(p) or pagoda_rect.grow(1.0).has_point(p) or entrance.has_point(p) or _on_access(p, 2.0):
 			continue
 		var blocked := false
 		for r in _occupied:

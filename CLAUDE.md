@@ -347,3 +347,12 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   `boat_spots` lưu toạ độ để chụp ảnh.
 - **Đò:** 3 con đò mui tre neo ven bờ.
 - Đồi và núi sau làng đã lùi ra xa hơn (`Mountains`) để không lấn vào sông.
+- **Lối ra sông (3 lối: tây, đông, bắc):** `Village.access_paths` — hai ngõ được nối dài
+  (`river_access_alleys`) và một lối đi thẳng lên bắc từ ngõ cuối (`north_access_x`), lát gạch,
+  xuyên qua khe trong lũy tre (không xây lô, không trồng tre/vườn tạp lên hành lang này).
+  Ngoài lũy là đường đất bám theo mặt cắt đê (`River.bank_height`) xuống **bến nước**
+  (`River.landings`): bậc đá, cầu ván trên cọc tre, tảng đá giặt, chum nước.
+- **Dân làng ra sông:** việc mới `river` (giặt giũ — người gánh hàng, nông dân), `swim` (trẻ con
+  tắm sông), `fishing` (cụ già ngồi câu trên cầu ván); chỉ ban ngày, không khi mưa. Đồ thị
+  AStar có thêm đường ra bến kèm độ cao; `Villager` nội suy độ cao theo đường (`_path_y`) để
+  leo đê, lên cầu ván.

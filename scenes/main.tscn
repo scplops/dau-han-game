@@ -132,9 +132,10 @@ fov = 40.0
 near = 0.1
 far = 300.0
 
-[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig")]
+[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig")]
 script = ExtResource("18_villagers")
 village = NodePath("../Village")
+river = NodePath("../River")
 terrain = NodePath("../Terrain")
 house = NodePath("../House")
 day_night = NodePath("../../DayNight")

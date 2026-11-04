@@ -41,6 +41,9 @@ var length: float = 0.0
 ## Tâm các đầm sen và vị trí các con đò (để chụp ảnh / NPC dùng sau này).
 var lotus_spots: Array[Vector3] = []
 var boat_spots: Array[Vector3] = []
+## Bến nước ở cuối mỗi lối ra sông: {path (từ khe lũy tre tới đầu cầu ván, có độ cao),
+## spot (chỗ đứng trên cầu ván), face (góc quay mặt ra sông), name}. Có sau build().
+var landings: Array[Dictionary] = []
 
 var _pts := PackedVector2Array()        # tim sông, mỗi ~2,5 m một điểm
 var _cum := PackedFloat32Array()        # độ dài cộng dồn tới từng điểm
@@ -60,6 +63,7 @@ func build() -> void:
 	_make_centerline()
 	_build_banks()
 	add_child(_build_water())
+	_build_landings()
 	_build_lotus()
 	_build_boats()
 	_build_fish()
@@ -181,6 +185,118 @@ func _build_banks() -> void:
 	var node := mb.commit_instance("Banks")
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(node)
+
+
+# --- Lối xuống sông + bến nước ----------------------------------------------------------
+
+## Độ cao mặt bờ theo khoảng cách tới mép nước (d < 0: dưới nước).
+func bank_height(d: float) -> float:
+	var lv := levee_height
+	var prof: Array = [[-1.2, bed_level], [0.0, water_level + 0.02], [1.0, lv * 0.65], [1.7, lv], [3.9, lv], [6.4, 0.0]]
+	if d <= prof[0][0]:
+		return bed_level
+	for i in prof.size() - 1:
+		var a: Array = prof[i]
+		var b: Array = prof[i + 1]
+		if d <= b[0]:
+			return lerpf(a[1], b[1], (d - a[0]) / (b[0] - a[0]))
+	return 0.0
+
+
+## Điểm tim sông gần (x, z) nhất: trả về độ dài s.
+func nearest_s(q: Vector2) -> float:
+	var best := 0.0
+	var bd := INF
+	for i in _pts.size():
+		var d := _pts[i].distance_squared_to(q)
+		if d < bd:
+			bd = d
+			best = _cum[i]
+	return best
+
+
+func _build_landings() -> void:
+	if village == null or village.access_paths.is_empty():
+		return
+	var path_mb := MeshBuilder.new(random_seed + 30, 0.06)
+	var wharf := MeshBuilder.new(random_seed + 31, 0.05)
+	wharf.contact_shade_height = water_level + 0.4
+	var names: Array[String] = ["Bến sông phía tây", "Bến sông phía đông", "Bến sông phía bắc"]
+	for ai in village.access_paths.size():
+		var acc: Dictionary = village.access_paths[ai]
+		var exit: Vector2 = acc.exit
+		var out: Vector2 = acc.out
+		var s := nearest_s(exit + out * 12.0)
+		var smp := sample(s)
+		var c: Vector2 = smp[0]
+		var tan: Vector2 = smp[1]
+		var n := tan.orthogonal()
+		if (exit - c).dot(n) < 0.0:
+			n = -n                                     # n hướng từ tim sông về phía làng
+		var hw := half_width(s)
+		var edge := c + n * hw                        # mép nước phía làng
+		# Đường đất từ khe lũy tre leo qua đê xuống mép nước (độ cao bám theo mặt cắt bờ)
+		var pts3 := PackedVector3Array()
+		var steps := maxi(4, int(exit.distance_to(edge) / 0.8))
+		for k in steps + 1:
+			var q := exit.lerp(edge + n * 0.6, float(k) / steps)
+			var lat := (q - c).dot(n)
+			var y := maxf(bank_height(lat - hw), 0.0) + 0.04
+			pts3.append(Vector3(q.x, y, q.y))
+		_strip3(path_mb, pts3, 2.2, Palette.EARTH)
+		# Bậc đá xuống nước
+		var face := atan2(-n.x, -n.y)
+		var down := Basis(Vector3.UP, face)
+		for k in 3:
+			var q2 := edge - n * (0.15 + k * 0.45)
+			var top := water_level + 0.12 - k * 0.14
+			wharf.add_box(Vector3(2.4, maxf(top - bed_level, 0.05), 0.5), Palette.PLINTH.darkened(0.05 * k),
+					Transform3D(down, Vector3(q2.x, bed_level, q2.y)))
+		# Cầu ván (cầu ao) chìa ra sông: mặt ván trên cọc tre
+		var deck_y := water_level + 0.28
+		var start := edge - n * 0.4
+		var deck_len := 3.6
+		var mid := start - n * deck_len * 0.5
+		wharf.add_box(Vector3(1.2, 0.07, deck_len), Palette.WOOD_LIGHT, Transform3D(down, Vector3(mid.x, deck_y, mid.y)))
+		for k in 5:
+			var pk := start - n * (0.2 + k * (deck_len - 0.4) / 4.0)
+			wharf.add_box(Vector3(1.24, 0.02, 0.06), Palette.WOOD, Transform3D(down, Vector3(pk.x, deck_y + 0.07, pk.y)))
+			for side in [-0.55, 0.55]:
+				var post := pk + tan * float(side)
+				wharf.add_prism(0.05, 0.05, deck_y - bed_level, 5, Palette.BAMBOO_STEM, _t(post.x, bed_level, post.y))
+		# Tảng đá giặt + chum nước ở mép bến
+		var wash := edge + tan * 1.8 - n * 0.2
+		wharf.add_box(Vector3(0.9, water_level + 0.1 - bed_level, 0.6), Palette.ROCK, Transform3D(Basis(Vector3.UP, face + 0.3), Vector3(wash.x, bed_level, wash.y)))
+		var jar := edge + n * 1.3 - tan * 1.6
+		var jy := bank_height(1.3) 
+		wharf.add_prism(0.2, 0.3, 0.3, 9, Palette.JAR, _t(jar.x, jy, jar.y))
+		wharf.add_prism(0.3, 0.18, 0.28, 9, Palette.JAR, _t(jar.x, jy + 0.3, jar.y))
+		var spot3 := start - n * (deck_len - 0.6)
+		pts3.append(Vector3(start.x, deck_y + 0.04, start.y))
+		pts3.append(Vector3(spot3.x, deck_y + 0.04, spot3.y))
+		landings.append({"path": pts3, "spot": Vector3(spot3.x, deck_y + 0.04, spot3.y), "face": face,
+				"wash": Vector3(wash.x, water_level + 0.12, wash.y), "edge": Vector3(edge.x, water_level + 0.05, edge.y),
+				"name": names[ai] if ai < names.size() else "Bến sông"})
+	var pn := path_mb.commit_instance("RiverPaths")
+	pn.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pn)
+	add_child(wharf.commit_instance("Wharves"))
+
+
+## Dải đường theo các điểm 3D (giữ độ cao từng điểm), bề rộng `w`.
+func _strip3(mb: MeshBuilder, pts: PackedVector3Array, w: float, col: Color) -> void:
+	var pl := Vector3.ZERO
+	var pr := Vector3.ZERO
+	for i in pts.size():
+		var a := pts[maxi(i - 1, 0)]
+		var b := pts[mini(i + 1, pts.size() - 1)]
+		var dir := Vector2(b.x - a.x, b.z - a.z).normalized().orthogonal() * w * 0.5
+		var l := pts[i] + Vector3(dir.x, 0, dir.y)
+		var r := pts[i] - Vector3(dir.x, 0, dir.y)
+		if i > 0:
+			mb.add_quad(pl, pr, r, l, col, (pl + r) * 0.5 + Vector3(0, -2, 0))
+		pl = l
+		pr = r
 
 
 # --- Mặt nước ---------------------------------------------------------------------------

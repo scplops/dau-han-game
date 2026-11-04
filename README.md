@@ -33,6 +33,7 @@ godot --path . --rendering-method gl_compatibility
 | `H` | Ẩn/hiện HUD |
 
 Quanh làng có một con sông với đê cỏ, đàn cá bơi, đầm sen và đò neo bến.
+Ba lối đi xuyên lũy tre (tây, đông, bắc) dẫn ra các bến sông, nơi dân làng ra giặt giũ, tắm, câu cá.
 Phía bắc khu nhà là một làng Bắc Bộ xưa với 44 ngôi nhà, mỗi nhà một kiến trúc khác nhau,
 cùng đình, chùa, ao, giếng, lũy tre. Lăn chuột để lùi camera ra xa, kéo chuột giữa (hoặc W)
 để đi vào làng.

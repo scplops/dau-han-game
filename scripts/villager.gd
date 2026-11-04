@@ -41,6 +41,8 @@ var _walk_amount: float = 0.0
 var _work_time: float = 0.0
 var _trail: Array[Vector3] = []   # vệt đường đã đi (cho con vật đi theo)
 var _holds_pole: bool = false
+var _walk_start: Vector3 = Vector3.ZERO   # điểm bắt đầu đoạn đường đầu tiên (lấy độ cao)
+var _path_y: float = 0.05                 # độ cao nội suy theo đường (leo đê, lên cầu ván)
 
 static var _mesh_cache: Dictionary = {}
 
@@ -308,6 +310,7 @@ func set_selected(on: bool) -> void:
 func walk_path(p: PackedVector3Array) -> void:
 	path = p
 	path_index = 0
+	_walk_start = global_position
 	state = State.WALK if p.size() > 0 else State.IDLE
 	visible = true
 
@@ -342,6 +345,11 @@ func _step_walk(delta: float) -> void:
 	to.y = 0.0
 	var dist := to.length()
 	var step := speed * speed_mul * delta
+	# Độ cao: nội suy giữa điểm đầu và điểm cuối đoạn đường (đường lên đê, cầu ván có độ cao riêng)
+	var from := path[path_index - 1] if path_index > 0 else _walk_start
+	var seg_len := Vector2(target.x - from.x, target.z - from.z).length()
+	var t := 1.0 - clampf((dist - step) / maxf(seg_len, 0.001), 0.0, 1.0)
+	_path_y = lerpf(from.y, target.y, t)
 	if dist <= step + 0.05:
 		global_position = Vector3(target.x, global_position.y, target.z)
 		path_index += 1
@@ -385,6 +393,7 @@ func _step_follow(delta: float) -> void:
 			_face(look.normalized(), delta * 0.5)
 	if dist > 25.0:
 		global_position = goal   # bị bỏ xa quá (vd. chủ vào nhà rồi ra) thì nhảy tới
+	_path_y = lerpf(_path_y, goal.y, clampf(delta * 6.0, 0.0, 1.0))
 	_ground()
 	_record_trail()
 
@@ -396,7 +405,7 @@ func _face(dir: Vector3, delta: float) -> void:
 
 func _ground() -> void:
 	var p := global_position
-	var y := 0.05
+	var y := maxf(_path_y, 0.05)
 	if terrain != null and absf(p.x) < terrain.grid_extent and absf(p.z) < terrain.grid_extent:
 		y = maxf(terrain.height_at(p.x, p.z), -0.1) + 0.02
 	if role == "duck":
