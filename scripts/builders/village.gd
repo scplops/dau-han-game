@@ -29,6 +29,8 @@ extends Node3D
 @export var pond_radii: Vector2 = Vector2(7.5, 5.0)
 @export var banyan_position: Vector3 = Vector3(16.0, 0.0, -44.0)
 @export var well_position: Vector3 = Vector3(7.5, 0.0, -47.0)
+## Sân bóng làng (x, z, dài, rộng) — không xây lô, không trồng vườn tạp lên đây (mục 17).
+@export var pitch_rect: Rect2 = Rect2(-62.0, -154.0, 30.0, 18.0)
 
 @export_group("Lối ra sông")
 ## Các ngõ được nối dài xuyên lũy tre ra sông (chỉ số trong alley_lines: ngõ thứ i có
@@ -281,7 +283,7 @@ func _reserved(r: Rect2) -> bool:
 			var seg := Rect2(pts[i], Vector2.ZERO).expand(pts[i + 1]).grow(access_width * 0.5 + 0.8)
 			if r.intersects(seg):
 				return true
-	if r.intersects(pagoda_rect.grow(1.0)):
+	if r.intersects(pagoda_rect.grow(1.0)) or r.intersects(pitch_rect.grow(2.5)):
 		return true
 	if r.end.y > alley_z[alley_z.size() - 1] - 30.0 and r.position.y < alley_z[alley_z.size() - 1] \
 			and absf(r.get_center().x) - r.size.x * 0.5 < dinh_half_width:
@@ -738,7 +740,7 @@ func _build_wild_gardens() -> void:
 		var p := Vector2(_rng.randf_range(-radii.x, radii.x), _rng.randf_range(center.y - radii.y, center.y + radii.y))
 		if not _inside(p, 0.9) or _is_lane(p, 1.2):
 			continue
-		if dinh_rect.has_point(p) or pagoda_rect.grow(1.0).has_point(p) or entrance.has_point(p) or _on_access(p, 2.0):
+		if dinh_rect.has_point(p) or pagoda_rect.grow(1.0).has_point(p) or pitch_rect.grow(3.5).has_point(p) or entrance.has_point(p) or _on_access(p, 2.0):
 			continue
 		var blocked := false
 		for r in _occupied:

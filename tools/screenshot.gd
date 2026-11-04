@@ -5,6 +5,7 @@ extends SceneTree
 ##        [--weather=storm] [--flash] (loé chớp)
 ##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
+##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -61,6 +62,13 @@ func _run() -> void:
 		if args.has("fish-state"):
 			fishing.debug_state(str(args["fish-state"]))
 
+	# Sân bóng: đưa N người ra đá ngay, camera nhìn vào sân
+	var football := scene.get_node_or_null("World/Football") as Football
+	var football_focus := Vector3.INF
+	if football != null and args.has("football"):
+		football.debug_match(int(args["football"]))
+		football_focus = football.center3()
+
 	# Góc camera (camera đang dùng)
 	var rig := scene.get_node_or_null("InteriorCameraRig" if inside else "CameraRig") as CameraRig
 	if rig != null:
@@ -68,6 +76,8 @@ func _run() -> void:
 		if args.has("pitch"): rig.pitch_deg = float(args["pitch"])
 		if args.has("distance"): rig.distance = float(args["distance"])
 		if args.has("ortho"): rig.orthographic = true
+		if football_focus != Vector3.INF and not args.has("focus"):
+			rig.set_focus(football_focus)
 		if npc != null and not args.has("focus"):
 			rig.set_focus(npc.global_position)
 		if args.has("focus"):

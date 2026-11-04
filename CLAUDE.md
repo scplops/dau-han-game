@@ -164,6 +164,7 @@ scripts/
     village_house.gd   # sinh kiểu nhà không trùng + dựng từng lô (nhà, mái, rào, sân, vườn)
     river.gd           # sông móng ngựa quanh làng: đê, lòng sông, nước, cá, đầm sen, đò (mục 14)
     school.gd          # trường tiểu học kiểu năm 2000 phía tây nhà mình (mục 15)
+    football.gd        # sân bóng làng + bóng + trận đấu của dân làng (mục 17)
   interior.gd          # không gian trong nhà kiểu nhà búp bê (mục 10)
   house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
@@ -247,11 +248,11 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   gian trái giường, tủ; gian phải chạn bát, chum gạo, nong nia, quang gánh.
   Đèn dầu thuộc nhóm `night_light` để tự sáng khi tối.
 - **Vùng bấm** là `StaticBody3D` ở lớp va chạm 2, tạo bằng `HouseEntry.make_click_target()`.
-- **Mọi toà đều vào được** (nhà mình, 44 nhà làng, đình, chùa): cửa tạo bằng
+- **Mọi toà đều vào được** (nhà mình, 41 nhà làng, đình, chùa): cửa tạo bằng
   `HouseEntry.make_entry_target(parent, xform, size, hint, spec, key)`. `spec` là thông số
   nội thất; `Interior.load_spec(spec)` xoá nội thất cũ và dựng lại lúc màn hình tối, nên chỉ
   có MỘT nội thất tồn tại tại một thời điểm (không tốn FPS ngoài làng). Khoá: `main`, `dinh`,
-  `pagoda`, `house_0`…`house_43`; chụp ảnh bằng `--enter=<khoá>`.
+  `pagoda`, `house_0`…`house_40`; chụp ảnh bằng `--enter=<khoá>`.
 - **Nhà làng:** kích thước, tường, mặt tiền khớp bên ngoài (do `VillageHouse.build_house` trả
   về). Gian giữa luôn là bàn thờ + bàn trà; các gian bên chọn theo seed từ `Interior.ROOM_TYPES`
   (buồng ngủ, phản + chõng tre, kho, khung cửi, cối xay thóc, góc học), luôn có chỗ ngủ.
@@ -403,3 +404,29 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   diễn biến từng lượt câu.
 - **Cá giữ vị trí riêng** (`_fish[i].pos`): renderer headless không lưu transform MultiMesh,
   nên không đọc ngược vị trí cá từ MultiMesh.
+
+## 17. Sân bóng làng (giai đoạn 2b)
+
+- `scripts/builders/football.gd` (node `World/Football`, đứng SAU `Villagers` để điều khiển
+  cầu thủ sau khi Villagers tick xong mỗi khung). Sân 30 × 18 m ở `Village.pitch_rect`
+  (x −62…−32, z −154…−136): góc tây bắc làng, sau ngõ cuối, cạnh lối ra sông phía bắc.
+  `Village._reserved` và vườn tạp né vùng này nên làng còn 41 nhà (3 lô nhường chỗ).
+- **Sân kiểu làng:** cỏ mòn thành đất ở khung thành và giữa sân, vạch vôi hơi xiêu, khung thành
+  tre có lưới cước, cờ góc đỏ, ghế băng tre, bảng tỉ số gỗ (Label3D, tên hai đội "Xóm Đông" đỏ –
+  "Xóm Đoài" xanh), hai cây bàng, đống rơm, xe đạp dựng.
+- **Bóng:** vật lý tự viết (trọng lực, nảy, ma sát lăn `rolling_friction`, chạm cột/xà bật ra,
+  vào lưới thì nằm lại), tường ảo quanh sân để bóng không bay vào nhà dân. Ra biên: sau 1 s đặt
+  lại ở vạch (ném biên / phát bóng). Người xem **bấm vào bóng để sút** (vùng bấm lớp 2, meta
+  `activate`, giống chỗ câu cá); sút vào lưới cũng hiện chữ "VÀO!".
+- **Ai ra sân:** việc `football` 16:18–18:36 — trẻ con (trọng số cao), nông dân nam (vào đá),
+  cụ già và phụ nữ (đứng xem bên biên phía nam). `Football.arrive(v)` khi tới nơi: còn chỗ
+  (`max_players` 12) thì vào đội ít người hơn, có vòng màu đội dưới chân, cất cuốc
+  (`Villager.prop_node`); hết chỗ thì đứng xem. Đủ 2 người là giao bóng; trận dài
+  `match_length` giây thật rồi mọi người tản đi. Ai bị Villagers gọi đi (tối, giông) thì tự rời đội.
+- **Lối chơi:** mỗi đội người gần bóng nhất lao vào bóng, người thứ hai chạy đỡ, còn lại giữ
+  đội hình `FORMATION` trượt theo bóng; đội từ 4 người có thủ môn. Cú chạm: trong tầm 14 m thì
+  sút (đôi khi chệch cột), không thì chuyền cho đồng đội phía trên hoặc dẫn bóng lách đối phương;
+  sau mỗi cú chạm có nhịp 0,3 s (`_touch_gap`) để hai bên không đá qua đá lại tại chỗ.
+- Chụp ảnh: `--football=<số người>` đưa người ra sân đá ngay (chạy trước 6 s), camera nhìn vào
+  sân. `tools/football_test.gd -- --players=12 --seconds=240` mô phỏng một trận không giao diện,
+  in bàn thắng / số lần chạm bóng / bóng ra biên (thường 2–7 bàn mỗi 4 phút).

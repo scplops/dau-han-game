@@ -15,6 +15,7 @@ const NIGHT_END := 5.2
 @export var village: Village
 @export var river: River
 @export var school: School
+@export var football: Football
 @export var terrain: Terrain
 @export var house: House
 @export var day_night: DayNight
@@ -80,6 +81,7 @@ const ACTIVITY_TEXT := {
 	"school": ["đang đi học", "đang ra chơi ở sân trường"],
 	"swim": ["đang ra sông tắm", "đang tắm sông"],
 	"fishing": ["đang vác cần ra sông", "đang ngồi câu cá ở bến sông"],
+	"football": ["đang ra sân bóng", "đang xem đá bóng"],
 }
 
 
@@ -232,6 +234,7 @@ func _spawn_people() -> void:
 		v.home = _homes[_rng.randi_range(0, _homes.size() - 1)]
 		v.side_offset = _rng.randf_range(-0.7, 0.7)
 		var female := _rng.randf() < (0.8 if role == "carrier" else (0.15 if role == "herder" else 0.45))
+		v.set_meta("female", female)
 		var look := _look(role, female)
 		match role:
 			"elder":
@@ -397,6 +400,12 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			"farmer": c["river"] = 0.8
 			"kid": c["swim"] = 2.0
 			"elder": c["fishing"] = 2.0
+	# Chiều tan học, tan đồng: trẻ con và thanh niên ra sân bóng, người già ra xem
+	if football != null and h >= 16.3 and h < 18.6:
+		match v.role:
+			"kid": c["football"] = 7.0
+			"farmer": c["football"] = 0.8 if v.get_meta("female", false) else 3.5
+			"elder": c["football"] = 1.5
 	if h < 7.0:
 		c.erase("dinh")
 		c.erase("pond")
@@ -450,6 +459,8 @@ func _target(v: Villager, act: String) -> Vector3:
 		"visit", "lantern":
 			var other: Dictionary = _homes[_rng.randi_range(0, _homes.size() - 1)]
 			return (other.gate as Vector3) + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(0.2, 1.0))
+		"football":
+			return football.gather_spot(_rng)
 		"school":
 			return school.yard_spots[_rng.randi_range(0, school.yard_spots.size() - 1)] + Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1))
 		"river", "swim", "fishing":
@@ -574,6 +585,9 @@ func _arrive(v: Villager) -> void:
 	if look_at_pt != Vector3.ZERO:
 		var d := look_at_pt - v.global_position
 		v.rotation.y = atan2(d.x, d.z)
+	# Ra tới sân bóng: vào đá nếu còn chỗ, không thì đứng xem
+	if act == "football" and football != null:
+		football.arrive(v)
 
 
 # --- Mỗi khung hình --------------------------------------------------------------------

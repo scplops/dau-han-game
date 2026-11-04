@@ -41,6 +41,7 @@ var _walk_amount: float = 0.0
 var _work_time: float = 0.0
 var _trail: Array[Vector3] = []   # vệt đường đã đi (cho con vật đi theo)
 var _holds_pole: bool = false
+var prop_node: Node3D             # đồ cầm tay (cuốc…) — ẩn đi khi ra sân đá bóng
 var _outfits: Array = []          # [{body, legs, arms}] thường / đồng phục
 var in_uniform: bool = false
 var _walk_start: Vector3 = Vector3.ZERO   # điểm bắt đầu đoạn đường đầu tiên (lấy độ cao)
@@ -171,7 +172,7 @@ func _build_person_rig(look: Dictionary) -> void:
 	# Đồ cầm theo
 	match str(look.get("prop", "none")):
 		"hoe":
-			_part(arms[1], _cached("hoe", func(mb: MeshBuilder) -> void:
+			prop_node = _part(arms[1], _cached("hoe", func(mb: MeshBuilder) -> void:
 				mb.add_limb(Vector3(0, -0.5, -0.5), Vector3(0, -0.55, 0.75), 0.022, 0.022, 4, Palette.WOOD)
 				mb.add_box(Vector3(0.06, 0.2, 0.16), Palette.ROCK_DARK, _t(0, -0.7, -0.5))
 			), Vector3.ZERO)

@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://scripts/builders/river.gd" id="19_river"]
 [ext_resource type="Script" path="res://scripts/builders/school.gd" id="20_school"]
 [ext_resource type="Script" path="res://scripts/fishing.gd" id="21_fishing"]
+[ext_resource type="Script" path="res://scripts/builders/football.gd" id="22_football"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -137,17 +138,23 @@ fov = 40.0
 near = 0.1
 far = 300.0
 
-[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "school", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig")]
+[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "school", "football", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig")]
 script = ExtResource("18_villagers")
 village = NodePath("../Village")
 river = NodePath("../River")
 school = NodePath("../School")
+football = NodePath("../Football")
 terrain = NodePath("../Terrain")
 house = NodePath("../House")
 day_night = NodePath("../../DayNight")
 weather = NodePath("../../Weather")
 hud = NodePath("../../HUD")
 outdoor_rig = NodePath("../../CameraRig")
+
+[node name="Football" type="Node3D" parent="World" node_paths=PackedStringArray("village", "villagers")]
+script = ExtResource("22_football")
+village = NodePath("../Village")
+villagers = NodePath("../Villagers")
 
 [node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment", "house")]
 script = ExtResource("11_daynight")
