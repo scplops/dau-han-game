@@ -26,6 +26,7 @@
 [ext_resource type="Script" path="res://scripts/dialogue.gd" id="24_dialogue"]
 [ext_resource type="Script" path="res://scripts/quests.gd" id="25_quests"]
 [ext_resource type="Script" path="res://scripts/indoor_folk.gd" id="26_indoor"]
+[ext_resource type="Script" path="res://scripts/minimap.gd" id="27_minimap"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -236,3 +237,18 @@ villagers = NodePath("../World/Villagers")
 hud = NodePath("../HUD")
 world = NodePath("../World")
 dialogue = NodePath("../Dialogue")
+
+[node name="MiniMap" type="Control" parent="HUD" node_paths=PackedStringArray("terrain", "village", "river", "school", "football", "house", "villagers", "quests", "first_person", "outdoor_rig", "house_entry")]
+script = ExtResource("27_minimap")
+terrain = NodePath("../../World/Terrain")
+village = NodePath("../../World/Village")
+river = NodePath("../../World/River")
+school = NodePath("../../World/School")
+football = NodePath("../../World/Football")
+house = NodePath("../../World/House")
+villagers = NodePath("../../World/Villagers")
+quests = NodePath("../../Quests")
+first_person = NodePath("../../FirstPerson")
+outdoor_rig = NodePath("../../CameraRig")
+house_entry = NodePath("../../HouseEntry")
+

@@ -143,7 +143,8 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `cam_forward`, `cam_back`, `cam_left`, `cam_right`, `toggle_projection`, `time_back`,
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
    `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái),
-   `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4)),
+   `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
+   `toggle_minimap` (M)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -187,6 +188,7 @@ scripts/
   dialogue.gd          # trò chuyện với dân làng: lời thoại, xưng hô, khung thoại (mục 19)
   quests.gd            # dân làng nhờ việc: gánh nước, nhắn tin, câu cá, tìm đồ, sút bóng (mục 20)
   indoor_folk.gd       # dân làng ở trong nhà / đình / chùa / lớp học theo lịch (mục 22)
+  minimap.gd           # bản đồ nhỏ góc màn hình, phím M (mục 23)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -586,4 +588,21 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   Công cụ chụp ảnh giờ lên lại lịch (`replan`) TRƯỚC khi vào nhà để người trong nhà khớp giờ chụp.
 - `tools/indoor_test.gd -- --enter=house_9 --hour=12 --seconds=45` chạy thời gian thật, in ai đang
   ở trong, tư thế, ai vào / ra, rồi thử nói chuyện với một người.
+
+## 23. Bản đồ nhỏ (giai đoạn 3f)
+
+- `scripts/minimap.gd` (`MiniMap`, node `Control` con của `HUD` — `H` ẩn HUD thì ẩn luôn bản đồ).
+  Vẽ bằng `_draw()` từ dữ liệu thật, không chụp ảnh từ trên: ruộng (`Terrain.outer_fields`,
+  `field_rect`), sân + đường đất + ao nhà mình, sông (`River._pts`, vẽ đê rồi nước), nền làng + lũy tre
+  (elip `Village.center/radii`), lô đất (`Village._occupied`), đường trục / ngõ / lối ra sông, nhà làng
+  (khối mái sau cửa `homes[i].door`, xoay theo `forward`), đình, chùa, ao làng, giếng, cây đa,
+  sân bóng (`pitch_rect`), trường (`School.site`), nhà mình (`House`), bến sông. Hướng bắc ở trên (−z).
+- **Ký hiệu:** mũi tên đỏ = người nhập vai (theo `rotation.y`); hình quạt + chấm đỏ = vùng camera
+  ngắm cảnh (theo `yaw_deg`); trong nhà thì chấm ở cửa toà đang vào. Chấm trắng người lớn, vàng trẻ
+  con, xám trâu; "!" người có việc nhờ; hình thoi vàng mục tiêu việc đang làm (`Quests._target_pos`),
+  ra ngoài khung thì ghim ở mép theo hướng. La bàn "B", thước tỉ lệ.
+- **Phím M:** nhỏ (`small_size` 230 px, bán kính `small_radius` 75 m quanh người chơi, góc dưới
+  phải trên dải phím tắt) → lớn (giữa màn hình, cả làng `large_center` / `large_radius`, có tên chỗ)
+  → ẩn. Bấm vào bản đồ ở chế độ ngắm cảnh: camera bay tới đó. Vẽ lại mỗi `redraw_interval` giây.
+- Chụp ảnh: `--map=small|large|hidden`.
 

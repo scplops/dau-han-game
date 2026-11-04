@@ -10,6 +10,7 @@ extends SceneTree
 ##        cùng --enter=khoá thì đi bộ bên trong toà nhà đó)
 ##        [--quest=water,lost,…] (nhận sẵn các việc nhờ từ người gần nhất có vai hợp)
 ##        [--talk] [--talk-pick=N] (cùng --fp: bắt chuyện người gần nhất, chọn câu hỏi thứ N)
+##        [--map=small|large|hidden] (bản đồ nhỏ)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -140,6 +141,12 @@ func _run() -> void:
 					dlg._choose(int(args["talk-pick"]) - 1)
 					await process_frame
 					dlg._finish_typing()
+
+	# Bản đồ nhỏ: --map=large | hidden
+	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap
+	if mm != null and args.has("map"):
+		mm.mode = MiniMap.Mode.LARGE if str(args["map"]) == "large" else (MiniMap.Mode.HIDDEN if str(args["map"]) == "hidden" else MiniMap.Mode.SMALL)
+		mm._apply_mode()
 
 	# Chờ vài khung hình cho bóng đổ, shader ổn định
 	for i in int(args.get("frames", "30")):
