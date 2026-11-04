@@ -5,7 +5,7 @@
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
-> **trò chuyện với dân làng** (mục 19) và **dân làng nhờ việc** (mục 20) — chưa có túi đồ đầy đủ,
+> **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20) và **chèo đò trên sông** (mục 24) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -189,6 +189,7 @@ scripts/
   quests.gd            # dân làng nhờ việc: gánh nước, nhắn tin, câu cá, tìm đồ, sút bóng (mục 20)
   indoor_folk.gd       # dân làng ở trong nhà / đình / chùa / lớp học theo lịch (mục 22)
   minimap.gd           # bản đồ nhỏ góc màn hình, phím M (mục 23)
+  boat_ride.gd         # lên đò, chèo đò trên sông, lên bờ (mục 24)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -242,7 +243,7 @@ screenshots/           # ảnh chụp, không commit
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
 - Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện,
-  việc nhờ); túi đồ đầy đủ, lưu game vẫn để giai đoạn sau.
+  việc nhờ, chèo đò); túi đồ đầy đủ, lưu game vẫn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
@@ -605,4 +606,34 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   phải trên dải phím tắt) → lớn (giữa màn hình, cả làng `large_center` / `large_radius`, có tên chỗ)
   → ẩn. Bấm vào bản đồ ở chế độ ngắm cảnh: camera bay tới đó. Vẽ lại mỗi `redraw_interval` giây.
 - Chụp ảnh: `--map=small|large|hidden`.
+
+## 24. Chèo đò trên sông (giai đoạn 3g)
+
+- `scripts/boat_ride.gd` (node `BoatRide`, con cuối của `Main` để nhận phím trước `FirstPerson`).
+  3 con đò của `River` là node riêng (`River.boat_nodes`, nhóm `boat`, mũi đò hướng +z cục bộ):
+  `Hull` (thân, mui), `Pole` (sào dựng — ẩn khi đang chèo), `ClickTarget` (lớp 2, gợi ý "Lên đò",
+  meta `activate` = `BoatRide.board(i)`), `Lantern` + `BoatLantern` (đèn bão ở đầu mui, `night_light`).
+  Đò KHÔNG có va chạm nhập vai (`FirstPerson` bỏ qua nhóm `boat`).
+- **Lên đò:** nhập vai nhìn đò "E: Lên đò" (`FirstPerson._suspend("boat")`), hoặc bấm vào đò ở chế độ
+  ngắm cảnh. Một người chèo (Villager dựng riêng, nón lá, dáng `work`) đứng ở đuôi, mái chèo quạt
+  theo nhịp. `HouseEntry.locked`, `CameraRig.active = false`; tâm `CameraRig` bám theo đò để mưa,
+  cá nhảy, dân làng vẫn diễn ra quanh đò. V / F / P bị chặn khi đang trên đò.
+- **Chèo:** W / S tới / lùi (`max_speed`, `reverse_speed`, `accel`, `drag`), A / D rẽ (đứng yên
+  vẫn xoay được — `turn_still`, đang đi — `turn_moving`), Shift chèo nhanh (`fast_speed`). Dòng sông
+  trôi nhẹ theo tiếp tuyến (`current`). Đò nhấp nhô, nghiêng khi rẽ, gợn nước (`River.splash`) sau đuôi.
+  Hàm `step(delta, throttle, steer, fast)` tách riêng để bài thử / công cụ chụp ảnh gọi.
+- **Giữ trong sông:** chiếu vị trí lên tim sông (`nearest_s` / `sample` / `half_width`), ra quá
+  `half_width - bank_margin` thì đẩy về và mất đà; ở hai đầu sông thì triệt phần đi quá điểm cuối
+  (KHÔNG giảm tốc ở đó — dòng chảy luôn đẩy về đầu sông, giảm tốc mỗi khung làm đò kẹt cứng).
+- **Camera:** `Camera3D` riêng bám sau đò; chuột phải kéo để xoay, lăn chuột zoom (`cam_min`…`cam_max`).
+- **Lên bờ:** E / Esc. Cách bến (`River.landings[i].spot`) dưới `landing_distance` thì lên thẳng cầu
+  ván (cầu chìa ra sông nên không cần sát mép); không thì phải cách mép nước dưới `dock_distance`,
+  lên mặt đê (`bank_height(2.6)`), quay mặt vào bờ. Ở giữa sông thì gợi ý "Chèo vào sát bờ rồi mới
+  lên được". Đò neo lại chỗ vừa rời. Lên từ nhập vai thì nhập vai tiếp; từ ngắm cảnh thì camera
+  ngắm cảnh đặt tâm ở chỗ lên bờ.
+- HUD: `Hud.set_boat(on)` — dòng phím `SHORTCUTS_BOAT`, chỗ "Trên đò". Bản đồ nhỏ vẽ các đò (thoi
+  gỗ theo hướng mũi) và mũi tên đỏ theo đò khi đang chèo (`BoatRide.heading_for_map`).
+- `tools/boat_test.gd` (headless): nhìn đò → E, chèo tới / rẽ / lùi (luôn cách mép ≥ `bank_margin`),
+  chèo ra đầu sông, lên bờ giữa sông (bị từ chối), chèo vào bờ rồi lên, lên đò từ ngắm cảnh → lên bến.
+  Chụp ảnh: `--boat=N [--boat-drive=giây] [--boat-cam=độ]`.
 

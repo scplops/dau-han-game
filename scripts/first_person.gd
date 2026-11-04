@@ -458,7 +458,7 @@ func _build_colliders_for(root: Node) -> void:
 	var stack: Array[Node] = [root]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
-		if n is Villagers or n is Clouds or n.name == "Ball":
+		if n is Villagers or n is Clouds or n.name == "Ball" or n.is_in_group("boat"):
 			continue
 		for c in n.get_children():
 			stack.append(c)

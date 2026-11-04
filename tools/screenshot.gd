@@ -11,6 +11,8 @@ extends SceneTree
 ##        [--quest=water,lost,…] (nhận sẵn các việc nhờ từ người gần nhất có vai hợp)
 ##        [--talk] [--talk-pick=N] (cùng --fp: bắt chuyện người gần nhất, chọn câu hỏi thứ N)
 ##        [--map=small|large|hidden] (bản đồ nhỏ)
+##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
+##        xoay camera đò quanh đò; trong lúc chờ khung hình vẫn chèo để thấy dáng chèo)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
 
 func _initialize() -> void:
@@ -142,6 +144,18 @@ func _run() -> void:
 					await process_frame
 					dlg._finish_typing()
 
+	# Đò: --boat=N lên đò, --boat-drive=giây chèo tới trước
+	var br := scene.get_node_or_null("BoatRide") as BoatRide
+	var rowing := false
+	if br != null and args.has("boat"):
+		br.board(int(args["boat"]))
+		for k in int(float(args.get("boat-drive", "0")) * 60.0):
+			br.step(1.0 / 60.0, 1.0, 0.0, false)
+		if args.has("boat-cam"):
+			br._cam_yaw = deg_to_rad(float(args["boat-cam"]))
+		br._cam.global_position = br._cam_target()
+		rowing = true
+
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap
 	if mm != null and args.has("map"):
@@ -151,6 +165,8 @@ func _run() -> void:
 	# Chờ vài khung hình cho bóng đổ, shader ổn định
 	for i in int(args.get("frames", "30")):
 		await process_frame
+		if rowing:
+			br.step(1.0 / 60.0, 0.8, 0.0, false)
 		# Đưa chuột lên cửa để kiểm tra viền sáng + gợi ý
 		if args.has("hover") and i == 3 and rig != null:
 			var house := scene.get_node_or_null("World/House") as Node3D

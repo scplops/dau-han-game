@@ -20,6 +20,7 @@ enum Mode { SMALL, LARGE, HIDDEN }
 @export var first_person: FirstPerson
 @export var outdoor_rig: CameraRig
 @export var house_entry: HouseEntry
+@export var boat_ride: BoatRide
 
 @export_group("Hiển thị")
 @export var small_size: float = 230.0
@@ -110,6 +111,9 @@ func _player() -> Array:
 	if house_entry != null and house_entry.inside and house_entry._target != null:
 		var t := house_entry._target.global_position
 		return [Vector2(t.x, t.z), 0.0, true]
+	if boat_ride != null and boat_ride.active:
+		var b := boat_ride.boat.global_position
+		return [Vector2(b.x, b.z), boat_ride.heading_for_map(), true]
 	if first_person != null and first_person.active:
 		var p := first_person.global_position
 		return [Vector2(p.x, p.z), first_person.rotation.y, true]
@@ -189,6 +193,15 @@ func _draw() -> void:
 		for l: Dictionary in river.landings:
 			var s: Vector3 = l.spot
 			draw_circle(_w2m(Vector2(s.x, s.z)), 3.0, Palette.WOOD_LIGHT)
+		# Đò: thoi gỗ dọc theo hướng mũi
+		for b: Node3D in river.boat_nodes:
+			var bp := Vector2(b.global_position.x, b.global_position.z)
+			var f := Vector2(sin(b.rotation.y), cos(b.rotation.y))
+			var half := maxf(1.8 * _scale, 3.5)
+			var side := f.orthogonal() * maxf(0.6 * _scale, 1.5)
+			var m := _w2m(bp)
+			# _w2m: x giữ, z → y; hướng trên bản đồ cũng vậy
+			draw_colored_polygon(PackedVector2Array([m + f * half, m + side, m - f * half, m - side]), Palette.WOOD)
 
 	_draw_people()
 	_draw_quests()

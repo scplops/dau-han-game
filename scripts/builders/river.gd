@@ -41,6 +41,8 @@ var length: float = 0.0
 ## Tâm các đầm sen và vị trí các con đò (để chụp ảnh / NPC dùng sau này).
 var lotus_spots: Array[Vector3] = []
 var boat_spots: Array[Vector3] = []
+## Các con đò (node riêng, có vùng bấm "Lên đò"); BoatRide gắn hành động lên đò.
+var boat_nodes: Array[Node3D] = []
 ## Bến nước ở cuối mỗi lối ra sông: {path (từ khe lũy tre tới đầu cầu ván, có độ cao),
 ## spot (chỗ đứng trên cầu ván), face (góc quay mặt ra sông), name,
 ## fish_spot (ghế ngồi câu cạnh cầu ván, mục 16)}. Có sau build().
@@ -542,7 +544,26 @@ func _bud_mesh() -> ArrayMesh:
 # --- Đò --------------------------------------------------------------------------------
 
 func _build_boats() -> void:
+	if boats <= 0:
+		return
+	# Một mesh đò dùng chung (toạ độ cục bộ: mũi đò hướng +z), mỗi con một node riêng để chèo được
 	var mb := MeshBuilder.new(random_seed + 7, 0.04)
+	var hull := Palette.WOOD.darkened(0.15)
+	# Thân đò dài, hai đầu vót nhọn hơi vểnh
+	mb.add_box(Vector3(1.0, 0.4, 3.2), hull)
+	mb.add_box(Vector3(0.84, 0.04, 3.0), Palette.WOOD_LIGHT, _t(0, 0.39, 0))
+	for e: float in [-1.0, 1.0]:
+		var tip := Transform3D(Basis(Vector3.RIGHT, e * (PI * 0.5 - 0.35)), Vector3(0, 0.0, e * 1.6))
+		mb.add_pyramid(0.5, 1.0, 4, hull, tip)
+	# Mui đò bằng tre đan (nửa ống) + mép mui sẫm hai đầu
+	var mui := Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.2, 0.75))
+	mb.add_prism(0.62, 0.62, 1.5, 12, Palette.THATCH_DARK, mui, 0.0, false)
+	for e: float in [-1.0, 1.0]:
+		mb.add_prism(0.66, 0.66, 0.06, 12, Palette.BAMBOO_NODE, mui * _t(0, 0.72 + e * 0.72, 0), 0.0, false)
+	var boat_mesh := mb.commit()
+	var pole := MeshBuilder.new(random_seed + 8, 0.04)
+	pole.add_limb(Vector3(0.3, 0.4, -1.2), Vector3(0.6, 3.2, -2.2), 0.025, 0.02, 4, Palette.BAMBOO_STEM)
+	var pole_mesh := pole.commit()
 	for i in boats:
 		var s := length * (0.22 + 0.56 * float(i) / maxf(boats - 1, 1)) + _rng.randf_range(-20, 20)
 		var smp := sample(s)
@@ -551,25 +572,23 @@ func _build_boats() -> void:
 		var side := -1.0 if i % 2 == 0 else 1.0
 		var pos := p + tan.orthogonal() * side * (half_width(s) - 1.7)
 		var yaw := atan2(tan.x, tan.y) + _rng.randf_range(-0.15, 0.15)
-		var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(pos.x, water_level - 0.15, pos.y))
-		boat_spots.append(xf.origin)
-		var hull := Palette.WOOD.darkened(0.15)
-		# Thân đò dài, hai đầu vót nhọn hơi vểnh
-		mb.add_box(Vector3(1.0, 0.4, 3.2), hull, xf)
-		mb.add_box(Vector3(0.84, 0.04, 3.0), Palette.WOOD_LIGHT, xf * _t(0, 0.39, 0))
-		for e: float in [-1.0, 1.0]:
-			var tip := Transform3D(Basis(Vector3.RIGHT, e * (PI * 0.5 - 0.35)), Vector3(0, 0.0, e * 1.6))
-			mb.add_pyramid(0.5, 1.0, 4, hull, xf * tip)
-		# Mui đò bằng tre đan (nửa ống)
-		var mui := Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0.2, 0.75))
-		mb.add_prism(0.62, 0.62, 1.5, 12, Palette.THATCH_DARK, xf * mui, 0.0, false)
-		# Mép mui sẫm hai đầu
-		for e: float in [-1.0, 1.0]:
-			mb.add_prism(0.66, 0.66, 0.06, 12, Palette.BAMBOO_NODE, xf * mui * _t(0, 0.72 + e * 0.72, 0), 0.0, false)
-		# Sào chống
-		mb.add_limb(Vector3(0.3, 0.4, -1.2), Vector3(0.6, 3.2, -2.2), 0.025, 0.02, 4, Palette.BAMBOO_STEM, xf)
-	if boats > 0:
-		add_child(mb.commit_instance("Boats"))
+		var node := Node3D.new()
+		node.name = "Boat%d" % i
+		node.transform = Transform3D(Basis(Vector3.UP, yaw), Vector3(pos.x, water_level - 0.15, pos.y))
+		node.add_to_group("boat")             # không dựng va chạm tĩnh cho đò (đò di chuyển được)
+		add_child(node)
+		var mi := MeshInstance3D.new()
+		mi.name = "Hull"
+		mi.mesh = boat_mesh
+		node.add_child(mi)
+		var pm := MeshInstance3D.new()
+		pm.name = "Pole"                      # sào chống dựng sẵn, ẩn đi khi có người chèo
+		pm.mesh = pole_mesh
+		node.add_child(pm)
+		var target := HouseEntry.make_click_target(node, _t(0, 0.6, 0), Vector3(1.4, 1.2, 3.6), "Lên đò")
+		target.set_meta("boat_index", i)
+		boat_spots.append(node.position)
+		boat_nodes.append(node)
 
 
 # --- Cá --------------------------------------------------------------------------------
