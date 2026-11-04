@@ -42,8 +42,10 @@ var _work_time: float = 0.0
 var _trail: Array[Vector3] = []   # vệt đường đã đi (cho con vật đi theo)
 var _holds_pole: bool = false
 var prop_node: Node3D             # đồ cầm tay (cuốc…) — ẩn đi khi ra sân đá bóng
-var _outfits: Array = []          # [{body, legs, arms}] thường / đồng phục
+var _outfits: Dictionary = {}     # tên bộ đồ → {body, legs, arms}: casual, uniform, shirtless
+var outfit: String = "casual"
 var in_uniform: bool = false
+var _look: Dictionary = {}
 var _walk_start: Vector3 = Vector3.ZERO   # điểm bắt đầu đoạn đường đầu tiên (lấy độ cao)
 var _path_y: float = 0.05                 # độ cao nội suy theo đường (leo đê, lên cầu ván)
 
@@ -85,37 +87,69 @@ func _pivot(parent: Node3D, pos: Vector3) -> Node3D:
 
 ## look: {shirt, pants, skin, hat ("non"|"khan"|"none"), scale, female, prop ("hoe"|"pole"|"stick"|"none")}
 func build_person(look: Dictionary) -> void:
+	_look = look
 	_build_person_rig(look)
+	_outfits["casual"] = _snapshot()
 	_add_click_body(Vector3(0.7, 1.75 * float(look.get("scale", 1.0)), 0.7))
 
 
 ## Bộ đồ thứ hai (đồng phục học sinh): dựng thêm một bộ khung hình riêng, ẩn đi; `set_outfit`
 ## đổi qua lại. Áo sơ mi trắng, quần xanh sẫm, khăn quàng đỏ thắt ở cổ.
 func add_uniform(look: Dictionary) -> void:
-	var casual := {"body": body, "legs": legs, "arms": arms}
-	legs = []
-	arms = []
 	var u := look.duplicate()
 	u.shirt = Palette.SCHOOL_TRIM
 	u.pants = Palette.SIGN_BLUE.darkened(0.45)
 	u.hat = "none" if look.get("hat", "none") == "non" else look.get("hat", "none")
 	u.scarf = true
-	_build_person_rig(u)
-	_outfits = [casual, {"body": body, "legs": legs, "arms": arms}]
-	set_outfit(false)
+	_add_outfit("uniform", u)
 
 
-## true = mặc đồng phục.
-func set_outfit(uniform: bool) -> void:
-	if _outfits.is_empty():
+## Bộ cởi trần (đội cởi trần khi đá bóng, mục 17): thân và tay màu da, giữ quần và mũ nón.
+## Chỉ dựng lần đầu cần đến để không tốn node cho người không bao giờ ra sân.
+func add_shirtless() -> void:
+	if _outfits.has("shirtless") or _look.is_empty():
 		return
-	var o: Dictionary = _outfits[1 if uniform else 0]
-	(_outfits[0].body as Node3D).visible = not uniform
-	(_outfits[1].body as Node3D).visible = uniform
+	var u := _look.duplicate()
+	u.shirt = (u.get("skin", Palette.FARMER_SKIN) as Color).darkened(0.06)   # da rám nắng
+	u.scarf = false
+	u.prop = "none"     # cuốc đã dựng bên lề sân
+	_add_outfit("shirtless", u)
+
+
+func has_outfit(name_s: String) -> bool:
+	return _outfits.has(name_s)
+
+
+## Mặc bộ đồ `name_s` (casual | uniform | shirtless), các bộ khác ẩn đi.
+func wear(name_s: String) -> void:
+	if not _outfits.has(name_s):
+		return
+	for k: String in _outfits:
+		(_outfits[k].body as Node3D).visible = k == name_s
+	var o: Dictionary = _outfits[name_s]
 	body = o.body
 	legs.assign(o.legs)
 	arms.assign(o.arms)
-	in_uniform = uniform
+	outfit = name_s
+	in_uniform = name_s == "uniform"
+
+
+## true = mặc đồng phục, false = áo thường.
+func set_outfit(uniform: bool) -> void:
+	wear("uniform" if uniform else "casual")
+
+
+## Dựng thêm một bộ khung hình (ẩn đi), giữ nguyên bộ đang mặc.
+func _add_outfit(name_s: String, look: Dictionary) -> void:
+	legs = []
+	arms = []
+	_build_person_rig(look)
+	_outfits[name_s] = _snapshot()
+	wear(outfit)
+
+
+func _snapshot() -> Dictionary:
+	return {"body": body, "legs": legs.duplicate(), "arms": arms.duplicate()}
 
 
 func _build_person_rig(look: Dictionary) -> void:

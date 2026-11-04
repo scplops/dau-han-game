@@ -414,6 +414,11 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - **Sân kiểu làng:** cỏ mòn thành đất ở khung thành và giữa sân, vạch vôi hơi xiêu, khung thành
   tre có lưới cước, cờ góc đỏ, ghế băng tre, bảng tỉ số gỗ (Label3D, tên hai đội "Xóm Đông" đỏ –
   "Xóm Đoài" xanh), hai cây bàng, đống rơm, xe đạp dựng.
+- **Đội cởi trần:** Xóm Đoài (`SHIRTLESS_TEAM`) cởi áo khi vào sân, như đá bóng làng ngày xưa;
+  con gái luôn vào đội mặc áo (Xóm Đông). Bộ hình cởi trần (`Villager.add_shirtless()`, thân và
+  tay màu da, không cầm đồ) chỉ dựng lần đầu người đó cần; ra sân thì mặc lại bộ cũ (lưu ở meta
+  `outfit_before`, nên học sinh mặc lại đồng phục). Các bộ đồ của một người nằm trong
+  `Villager._outfits` (casual, uniform, shirtless), đổi bằng `wear(tên)`.
 - **Bóng:** vật lý tự viết (trọng lực, nảy, ma sát lăn `rolling_friction`, chạm cột/xà bật ra,
   vào lưới thì nằm lại), tường ảo quanh sân để bóng không bay vào nhà dân. Ra biên: sau 1 s đặt
   lại ở vạch (ném biên / phát bóng). Người xem **bấm vào bóng để sút** (vùng bấm lớp 2, meta

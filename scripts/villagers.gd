@@ -527,7 +527,7 @@ func _next_activity(v: Villager, forced: String = "") -> void:
 		p = _route(v, from, _target(v, act), at_home)
 	v.set_meta("at_home", act in ["inside", "shelter", "yard"])
 	# Học sinh: mặc đồng phục khi đi học (thay ở nhà — lúc ra khỏi cửa), về nhà thì thay ra
-	if not v._outfits.is_empty():
+	if v.has_outfit("uniform"):
 		# Mặc vào khi bắt đầu đi học; cởi ra khi đã về trong nhà (không thay giữa đường)
 		if act == "school":
 			v.set_outfit(true)

@@ -2,14 +2,16 @@ class_name Football
 extends Node3D
 ## Sân bóng làng (mục 17): bãi cỏ loang lổ đất, vạch vôi, khung thành tre, cờ góc, ghế băng,
 ## bảng tỉ số gỗ, cây bàng che nắng. Quả bóng có vật lý đơn giản (nảy, lăn, chạm cột, vào lưới).
-## Dân làng (trẻ con, thanh niên) chiều chiều ra đá: chia hai đội Xóm Đông (đỏ) – Xóm Đoài (xanh),
-## mỗi người một vòng màu dưới chân; người thừa, cụ già đứng xem. Người xem bấm vào bóng để sút.
+## Dân làng (trẻ con, thanh niên) chiều chiều ra đá: chia hai đội Xóm Đông (mặc áo, vòng đỏ) –
+## Xóm Đoài (cởi trần, vòng xanh) như đá bóng làng ngày xưa; con gái luôn vào đội mặc áo; người thừa, cụ già đứng xem. Người xem bấm vào bóng để sút.
 ## Dựng sau `Village` (lấy `pitch_rect`), đứng sau `Villagers` trong cây scene để điều khiển
 ## cầu thủ SAU khi Villagers đã tick xong mỗi khung.
 
 enum Phase { IDLE, KICKOFF, PLAY, GOAL }
 
 const TEAM_NAMES: Array[String] = ["Xóm Đông", "Xóm Đoài"]
+## Đội cởi trần (cởi áo khi vào sân, mặc lại khi ra).
+const SHIRTLESS_TEAM := 1
 ## Vị trí đội hình (tỉ lệ dọc sân tính từ khung thành nhà, tỉ lệ ngang sân).
 const FORMATION: Array[Vector2] = [Vector2(0.3, 0.5), Vector2(0.38, 0.22), Vector2(0.38, 0.78),
 		Vector2(0.58, 0.36), Vector2(0.58, 0.64), Vector2(0.72, 0.5)]
@@ -362,6 +364,8 @@ func arrive(v: Villager) -> bool:
 	for p in players:
 		counts[int(p.team)] += 1
 	var team := 0 if counts[0] <= counts[1] else 1
+	if v.get_meta("female", false):
+		team = 1 - SHIRTLESS_TEAM     # con gái luôn vào đội mặc áo
 	var disc := MeshInstance3D.new()
 	disc.name = "TeamDisc"
 	disc.mesh = _discs[team]
@@ -370,12 +374,16 @@ func arrive(v: Villager) -> bool:
 	v.add_child(disc)
 	if v.prop_node != null:
 		v.prop_node.visible = false      # dựng cuốc bên lề rồi mới vào sân
+	if team == SHIRTLESS_TEAM:
+		v.set_meta("outfit_before", v.outfit)
+		v.add_shirtless()
+		v.wear("shirtless")
 	var run := clampf(v.speed * (2.0 if v.role == "kid" else 2.5), 2.6, 4.2)
 	players.append({"v": v, "team": team, "keeper": false, "slot": 0, "cool": 0.0, "kick_t": 0.0,
 			"run": run, "disc": disc, "wander": _rng.randf() * TAU})
 	v.dwell = 1.0e6     # Football quyết định khi nào xong
 	v.work_anim = "idle"
-	v.activity_text = "đang đá bóng cho %s" % TEAM_NAMES[team]
+	v.activity_text = "đang đá bóng cho %s%s" % [TEAM_NAMES[team], " (cởi trần)" if team == SHIRTLESS_TEAM else ""]
 	_assign_roles()
 	if phase == Phase.IDLE and players.size() >= 2:
 		_start_match()
@@ -396,6 +404,8 @@ func _remove(i: int, release: bool) -> void:
 		(p.disc as Node).queue_free()
 	if is_instance_valid(v) and v.prop_node != null:
 		v.prop_node.visible = true
+	if is_instance_valid(v) and v.outfit == "shirtless":
+		v.wear(str(v.get_meta("outfit_before", "casual")))   # mặc áo lại
 	if release and is_instance_valid(v):
 		v.dwell = _rng.randf_range(0.5, 3.0)
 		v.speed_mul = 1.0
