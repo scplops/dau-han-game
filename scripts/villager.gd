@@ -33,6 +33,7 @@ var terrain: Terrain
 # --- Hình ---
 var body: Node3D                  # nhấp nhô khi đi
 var legs: Array[Node3D] = []       # khớp hông (người) / chân (con vật)
+var _click_body: StaticBody3D
 var arms: Array[Node3D] = []       # khớp vai
 var knees: Array[Node3D] = []      # khớp gối (người) — co khi bước, gập khi ngồi
 var elbows: Array[Node3D] = []     # khớp khuỷu tay
@@ -362,6 +363,11 @@ func build_animal(kind: String) -> void:
 			_add_click_body(Vector3(0.35, 0.35, 0.45))
 
 
+func _sync_click_body() -> void:
+	if _click_body != null and is_instance_valid(_click_body):
+		_click_body.collision_layer = (1 << (CLICK_LAYER - 1)) if visible else 0
+
+
 func _add_click_body(size: Vector3) -> void:
 	var sb := StaticBody3D.new()
 	sb.collision_layer = 1 << (CLICK_LAYER - 1)
@@ -374,6 +380,12 @@ func _add_click_body(size: Vector3) -> void:
 	sb.add_child(cs)
 	sb.set_meta("villager", self)
 	add_child(sb)
+	_click_body = sb
+	# Người đã "vào nhà" (ẩn đi) thì tắt vùng bấm: không thì một người vô hình đứng ở cửa nhà
+	# chặn tia nhìn / chuột, không bấm được cửa để vào
+	if not visibility_changed.is_connected(_sync_click_body):
+		visibility_changed.connect(_sync_click_body)
+	_sync_click_body()
 	# Vòng sáng dưới chân khi được chọn
 	ring = MeshInstance3D.new()
 	var torus := TorusMesh.new()

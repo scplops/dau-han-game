@@ -721,7 +721,8 @@ func _room_study(mb: MeshBuilder, flames: MeshBuilder, lamps: Array[Vector3], x0
 func _build_classroom(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder) -> void:
 	var p := _p
 	_front = "veranda_brick"
-	_door_x = _len * 0.25
+	# Cửa mở vào lối đi giữa dãy bàn bên phải và tường hồi (đặt giữa dãy bàn thì vào là kẹt)
+	_door_x = (_len * 0.22 + 0.75 + _len * 0.5 - wall_thickness) * 0.5
 	_build_shell(shell, Palette.SCHOOL_WALL, Palette.SCHOOL_WALL_DARK, 1.2)
 	_build_veranda(shell, 3, Palette.SCHOOL_TRIM, true)
 	# Chân tường sơn sẫm cao 1,2 m
@@ -752,7 +753,8 @@ func _build_classroom(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder
 	mb.add_blob(Vector3(0.1, 0.08, 0.1), Palette.PHUONG, _rng, 0.2, _t(td.x - 0.35, td.y + 0.95, td.z))
 	mb.add_box(Vector3(0.3, 0.04, 0.22), Palette.SIGN_BLUE, _t(td.x + 0.2, td.y + 0.75, td.z))
 	# Bàn học 2 chỗ + ghế băng, 2 dãy × 4 hàng, quay về phía bảng
-	var rows := int((_front_z - (wall_z + 2.2)) / 1.0)
+	# Chừa ~1,5 m trước cửa (sau dãy bàn cuối) để đi lại
+	var rows := int((_front_z - 1.6 - (wall_z + 2.4)) / 1.0) + 1
 	for r in rows:
 		for c in [-1.0, 1.0]:
 			var x: float = c * _len * 0.22

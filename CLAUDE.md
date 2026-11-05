@@ -303,6 +303,10 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - **Hiệu năng:** gộp mesh theo từng dãy ngõ (nhà, lá có gió, nền, ô cửa phát sáng); cả cảnh
   khoảng 400 nghìn tam giác, ~80 node mesh. Cửa sổ/khe cửa các nhà phát sáng ban đêm (nhóm
   `night_glow`); chỉ đình, chùa có đèn thật (`night_light`).
+- **Lối đi trước cửa chính** (`VillageHouse.door_lane_half`, `build_house` trả về `door_x`): nhà phụ
+  (chữ L / U) và bếp riêng không được lấn vào dải ±1 m thẳng trước cửa — đẩy ra ngoài, chạm rào thì
+  thu hẹp, hẹp quá thì bỏ nếp đó. (Đã gặp: nhà 2 gian bố cục chữ L / U, nhà ngang đứng chắn ngay cửa,
+  nhập vai không đi tới cửa được.)
 - Khi thêm chi tiết cho nhà làng: mọi khối đặt bằng `xf * ...` (toạ độ lô) — quên `xf` thì vật
   rơi về gốc toạ độ (đã từng xảy ra với cửa sổ tròn).
 
@@ -343,6 +347,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   Tối (≥ 20:30) ai cũng về nhà, trừ vài người cầm đèn lồng đi chơi tới 22:00.
 - **Thời tiết:** mưa phùn đi nhanh hơn, bớt đi chơi; mưa giông thì mọi người chạy về nhà trú,
   tạnh mới ra lại. Gà vào chuồng khi giông hoặc tối.
+- **Người đã vào nhà (ẩn) không có vùng bấm:** `Villager._sync_click_body` theo `visibility_changed`
+  tắt lớp va chạm 3 khi ẩn (không thì người vô hình đứng ở cửa chặn tia nhìn, không vào nhà được).
 - **Xem tin:** bấm chuột trái vào người/vật (lớp va chạm 3) → vòng sáng dưới chân + khung
   thông tin góc trên phải (tên, vai trò, nhà, việc đang làm); `F` cho camera đi theo.
 - **Hình người "mềm"** (`Villager._build_person_rig`): hông → đùi → khớp gối (`knees`) → ống chân
@@ -570,6 +576,12 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   (`SHORTCUTS_FP_IN`), nút "Ra sân" ẩn khi đi bộ (chuột bị giữ).
 - `HouseEntry._apply_state` không bật camera nhà búp bê khi `walk_inside` — `FirstPerson` tự lấy
   camera ở `inside_changed(true)`.
+- **Lớp học:** cửa trong mở vào lối đi giữa dãy bàn bên phải và tường hồi; dãy bàn chừa ~1,5 m
+  trước cửa (đặt cửa giữa dãy bàn thì vào là kẹt trong bàn ghế).
+- `tools/building_walk_test.gd [-- --only=house_3,dinh]`: kiểm tra MỌI toà (45) — đứng ngoài sân đi
+  thẳng tới cửa → "E: vào" → vào; đứng trên nền, không kẹt; đi sâu / trái / phải (quãng đi được, xuyên
+  tường, rơi khỏi nền); đi ra cửa về sân. In một dòng mỗi toà + tổng kết. Dò mặt đất trước cửa từ
+  ngang tầm người (dò từ trên cao thì trúng mái hiên).
 - Chụp ảnh: `--enter=<khoá> --fp [--fp-pitch=…]`. `tools/fp_test.gd` bước 6: vào nhà mình bằng E,
   đi thẳng vào (đồ đạc chặn), V ↔ nhà búp bê, đi ra cửa về sân, vào lại rồi Esc.
 

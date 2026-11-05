@@ -11,6 +11,8 @@ const FORMS: Array[String] = ["gable", "hip", "gable_wall"]
 const WALLS: Array[String] = ["lime_yellow", "lime_white", "brick", "mud"]
 const FRONTS: Array[String] = ["veranda_wood", "veranda_brick", "panel_doors"]
 const LAYOUTS: Array[String] = ["single", "L_left", "L_right", "U", "kitchen"]
+## Nửa bề rộng lối đi để trống thẳng trước cửa chính (nhà phụ không được lấn vào).
+const door_lane_half := 1.0
 const FENCES: Array[String] = ["brick_wall", "bamboo_fence", "hibiscus_hedge", "low_edge"]
 const GARDEN: Array[String] = ["areca", "banana", "fruit_tree", "vegetables", "haystack", "water_tank", "trellis"]
 
@@ -291,6 +293,7 @@ static func build_house(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, st:
 		"kind": "home", "bays": bays, "bay": bw, "depth": D, "veranda": veranda,
 		"height": H, "plinth": P, "wall": st.wall, "front": st.front, "roof": st.roof,
 		"door": xf * _t(door_x, P + 1.05, front_z + 0.14),
+		"door_x": door_x,
 	}
 
 
@@ -365,19 +368,39 @@ static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, 
 		"L_left": sides = [-1.0]
 		"L_right": sides = [1.0]
 		"U": sides = [-1.0, 1.0]
+	# Lối đi thẳng từ cửa chính ra sân phải để trống (nhập vai đi vào được): nhà phụ lấn vào
+	# lối này thì đẩy ra ngoài, chạm rào thì thu hẹp lại, vẫn không vừa thì bỏ nếp đó.
+	var door_cx: float = hx + float(info.door_x)
+	var lane := door_lane_half
+	var fence_x := width * 0.5 - 0.35
 	for s in sides:
-		var wx: float = hx + s * (L * 0.5 - wing_dep * 0.5 + 0.2)
+		var wd := wing_dep
+		var wx: float = hx + s * (L * 0.5 - wd * 0.5 + 0.2)
+		var inner: float = s * (wx - door_cx) - wd * 0.5
+		if inner < lane:
+			wx = door_cx + s * (lane + wd * 0.5)
+		var outer: float = s * wx + wd * 0.5
+		if outer > fence_x:
+			wd -= outer - fence_x
+			wx = door_cx + s * (lane + wd * 0.5)
+		if wd < 2.2:
+			continue
 		var wz: float = yard_z0 + wing_len * 0.5 + 0.2
 		var wxf := xf * Transform3D(Basis(Vector3.UP, -s * PI * 0.5), Vector3(wx, 0.0, wz))
-		build_small(mb, glow, wxf, wing_len, wing_dep, wing_h, st)
+		build_small(mb, glow, wxf, wing_len, wd, wing_h, st)
 	if st.layout == "kitchen":
 		var side := -1.0 if hx > 0.0 else 1.0
 		var room := width * 0.5 - absf(hx) - L * 0.5
 		var kx := hx + side * (L * 0.5 + room * 0.5)
+		var kz := house_front + 2.2
 		if room < 3.4:
-			kx = hx + side * (L * 0.5 - 1.6)
-		var kxf := xf * Transform3D(Basis(Vector3.UP, side * PI * 0.5), Vector3(kx, 0.0, house_front + 2.2))
-		build_small(mb, glow, kxf, 3.2, 2.8, 2.0, st)
+			# Không đủ chỗ cạnh nhà: đặt bếp ở sân, bên cạnh lối đi từ cửa
+			kx = door_cx + side * (lane + 1.4)
+			if side * kx + 1.4 > fence_x:
+				kx = door_cx - side * (lane + 1.4)
+		if absf(kx - door_cx) >= lane + 1.4 - 0.01 or room >= 3.4:
+			var kxf := xf * Transform3D(Basis(Vector3.UP, side * PI * 0.5), Vector3(kx, 0.0, kz))
+			build_small(mb, glow, kxf, 3.2, 2.8, 2.0, st)
 
 	# Sân: gạch hoặc đất nện
 	var brick_yard: bool = st.wall != "mud" and rng.randf() < 0.7
