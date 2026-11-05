@@ -21,6 +21,7 @@ enum Mode { SMALL, LARGE, HIDDEN }
 @export var outdoor_rig: CameraRig
 @export var house_entry: HouseEntry
 @export var boat_ride: BoatRide
+@export var school_day: SchoolDay
 
 @export_group("Hiển thị")
 @export var small_size: float = 230.0
@@ -268,6 +269,10 @@ func _draw_people() -> void:
 			var m := _w2m(Vector2(v.global_position.x, v.global_position.z))
 			draw_circle(m, 6.0, Palette.WINDOW_DARK)
 			draw_string(_font_bold, m + Vector2(-2.5, 5.0), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Palette.FLOWER_YELLOW)
+	if school_day != null:
+		for p in school_day.pupils:
+			if p.visible:
+				draw_circle(_w2m(Vector2(p.global_position.x, p.global_position.z)), r * 0.85, Palette.FLOWER_YELLOW.darkened(0.1))
 	for a in villagers.animals:
 		if a.visible and a.role == "buffalo":
 			draw_circle(_w2m(Vector2(a.global_position.x, a.global_position.z)), r * 0.9, Palette.BUFFALO)

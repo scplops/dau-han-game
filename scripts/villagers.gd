@@ -19,10 +19,20 @@ const NIGHT_END := 5.2
 @export var terrain: Terrain
 @export var house: House
 @export var day_night: DayNight
+@export var calendar: LunarCalendar
 @export var weather: Weather
 @export var hud: Hud
 @export var outdoor_rig: CameraRig
 @export var random_seed: int = 4242
+
+@export var school_day: SchoolDay
+
+@export_group("Đi lễ đình (mùng 1, rằm)")
+## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
+@export var worship_morning: Vector2 = Vector2(5.5, 9.5)
+@export var worship_evening: Vector2 = Vector2(16.5, 19.0)
+## Ở trong đình bao lâu (giây thật).
+@export var worship_minutes: Vector2 = Vector2(30.0, 60.0)
 
 @export_group("Số lượng")
 @export_range(0, 80) var farmers: int = 12
@@ -82,6 +92,7 @@ const ACTIVITY_TEXT := {
 	"swim": ["đang ra sông tắm", "đang tắm sông"],
 	"fishing": ["đang vác cần ra sông", "đang ngồi câu cá ở bến sông"],
 	"football": ["đang ra sân bóng", "đang xem đá bóng"],
+	"worship": ["đang ra đình lễ", "đang thắp hương ở đình"],
 }
 
 
@@ -389,10 +400,14 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			c = {"banyan": 3.0, "pagoda": 2.0, "visit": 2.0, "dinh": 1.0, "yard": 2.0, "inside": 1.0}
 		"kid":
 			c = {"inside": 2.0, "yard": 1.0} if noon else {"dinh": 4.0, "pond": 2.0, "banyan": 1.0, "visit": 1.0, "yard": 1.0}
-	# Trẻ con đi học: buổi sáng 7–11h và đầu giờ chiều 13:30–16:30
-	if school != null and v.role == "kid" and ((h >= 6.8 and h < 10.8) or (h >= 13.3 and h < 16.3)):
+	# Trẻ con đi học theo thời khoá biểu (nghỉ Chủ nhật, nghỉ Tết — mục 25)
+	if school_day != null and v.role == "kid" and school_day.wants_pupils(h):
 		c = {"school": 8.0, "inside": 0.5}
 		return c
+	# Mùng 1, rằm: người lớn ra đình thắp hương, sáng sớm và chiều tối (mỗi buổi một lần)
+	var worship := worship_weight(v, h)
+	if worship > 0.0:
+		c["worship"] = worship
 	# Ra sông (ban ngày, trời không mưa)
 	if river != null and not river.landings.is_empty() and h >= 7.0 and h < 18.0 and not noon:
 		match v.role:
@@ -419,6 +434,28 @@ func _choices(v: Villager, h: float) -> Dictionary:
 	if h >= 17.0:
 		c["inside"] = float(c.get("inside", 0.0)) + 3.0
 	return c
+
+
+## Trọng số đi lễ đình hôm nay (0 nếu không phải ngày lễ / ngoài giờ / buổi này đã lễ rồi).
+func worship_weight(v: Villager, h: float) -> float:
+	if calendar == null or not calendar.is_worship_day():
+		return 0.0
+	var morning := h >= worship_morning.x and h < worship_morning.y
+	var evening := h >= worship_evening.x and h < worship_evening.y
+	if not (morning or evening):
+		return 0.0
+	if str(v.get_meta("worship_done", "")) == _worship_session(h):
+		return 0.0
+	match v.role:
+		"elder": return 14.0
+		"carrier": return 9.0
+		"farmer": return 7.0
+		"kid", "herder": return 1.5
+	return 0.0
+
+
+func _worship_session(h: float) -> String:
+	return "%d_%s" % [calendar.jd if calendar != null else 0, "am" if h < 12.0 else "pm"]
 
 
 func _pick(weights: Dictionary) -> String:
@@ -452,6 +489,8 @@ func _target(v: Villager, act: String) -> Vector3:
 			return village.pagoda_spot + Vector3(_rng.randf_range(-3, 3), 0, _rng.randf_range(-1.5, 1.5))
 		"dinh":
 			return village.dinh_spot + Vector3(_rng.randf_range(-7, 7), 0, _rng.randf_range(-2, 2))
+		"worship":
+			return village.dinh_door + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(-0.3, 0.3))
 		"pond":
 			var a3 := _rng.randf_range(0.3, PI - 0.3)
 			return Vector3(village.pond_center.x + cos(a3) * village.pond_radii.x * 1.35, 0.05,
@@ -504,6 +543,11 @@ func _start(v: Villager) -> void:
 
 
 func _next_activity(v: Villager, forced: String = "") -> void:
+	# Lễ xong trong đình: bước ra ở chân thềm
+	if v.has_meta("at_dinh"):
+		v.remove_meta("at_dinh")
+		v.global_position = village.dinh_door
+		v.visible = true
 	var act := forced if forced != "" else _pick(_choices(v, _hour()))
 	v.activity = act
 	var h: Dictionary = v.home
@@ -525,6 +569,8 @@ func _next_activity(v: Villager, forced: String = "") -> void:
 		p.append(_target(v, act))
 	else:
 		p = _route(v, from, _target(v, act), at_home)
+	if act in ["dinh", "worship"]:
+		p = _around_dinh_pond(p)
 	v.set_meta("at_home", act in ["inside", "shelter", "yard"])
 	# Học sinh: mặc đồng phục khi đi học (thay ở nhà — lúc ra khỏi cửa), về nhà thì thay ra
 	if v.has_outfit("uniform"):
@@ -539,6 +585,36 @@ func _next_activity(v: Villager, forced: String = "") -> void:
 	v.activity_text = ACTIVITY_TEXT[act][0]
 	if v.lantern != null:
 		v.lantern.visible = act == "lantern"
+
+
+## Đoạn đường nào cắt ngang hồ bán nguyệt ở sân đình thì đi vòng qua mép hồ (bên gần hơn).
+func _around_dinh_pond(p: PackedVector3Array) -> PackedVector3Array:
+	var c := village.dinh_pond_center
+	var r := village.dinh_pond_radii + Vector2(1.2, 1.2)
+	if r.x <= 1.3:
+		return p
+	var out := PackedVector3Array()
+	for i in p.size():
+		if i > 0:
+			var a := p[i - 1]
+			var b := p[i]
+			var hits := false
+			for k in range(1, 12):
+				var q := a.lerp(b, k / 12.0)
+				if Vector2((q.x - c.x) / r.x, (q.z - c.z) / r.y).length() < 1.0:
+					hits = true
+					break
+			if hits:
+				var side := signf((a.x + b.x) * 0.5 - c.x)
+				if side == 0.0:
+					side = 1.0
+				var first := c.z + r.y if a.z > b.z else c.z - r.y
+				var second := c.z - r.y if a.z > b.z else c.z + r.y
+				out.append(Vector3(c.x + side * r.x * 0.75, a.y, first))
+				out.append(Vector3(c.x + side * r.x, a.y, c.z))
+				out.append(Vector3(c.x + side * r.x * 0.75, a.y, second))
+		out.append(p[i])
+	return out
 
 
 ## Nếu đang ở trong nhà/sân thì đi ra qua trước hiên và cổng trước rồi mới vào đồ thị.
@@ -563,7 +639,17 @@ func _arrive(v: Villager) -> void:
 		v.visible = false
 		v.dwell = _rng.randf_range(20.0, 50.0)
 		return
+	if act == "worship":
+		# Vào trong đình thắp hương, khấn vái (IndoorFolk cho hiện ở hương án nếu đang xem đình)
+		v.set_meta("at_dinh", true)
+		v.set_meta("worship_done", _worship_session(_hour()))
+		v.visible = false
+		v.dwell = _rng.randf_range(worship_minutes.x, worship_minutes.y)
+		return
 	v.dwell = _rng.randf_range(45.0, 100.0) if act in ["field", "graze", "fishing", "river"] else _rng.randf_range(20.0, 50.0)
+	if act == "school" and school_day != null:
+		school_day.on_arrive(v)       # tới trường: SchoolDay cho vào lớp / ra chơi theo thời khoá biểu
+		return
 	match act:
 		"field": v.work_anim = "hoe" if v.role == "farmer" else "idle"
 		"graze": v.work_anim = "idle"

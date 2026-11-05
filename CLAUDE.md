@@ -144,7 +144,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
    `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái),
    `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
-   `toggle_minimap` (M)),
+   `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày)),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -190,6 +190,8 @@ scripts/
   indoor_folk.gd       # dân làng ở trong nhà / đình / chùa / lớp học theo lịch (mục 22)
   minimap.gd           # bản đồ nhỏ góc màn hình, phím M (mục 23)
   boat_ride.gd         # lên đò, chèo đò trên sông, lên bờ (mục 24)
+  lunar_calendar.gd    # lịch Việt Nam: dương lịch, thứ, âm lịch, can chi, ngày lễ (mục 25)
+  school_day.gd        # thời khoá biểu, học sinh làng bên, vào lớp / ra chơi / chào cờ (mục 26)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -412,8 +414,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   bàng (tán xếp tầng) và phượng (hoa đỏ); tường rào vàng thấp có song sắt.
 - Vào được một lớp học (khoá `school`, `Interior._build_classroom`): bục giảng, bảng đen, khẩu
   hiệu "TIÊN HỌC LỄ - HẬU HỌC VĂN", bàn giáo viên, 2 dãy bàn ghế băng, vở sách, tủ đồ dùng.
-- Trẻ con trong làng đi học 7–11h và 13:30–16:30 (việc `school`): đi theo đường đất vào cổng,
-  chơi ở sân trường (giờ ra chơi). Cửa sổ trường sáng nhẹ ban đêm (`night_glow`).
+- Trẻ con trong làng đi học theo thời khoá biểu của `SchoolDay` (mục 26): đi theo đường đất vào cổng,
+  giờ học vào lớp, giờ ra chơi ra sân. Cửa sổ trường sáng nhẹ ban đêm (`night_glow`).
 - **Đồng phục:** mỗi trẻ con có thêm một bộ khung hình thứ hai (`Villager.add_uniform`): áo
   trắng, quần xanh sẫm, khăn quàng đỏ. `set_outfit(true)` khi bắt đầu việc `school`, thay ra khi
   đã về trong nhà. Áo thường của trẻ con không dùng màu trắng để khỏi lẫn.
@@ -679,3 +681,55 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   `tools/fish_test.gd -- --spot=4` chơi trọn một ván câu trên đò 2.
   Chụp ảnh: `--boat=N [--boat-drive=giây] [--boat-cam=độ]`; đứng trên đò:
   `--fp --fp-board=N [--fp-at=x,z] [--fp-yaw=độ]` (toạ độ, hướng tính theo đò).
+
+## 25. Lịch Việt Nam, lễ đình mùng 1 / rằm (giai đoạn 4a)
+
+- `scripts/lunar_calendar.gd` (`LunarCalendar`, node `Calendar` con của `Main`). Ngày lưu bằng số ngày
+  Julius `jd`; mặc định lấy ngày hôm nay của máy (`use_system_date`, tắt thì dùng `start_date`).
+  Đặt ngày trong `_enter_tree` (trước `_ready` của `World`) để Villagers lên lịch đã có ngày.
+- **Âm lịch** theo thuật toán của Hồ Ngọc Đức (`solar_to_lunar`, `new_moon_day`, `sun_longitude`,
+  `lunar_month11`, `leap_month_offset`), múi giờ +7, có tháng nhuận; năm can chi `can_chi_year`.
+  `tools/calendar_test.gd` đối chiếu 12 ngày đã biết (Tết 2024–2027, Trung thu, tháng 2 nhuận 2023,
+  tháng 6 nhuận 2025…).
+- **Sang ngày:** `DayNight.day_rolled(days)` phát khi `time_of_day` qua nửa đêm (tiến hoặc lùi) →
+  `add_days`. Phím `,` / `.` lùi / tiến một ngày. HUD có dòng ngày dưới giờ (`date_text`: "Thứ Năm
+  5/11/2026 · Âm lịch 27/9 Bính Ngọ"), ngày lễ (`holiday_name`: Tết, rằm tháng Giêng, Giỗ Tổ, Đoan
+  ngọ, rằm tháng Bảy, Trung thu, ông Táo, mùng một, rằm) tô vàng.
+- **Đi lễ đình** (`is_worship_day`: mùng 1, rằm): `Villagers.worship_weight` — người lớn (cụ già nhiều
+  nhất) đi lễ trong `worship_morning` (5:30–9:30) và `worship_evening` (16:30–19:00), mỗi buổi một lần
+  (meta `worship_done`). Việc `worship`: đi tới chân thềm đình (`Village.dinh_door`), vào trong (ẩn,
+  meta `at_dinh`, `worship_minutes` giây thật) rồi bước ra. IndoorFolk cho người `at_dinh` đứng vái
+  ở 7 chỗ trước hương án (tag `worship`, act `dinh_worship`).
+- **Sân đình ngày lễ** (`Village._build_worship_decor`, nhóm `worship_decor` — Calendar bật / tắt):
+  hai hàng cờ hội ngũ sắc (shader gió), đỉnh hương đồng ba chân trước thềm có khói (CPUParticles3D).
+- Đường vào sân đình đi vòng hồ bán nguyệt (`Villagers._around_dinh_pond`, `Village.dinh_pond_center/
+  radii`) — trước đây người ra đình lội thẳng qua hồ.
+- **Hội thoại:** câu hỏi "Hôm nay là ngày bao nhiêu âm lịch?" (`_ans_date`: "rằm tháng Chín năm Bính
+  Ngọ", nhắc sắp rằm / mùng một), chào và trả lời "đang làm gì" theo việc `worship`.
+- Chụp ảnh: `--date=YYYY-MM-DD`, `--lunar-day=N` (nhảy tới ngày gần nhất có ngày âm N), `--settle=giây`
+  (tua nhanh cho dân làng kịp tới nơi).
+
+## 26. Học sinh, thời khoá biểu trường (giai đoạn 4b)
+
+- `scripts/school_day.gd` (`SchoolDay`, node con của `Main`). `phase(h)`: `arrive` 6:24–7:00 /
+  13:00–13:30, `class`, `recess` 9:12–9:36 / 14:54–15:15, `leave` 11:00–11:24 / 16:30–16:54,
+  thứ Hai 7:00–7:30 `flag` (chào cờ); thứ Bảy chỉ học sáng; `off` ngoài giờ, Chủ nhật, từ 23 tháng
+  Chạp tới mùng 7 Tết (`LunarCalendar.is_school_day`).
+- **Học sinh làng bên** (`pupil_count` 28, `pupils`): Villager trẻ con mặc đồng phục, meta `pupil`,
+  `class` (0…4 = 5 lớp tầng 1), `spawn` (đầu đường đất phía nam cổng). Đến trường: đi đường đất →
+  cổng (`School.gate_out/gate_in`) → sân; tan học thì đi ngược ra và ẩn ở đầu đường.
+- **Trẻ con trong làng** (Villagers, việc `school` khi `wants_pupils`): tới trường thì
+  `Villagers._arrive` gọi `SchoolDay.on_arrive` — meta `at_school`, dwell rất lớn để Villagers không
+  đổi việc; SchoolDay điều khiển tới khi tan học (`_release` trả về Villagers chọn việc tiếp).
+- **Giờ học:** đi tới mép sân trước lớp (`School.classroom_fronts`) → cửa lớp (`classroom_doors`) → ẩn,
+  meta `in_class`. IndoorFolk (khoá `school`) cho người `in_class` ngồi bàn (12 chỗ) + **cô giáo**
+  (người trông giữ, dáng `teach` — tay chỉ lên bảng) đứng ở bục giảng (seat tag `teacher`).
+  **Ra chơi:** ùa ra sân, chạy từ chỗ này sang chỗ khác (`_wander`, `School.yard_spots` 26 chỗ).
+  **Chào cờ thứ Hai:** mỗi lớp một hàng dọc trước cột cờ (`School.flag_pos`), quay mặt về cột cờ.
+- Đổi giờ / ngày đột ngột: `SchoolDay.replan()` đặt ngay mọi học sinh đúng chỗ (công cụ chụp ảnh gọi).
+- Hội thoại: học sinh trả lời theo giai đoạn (ra chơi, chào cờ, tan học, được nghỉ); nhà ở "làng bên".
+  Bản đồ nhỏ vẽ học sinh làng bên (chấm vàng).
+- `tools/school_calendar_test.gd`: thứ Hai 6:12 → 12:00 (đếm học sinh hiện / trong lớp / quanh cột
+  cờ, trẻ trong làng ở trường), vào lớp lúc 8:00 (số em ngồi học + cô giáo), Chủ nhật (vắng),
+  ngày thường và ngày rằm lúc 7:00 (số người đi lễ, cờ hội, người vái trong đình).
+

@@ -672,6 +672,18 @@ func _animate(delta: float) -> void:
 						elbows[0].rotation.x = -1.6
 						elbows[1].rotation.x = -1.6
 						body.rotation.x = 0.35 * maxf(0.0, sin(t2 * 0.6))
+		"teach":
+			# Cô giáo đứng giảng: tay phải giơ chỉ lên bảng theo nhịp, thân xoay nhẹ
+			var k := 0.5 + 0.5 * sin(_work_time * 0.7)
+			if arms.size() == 2:
+				arms[1].rotation.x = lerpf(-0.3, -1.9, k)
+				arms[1].rotation.z = -0.25
+				arms[0].rotation.x = -0.2
+				arms[0].rotation.z = 0.0
+			for e in elbows:
+				e.rotation.x = -0.3
+			body.rotation.y = 0.35 * sin(_work_time * 0.35)
+			body.rotation.x = 0.0
 		"pray":
 			# Đứng chắp tay vái
 			if arms.size() == 2 and elbows.size() == 2:

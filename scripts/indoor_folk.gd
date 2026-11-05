@@ -14,6 +14,7 @@ extends Node3D
 @export var interior: Interior
 @export var villagers: Villagers
 @export var day_night: DayNight
+@export var school_day: SchoolDay
 @export var random_seed: int = 909
 ## Bao lâu (giây) xem lại ai ra ai vào.
 @export var sync_interval: float = 1.0
@@ -68,9 +69,11 @@ func _belongs(v: Villager) -> bool:
 		"pagoda":
 			return v.activity == "pagoda" and v.state == Villager.State.IDLE
 		"dinh":
+			if v.has_meta("at_dinh"):
+				return true                 # đi lễ mùng 1 / rằm (mục 25)
 			return v.activity == "dinh" and v.state == Villager.State.IDLE and not v.role in ["kid", "herder"]
 		"school":
-			return v.activity == "school" and v.state == Villager.State.IDLE
+			return v.has_meta("in_class")   # đang ngồi học (SchoolDay, mục 26)
 	return str(v.home.get("key", "")) == _key and v.state == Villager.State.INSIDE
 
 
@@ -79,6 +82,8 @@ func _sync(first: bool) -> void:
 		return
 	if _keeper == null and _key in ["pagoda", "dinh"] and _hour() >= 5.0 and _hour() < 21.0:
 		_add_keeper()
+	if _keeper == null and _key == "school" and school_day != null and school_day.phase(_hour()) in ["class", "arrive", "recess"]:
+		_add_keeper()
 	# Ai đã ra khỏi nhà (theo lịch) thì đứng dậy đi ra cửa
 	for f in _folk:
 		if f.get("keeper", false):
@@ -86,7 +91,10 @@ func _sync(first: bool) -> void:
 		if not f.leaving and not _belongs(f.real) and not (f.proxy as Villager).has_meta("talking"):
 			_leave(f)
 	# Ai mới về / mới tới thì bước vào (lần đầu: đã ngồi sẵn ở chỗ)
-	for v in villagers.people:
+	var everyone: Array[Villager] = villagers.people.duplicate()
+	if school_day != null:
+		everyone.append_array(school_day.pupils)
+	for v in everyone:
 		if not _belongs(v) or _has(v):
 			continue
 		var seat := _pick_seat(v)
@@ -105,7 +113,8 @@ func _sync(first: bool) -> void:
 ## ông thủ từ đứng vái trước hương án đình. Không có người thật tương ứng ngoài làng.
 func _add_keeper() -> void:
 	var pagoda := _key == "pagoda"
-	var want := "pagoda_pray" if pagoda else "dinh_pray"
+	var school := _key == "school"
+	var want := "pagoda_pray" if pagoda else ("teach" if school else "dinh_pray")
 	var seat := -1
 	for i in interior.seats.size():
 		if interior.seats[i].act == want and not _seat_taken(i):
@@ -118,6 +127,23 @@ func _add_keeper() -> void:
 	var p := Villager.new()
 	p.name = "Keeper"
 	p.role = "elder"
+	if school:
+		# Cô giáo đứng giảng ở bục
+		p.role = "carrier"
+		p.display_name = "Cô giáo Hạnh"
+		p.role_name = "Cô giáo chủ nhiệm"
+		p.home = {"name": "Trường tiểu học", "key": "school"}
+		p.set_meta("female", true)
+		add_child(p)
+		p.build_person({"shirt": Palette.FLOWER_WHITE, "pants": Palette.WINDOW_DARK, "skin": Palette.FARMER_SKIN,
+				"hat": "none", "scale": 1.0, "female": true, "prop": "none"})
+		_keeper = p
+		var ft := {"real": p, "proxy": p, "seat": seat, "leaving": false, "keeper": true}
+		_folk.append(ft)
+		_sit(ft)
+		p.activity = "teach"
+		p.activity_text = "teach"
+		return
 	if pagoda:
 		p.display_name = "Sư cụ"
 		p.role_name = "Sư trụ trì chùa làng"
@@ -172,6 +198,10 @@ func _pick_seat(v: Villager) -> int:
 			score += 2.0 if v.get_meta("female", false) else -1.5
 		if tags.has("elder"):
 			score += 2.0 if v.role == "elder" else -0.5
+		if tags.has("teacher"):
+			score -= 20.0                 # bục giảng để cô giáo đứng
+		if tags.has("worship"):
+			score += 4.0 if v.has_meta("at_dinh") else -3.0
 		if score > best_score:
 			best_score = score
 			best = i

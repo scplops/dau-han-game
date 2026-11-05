@@ -6,6 +6,8 @@ extends Node
 ## Phím: [ / ] lùi/tiến giờ (giữ phím), T bật/tắt tự chạy.
 
 signal time_changed(hour: float)
+## Đồng hồ qua nửa đêm: +1 (sang ngày mới) hoặc −1 (lùi giờ qua 0h). LunarCalendar đổi ngày theo.
+signal day_rolled(days: int)
 
 @export var sun: DirectionalLight3D
 @export var world_environment: WorldEnvironment
@@ -75,7 +77,10 @@ func _ready() -> void:
 
 
 func set_time_of_day(value: float) -> void:
+	var days := int(floor(value / 24.0))
 	time_of_day = wrapf(value, 0.0, 24.0)
+	if days != 0 and is_inside_tree():
+		day_rolled.emit(days)
 	if is_inside_tree():
 		_apply()
 

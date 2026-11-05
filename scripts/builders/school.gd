@@ -25,6 +25,13 @@ extends Node3D
 var entry_path := PackedVector2Array()
 ## Các chỗ đứng chơi trong sân trường.
 var yard_spots: Array[Vector3] = []
+## Điểm cho học sinh (SchoolDay, mục 26): trước cửa từng lớp tầng 1 (trên hành lang), mép sân trước
+## hành lang, cột cờ, cổng trong / ngoài.
+var classroom_doors: Array[Vector3] = []
+var classroom_fronts: Array[Vector3] = []
+var flag_pos: Vector3
+var gate_in: Vector3
+var gate_out: Vector3
 
 var _rng := RandomNumberGenerator.new()
 var _glow_mat: StandardMaterial3D
@@ -83,7 +90,14 @@ func build() -> void:
 
 	entry_path = PackedVector2Array([Vector2(road_x, gate_z), Vector2(site.end.x + 1.0, gate_z),
 			Vector2(site.end.x - 6.0, gate_z), Vector2(cx + 3.0, gate_z + 4.0)])
-	for i in 10:
+	for i in classrooms:
+		var dx := -L * 0.5 + room_width * (i + 0.75)
+		classroom_doors.append(main_xf * Vector3(dx, plinth, -D * 0.5 + room_depth + 0.7))
+		classroom_fronts.append(main_xf * Vector3(dx, 0.06, D * 0.5 + 1.4))
+	flag_pos = Vector3(cx + 3.0, 0.06, gate_z + 1.0)
+	gate_out = Vector3(road_x + 1.0, 0.06, gate_z)
+	gate_in = Vector3(site.end.x - 3.0, 0.06, gate_z)
+	for i in 26:
 		yard_spots.append(Vector3(_rng.randf_range(cx - 14.0, cx + 16.0), 0.06, _rng.randf_range(gate_z - 4.0, gate_z + 10.0)))
 
 

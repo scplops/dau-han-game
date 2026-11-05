@@ -65,6 +65,11 @@ var _alleys: Array[PackedVector2Array] = []
 var homes: Array[Dictionary] = []
 ## Chỗ đứng chơi trong sân đình / sân chùa (cho NPC).
 var dinh_spot: Vector3
+## Chân bậc thềm đình (người đi lễ vào / ra ở đây).
+var dinh_door: Vector3
+## Hồ bán nguyệt giữa sân đình (tâm, bán kính) — Villagers đi vòng, không lội qua.
+var dinh_pond_center: Vector3
+var dinh_pond_radii: Vector2
 var pagoda_spot: Vector3
 var _glow_mat: StandardMaterial3D
 var _occupied: Array[Rect2] = []      # vùng đã có lô / công trình (để rải vườn tạp tránh)
@@ -525,6 +530,70 @@ func _pond(stat: MeshBuilder, leaves: MeshBuilder, c: Vector3, r: Vector2, half:
 
 # --- Đình làng ----------------------------------------------------------------------------
 
+## Đồ lễ ngày mùng 1 / rằm (mục 25): hai hàng cờ hội ngũ sắc dọc sân đình, đỉnh hương đồng trước
+## thềm có khói hương. Nhóm `worship_decor` — LunarCalendar chỉ cho hiện vào ngày lễ.
+func _build_worship_decor(cx: float, z_front: float, z_steps: float) -> void:
+	var decor := Node3D.new()
+	decor.name = "WorshipDecor"
+	decor.add_to_group("worship_decor")
+	decor.visible = false
+	add_child(decor)
+	var flags := MeshBuilder.new(random_seed + 600, 0.04)
+	var stripes: Array[Color] = [Palette.FLAG_RED, Palette.FLOWER_YELLOW, Palette.SIGN_BLUE, Palette.FLOWER_WHITE, Palette.LILY]
+	for s in [-1.0, 1.0]:
+		for k in 5:
+			var px: float = cx + s * 10.5
+			var pz := z_front - 1.8 - k * 2.8
+			flags.add_prism(0.045, 0.035, 5.2, 5, Palette.BAMBOO_STEM, _t(px, 0.0, pz))
+			flags.add_pyramid(0.07, 0.25, 5, Palette.GOLD, _t(px, 5.2, pz))
+			# Lá cờ dọc treo trên ngọn, năm sọc màu, tua đỏ dưới đáy
+			for i in 5:
+				flags.add_box(Vector3(0.03, 0.42, 0.9), stripes[(i + k) % 5], _t(px, 4.85 - i * 0.42, pz + 0.48))
+			flags.add_box(Vector3(0.035, 0.1, 0.96), Palette.FLAG_RED.darkened(0.2), _t(px, 4.85 - 5 * 0.42 + 0.32, pz + 0.48))
+	decor.add_child(flags.commit_instance("FestivalFlags", MeshBuilder.wind_material(0.12, 2.6, 2.6, 1.3)))
+	# Đỉnh hương đồng ba chân trước thềm
+	var burner := MeshBuilder.new(random_seed + 601, 0.03)
+	var bz := z_steps + 1.6
+	for a in 3:
+		var ang := TAU * a / 3.0
+		burner.add_prism(0.06, 0.05, 0.45, 5, Palette.GOLD.darkened(0.45), _t(cx + cos(ang) * 0.35, 0.0, bz + sin(ang) * 0.35))
+	burner.add_prism(0.42, 0.55, 0.5, 10, Palette.GOLD.darkened(0.35), _t(cx, 0.45, bz))
+	burner.add_prism(0.55, 0.5, 0.08, 10, Palette.GOLD.darkened(0.2), _t(cx, 0.95, bz))
+	burner.add_prism(0.3, 0.12, 0.35, 8, Palette.GOLD.darkened(0.3), _t(cx, 1.03, bz))
+	for i in 7:
+		var o := Vector2(cos(i * 2.4), sin(i * 2.4)) * 0.22
+		burner.add_prism(0.008, 0.008, 0.38, 3, Palette.FLAG_RED, _t(cx + o.x, 0.95, bz + o.y))
+	decor.add_child(burner.commit_instance("IncenseBurner"))
+	var smoke := CPUParticles3D.new()
+	smoke.name = "IncenseSmoke"
+	smoke.position = Vector3(cx, 1.4, bz)
+	smoke.amount = 24
+	smoke.lifetime = 4.0
+	smoke.direction = Vector3.UP
+	smoke.spread = 8.0
+	smoke.initial_velocity_min = 0.25
+	smoke.initial_velocity_max = 0.4
+	smoke.gravity = Vector3(0.08, 0.05, 0.0)
+	smoke.scale_amount_min = 0.25
+	smoke.scale_amount_max = 0.5
+	var sm := SphereMesh.new()
+	sm.radius = 0.25
+	sm.height = 0.5
+	sm.radial_segments = 6
+	sm.rings = 3
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(Palette.SMOKE, 0.35)
+	sm.material = mat
+	smoke.mesh = sm
+	var ramp := Curve.new()
+	ramp.add_point(Vector2(0.0, 0.4))
+	ramp.add_point(Vector2(1.0, 1.6))
+	smoke.scale_amount_curve = ramp
+	decor.add_child(smoke)
+
+
 func _build_dinh(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, glow: MeshBuilder) -> void:
 	var z_front := alley_z[alley_z.size() - 1] - alley_width * 0.5 - 0.6
 	dinh_spot = Vector3(lane_x(alley_z[alley_z.size() - 1]), 0.05, z_front - 12.5)
@@ -575,6 +644,8 @@ func _build_dinh(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, gl
 					Vector3(pc.get_center().x, -1.0, pc.get_center().y))
 	# Hồ bán nguyệt giữa sân: bờ thẳng hướng về đình, mặt cong hướng ra nghi môn
 	_pond(stat, leaves, pond_c, pond_r, true)
+	dinh_pond_center = pond_c
+	dinh_pond_radii = pond_r * 1.35
 	# Tả mạc, hữu mạc hai bên sân
 	var side_st := {"roof": "tile_brown", "form": "gable", "wall": "lime_white"}
 	for s in [-1.0, 1.0]:
@@ -588,6 +659,8 @@ func _build_dinh(stat: MeshBuilder, leaves: MeshBuilder, ground: MeshBuilder, gl
 	var P := 0.8
 	var H := 3.0
 	stat.add_box(Vector3(L + 2.0, P, D + 2.0), Palette.PLINTH.darkened(0.08), xf)
+	dinh_door = Vector3(cx, 0.05, hz + (D + 2.0) * 0.5 + 1.9)
+	_build_worship_decor(cx, z_front, hz + (D + 2.0) * 0.5 + 0.9)
 	HouseEntry.make_entry_target(self, xf * _t(0.0, P + 1.5, D * 0.5 - 0.3), Vector3(4.0, 3.0, 0.8),
 			"Vào đình làng  ·  bấm chuột hoặc E",
 			{"kind": "dinh", "name": "Đình làng", "length": L, "depth": D, "plinth": P,

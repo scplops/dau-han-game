@@ -17,6 +17,8 @@ signal finished
 @export var football: Football
 @export var fishing: Fishing
 @export var quests: Quests
+@export var calendar: LunarCalendar
+@export var school_day: SchoolDay
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
 @export var chars_per_second: float = 48.0
@@ -280,6 +282,8 @@ func _build_options() -> Array[Dictionary]:
 		all.append({"key": "catch", "text": "{Npc} xem giỏ cá {me} câu được này!", "answer": _ans_catch})
 	if football != null and football.phase != Football.Phase.IDLE and v.role != "kid":
 		all.append({"key": "match", "text": "Trận bóng thế nào rồi{a}?", "answer": _ans_match})
+	if calendar != null:
+		all.append({"key": "date", "text": "Hôm nay là ngày bao nhiêu âm lịch{a}?", "answer": _ans_date})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
 	all.append({"key": "home", "text": "Nhà {npc} ở đâu{a}?", "answer": _ans_home})
 	for o in all:
@@ -320,6 +324,10 @@ func _greeting() -> String:
 		elif v.in_uniform:
 			g += " " + _pick(["{Self} vừa đi học về.", "Hôm nay {self} được điểm mười đấy!"])
 		return g
+	if v.activity in ["worship", "dinh_worship"] and calendar != null:
+		var lw := LunarCalendar.lunar_day_words(int(calendar.lunar().day))
+		return _pick(["Hôm nay %s, {self} ra đình thắp hương đây. {You} có ra không?" % lw,
+				"Ơ {you}! %s rồi, đi lễ đình với {self} không?" % lw.capitalize()])
 	if h >= 19.0 or h < 5.0:
 		return _pick(["Tối rồi mà {you} còn đi đâu đấy?", "Ai đấy? À, {you} à. Tối thế này đi đâu?"])
 	if v.role == "elder":
@@ -380,7 +388,13 @@ func _ans_doing() -> String:
 		"fishing":
 			return "Ngồi câu cho vui. Khúc sông này nhiều cá chép, có hôm {self} câu được con hơn hai cân."
 		"school":
-			return "{Self} đi học ạ! Hôm nay học tập đọc với làm tính." if _hour() < 16.4 else "{Self} vừa tan học ạ."
+			if school_day != null:
+				match school_day.phase(_hour()):
+					"recess": return "Ra chơi ạ! {Self} đang chơi đuổi bắt, trống vào lớp là phải chạy vào ngay."
+					"flag": return "Đang chào cờ ạ, {you} đứng nghiêm đi!"
+					"leave": return "Tan học rồi ạ! {Self} về nhà ăn cơm."
+					"off": return "Hôm nay {self} được nghỉ học ạ!" if calendar != null and not calendar.is_school_day() else "{Self} vừa tan học ạ."
+			return "{Self} đi học ạ! Hôm nay học tập đọc với làm tính."
 		"football":
 			if v.role in ["kid", "herder"]:
 				return "{Self} xem các anh đá bóng ạ. " + _score_text()
@@ -411,6 +425,12 @@ func _ans_doing() -> String:
 		"monk_chant":
 			return _pick(["{Self} đang tụng kinh, cầu cho dân làng bình an, mưa thuận gió hoà.",
 					"Sáng nào {self} cũng tụng một thời kinh. {You} có muốn thắp nén hương thì cứ tự nhiên."])
+		"worship", "dinh_worship":
+			var lw := LunarCalendar.lunar_day_words(int(calendar.lunar().day)) if calendar != null else "rằm"
+			return _pick(["Hôm nay %s, {self} ra đình thắp nén hương cầu cho cả nhà mạnh khoẻ." % lw,
+					"%s thì phải ra đình lễ Thành hoàng chứ {you}. Làng mình xưa nay vẫn thế." % lw.capitalize()])
+		"teach":
+			return "Cô đang dạy các em bài tập đọc. Cháu ngồi xuống cuối lớp nghe cùng cũng được."
 		"dinh_keep":
 			return "Ông trông đình, sáng tối thắp hương Thành hoàng, quét dọn sân đình. Hội làng sắp tới bận lắm."
 	return "Cũng chẳng làm gì, đi loanh quanh thôi."
@@ -489,7 +509,28 @@ func _ans_weather() -> String:
 	return "Nắng ráo thế này thì còn lâu mới mưa. Phơi thóc được đấy."
 
 
+func _ans_date() -> String:
+	var l := calendar.lunar()
+	var words := calendar.lunar_words()
+	var hn := calendar.holiday_name()
+	var t := "Hôm nay %s, tức là %s %s đấy." % [words, calendar.weekday_name().to_lower(), calendar.solar_text()]
+	if npc.role in ["kid", "herder"]:
+		t = "Hôm nay là %s ạ, %s." % [words, calendar.weekday_name().to_lower()]
+	if hn == "Rằm" or hn == "Mùng một":
+		t += " " + _pick(["Ngày lễ đấy, sáng nay cả làng ra đình thắp hương.", "Chiều nay {self} cũng ra đình thắp nén hương."])
+	elif hn != "":
+		t += " Hôm nay là %s, vui lắm!" % hn
+	else:
+		var d := int(l.day)
+		var to_next := (15 - d) if d < 15 else (30 - d + 1)
+		if to_next <= 3:
+			t += " " + ("Sắp rằm rồi, " if d < 15 else "Sắp mùng một rồi, ") + "lại chuẩn bị ra đình thắp hương."
+	return t
+
+
 func _ans_home() -> String:
+	if npc.has_meta("pupil"):
+		return "Nhà {self} ở làng bên ạ, đi bộ theo đường đất qua mấy cánh đồng là tới."
 	var home_name := str(npc.home.get("name", "")).to_lower()
 	if str(npc.home.get("key", "")) == "main":
 		return "Nhà {self} ngay cạnh ruộng đầu làng đấy, cái nhà ngói có cây đa ấy."

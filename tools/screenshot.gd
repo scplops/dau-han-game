@@ -13,6 +13,8 @@ extends SceneTree
 ##        [--map=small|large|hidden] (bản đồ nhỏ)
 ##        [--fp --fp-board=N --fp-at=x,z] (nhập vai đứng trên đò N, toạ độ cục bộ của đò; --fp-yaw
 ##        khi đó tính so với hướng mũi đò)
+##        [--date=YYYY-MM-DD] [--lunar-day=N] (ngày dương / nhảy tới ngày âm N, vd. 15 = rằm)
+##        [--settle=giây] (chạy trước, tua nhanh, cho dân làng kịp đi tới nơi)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
 ##        xoay camera đò quanh đò; trong lúc chờ khung hình vẫn chèo để thấy dáng chèo)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
@@ -40,10 +42,28 @@ func _run() -> void:
 		weather.auto_change = false
 		weather.set_weather(str(args.get("weather", "clear")), true)
 
+	# Ngày: --date=YYYY-MM-DD, --lunar-day=N (nhảy tới ngày gần nhất có ngày âm N, vd. 15 = rằm)
+	var cal := scene.get_node_or_null("Calendar") as LunarCalendar
+	if cal != null:
+		if args.has("date"):
+			cal.set_date_string(str(args["date"]))
+		if args.has("lunar-day"):
+			cal.goto_lunar_day(int(args["lunar-day"]))
+
 	# Giờ đổi sau khi dân làng đã lên lịch lúc 17:00 → lên lại lịch theo giờ chụp
 	var vs0 := scene.get_node_or_null("World/Villagers") as Villagers
-	if vs0 != null and args.has("hour"):
+	if vs0 != null and (args.has("hour") or args.has("date") or args.has("lunar-day")):
 		vs0.replan()
+	var sd0 := scene.get_node_or_null("SchoolDay") as SchoolDay
+	if sd0 != null and (args.has("hour") or args.has("date") or args.has("lunar-day")):
+		await process_frame
+		sd0.replan()
+	# --settle=giây: chạy trước cho dân làng kịp đi tới nơi (tua nhanh)
+	if args.has("settle"):
+		Engine.time_scale = 4.0
+		for i in int(float(args["settle"]) * 15.0):
+			await physics_frame
+		Engine.time_scale = 1.0
 
 	# Vào trong nhà
 	var entry := scene.get_node_or_null("HouseEntry") as HouseEntry

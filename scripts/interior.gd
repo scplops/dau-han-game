@@ -746,6 +746,8 @@ func _build_classroom(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder
 	motto.modulate = Palette.FLAG_RED
 	motto.position = Vector3(0.0, p + 2.45, wall_z + 0.05)
 	add_child(motto)
+	# Chỗ cô giáo đứng giảng trên bục, cạnh bảng, nhìn xuống lớp
+	_seat(Vector3(-1.9, p + 0.2, wall_z + 0.75), "teach", "teach", ["teacher"], Vector3(0.0, p, wall_z + 4.0))
 	var td := Vector3(_len * 0.5 - 1.6, p + 0.2, wall_z + 1.0)
 	_table(mb, Vector3(1.2, 0.75, 0.6), td, Palette.WOOD, 0.05)
 	_chair(mb, td + Vector3(0, 0, -0.5), 0.0)
@@ -831,6 +833,11 @@ func _build_dinh(shell: MeshBuilder, floor_mb: MeshBuilder, mb: MeshBuilder, fla
 	var az := hz + 1.75
 	_table(mb, Vector3(2.8, 1.05, 0.9), Vector3(0.0, p, az), Palette.ALTAR_RED, 0.1)
 	_seat(Vector3(0.0, p, az + 1.0), "pray", "dinh_pray", ["elder"], Vector3(0.0, p, az))
+	# Người đi lễ mùng 1 / rằm: hai hàng đứng vái trước hương án (mục 25)
+	for wx in [-1.7, -0.85, 0.85, 1.7]:
+		_seat(Vector3(wx, p, az + 1.15), "pray", "dinh_worship", ["worship"], Vector3(wx * 0.5, p, az))
+	for wx in [-1.3, 0.0, 1.3]:
+		_seat(Vector3(wx, p, az + 2.0), "pray", "dinh_worship", ["worship"], Vector3(wx * 0.5, p, az))
 	mb.add_box(Vector3(2.6, 0.18, 0.03), Palette.GOLD, _t(0.0, p + 0.82, az + 0.45))
 	var top := p + 1.05
 	mb.add_prism(0.2, 0.24, 0.22, 10, Palette.GOLD.darkened(0.35), _t(0.0, top, az))

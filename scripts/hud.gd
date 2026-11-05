@@ -8,20 +8,22 @@ signal exit_requested
 
 @export var day_night: DayNight
 @export var weather: Weather
+@export var calendar: LunarCalendar
 @export var show_fps: bool = true
 @export var time_font_size: int = 34
 @export var text_font_size: int = 15
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    Bấm bóng: sút    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    V: nhập vai    M: bản đồ    H: ẩn / hiện"
-const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
-const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi    Shift: chạy    Space: nhảy    E / chuột trái: tương tác    V / Esc: thôi nhập vai    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    Bấm bóng: sút    P: phối cảnh / trực giao    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    V: nhập vai    M: bản đồ    H: ẩn / hiện"
+const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi    Shift: chạy    Space: nhảy    E / chuột trái: tương tác    V / Esc: thôi nhập vai    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
 const SHORTCUTS_FP_IN := "Chuột: nhìn    WASD: đi    Shift: chạy    E / chuột trái: tương tác    Esc / bước ra cửa: ra sân    V: xem kiểu nhà búp bê    [ ]: chỉnh giờ    H: ẩn / hiện"
-const SHORTCUTS_BOAT := "W / S: chèo tới / lùi    A / D: rẽ    Shift: chèo nhanh    Chuột phải: xoay    Lăn chuột: zoom    E / Esc: thôi chèo    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
-const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_BOAT := "W / S: chèo tới / lùi    A / D: rẽ    Shift: chèo nhanh    Chuột phải: xoay    Lăn chuột: zoom    E / Esc: thôi chèo    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
+const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
 
 var _time_label: Label
+var _date_label: Label
 var _info_label: Label
 var _keys_label: Label
 var _keys_panel: PanelContainer
@@ -57,6 +59,9 @@ func _ready() -> void:
 	top.add_child(box)
 	_time_label = _label(semibold, time_font_size, Palette.HUD_TEXT)
 	box.add_child(_time_label)
+	# Ngày dương + âm lịch (mục 25); ngày lễ tô vàng
+	_date_label = _label(semibold, text_font_size, Palette.HUD_TEXT)
+	box.add_child(_date_label)
 	_info_label = _label(regular, text_font_size, Palette.HUD_SUBTEXT)
 	box.add_child(_info_label)
 
@@ -152,6 +157,10 @@ func _update_text() -> void:
 	if day_night == null:
 		return
 	_time_label.text = day_night.time_text()
+	if calendar != null:
+		_date_label.text = calendar.date_text()
+		_date_label.add_theme_color_override("font_color", Palette.FLOWER_YELLOW if calendar.holiday_name() != "" else Palette.HUD_TEXT)
+	_date_label.visible = calendar != null
 	var where := ((_place if _place != "" else "Trong nhà") if _inside
 			else ("Trên đò" if _boat else (_fish_place if _fish_place != "" else ("Nhập vai" if _first_person else "Ngoài sân"))))
 	var parts: Array[String] = [where, _period_name(day_night.time_of_day)]
