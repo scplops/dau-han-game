@@ -825,6 +825,8 @@ func _try_kicks() -> void:
 		else:
 			var mate := _pass_target(p, ball2)
 			if mate != Vector2.INF and _rng.randf() < 0.4:
+				if user_team == team and mate.distance_to(_user_pos2()) < 1.5:
+					stats.pass_to_user = int(stats.pass_to_user) + 1
 				aim = mate - ball2             # chuyền
 				speed = clampf(aim.length() * 1.1 + 2.0, 5.0, 10.0)
 				lift = 0.4 if aim.length() < 9.0 else 2.0
@@ -899,7 +901,6 @@ func _pass_target(p: Dictionary, ball2: Vector2) -> Vector2:
 		var gain := (up.x - ball2.x) * dir + (2.0 if _user_free() else -3.0)
 		if gain > best_gain and up.distance_to(ball2) < 15.0:
 			best = up + Vector2(dir * 1.0, 0)
-			stats.pass_to_user = int(stats.pass_to_user) + 1
 	return best
 
 
