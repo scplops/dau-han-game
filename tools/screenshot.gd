@@ -16,6 +16,7 @@ extends SceneTree
 ##        [--date=YYYY-MM-DD] [--lunar-day=N] (ngày dương / nhảy tới ngày âm N, vd. 15 = rằm)
 ##        [--settle=giây] (chạy trước, tua nhanh, cho dân làng kịp đi tới nơi)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
+##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
 ##        xoay camera đò quanh đò; trong lúc chờ khung hình vẫn chèo để thấy dáng chèo)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
@@ -220,6 +221,40 @@ func _run() -> void:
 				if not oaq._hand.is_empty() or oaq.over:
 					break
 				await process_frame
+
+	# Trốn tìm: --hs (cùng --fp) rủ đứa trẻ gần nhất; --hs-count chụp lúc đang đếm; không có thì chờ
+	# hết đếm rồi đứng cách đứa thứ --hs-look=N khoảng 6 m (chỗ nhìn thấy được), quay về phía nó
+	var hsk := scene.get_node_or_null("HideSeek") as HideSeek
+	if hsk != null and args.has("hs") and fp != null and fp.active:
+		var vsh := scene.get_node("World/Villagers") as Villagers
+		var kid: Villager = null
+		for v in vsh.people:
+			if v.visible and v.role == "kid" and (kid == null or v.global_position.distance_to(fp.global_position) < kid.global_position.distance_to(fp.global_position)):
+				kid = v
+		if kid != null:
+			hsk.start(kid)
+			if not args.has("hs-count"):
+				Engine.time_scale = 4.0
+				for f in int((hsk.count_seconds + 0.5) * 15.0):
+					await physics_frame
+				Engine.time_scale = 1.0
+				hsk._hint_t = 9999.0
+				var hi := clampi(int(args.get("hs-look", "0")), 0, hsk.hiders.size() - 1)
+				var h := hsk.hiders[hi]
+				var sp := fp.get_world_3d().direct_space_state
+				var tgt := h.global_position + Vector3(0, 0.6, 0)
+				for k in 24:
+					var a := TAU * k / 24.0
+					var pp := h.global_position + Vector3(cos(a), 0, sin(a)) * 7.8
+					var pr := PhysicsRayQueryParameters3D.create(pp + Vector3(0, 1.6, 0), tgt, 1 << (FirstPerson.SOLID_LAYER - 1))
+					var pr2 := PhysicsRayQueryParameters3D.create(pp + Vector3(0, 1.6, 0), h.global_position + Vector3(0, 0.15, 0), 1 << (FirstPerson.SOLID_LAYER - 1))
+					if sp.intersect_ray(pr).is_empty() and sp.intersect_ray(pr2).is_empty():
+						fp.global_position = pp + Vector3(0, 0.1, 0)
+						break
+				var dd := tgt - (fp.global_position + Vector3(0, 1.6, 0))
+				fp.rotation.y = atan2(-dd.x, -dd.z) + 0.12
+				fp._pitch = atan2(dd.y, Vector2(dd.x, dd.z).length())
+				fp.camera.rotation.x = fp._pitch
 
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap

@@ -20,6 +20,7 @@ signal finished
 @export var calendar: LunarCalendar
 @export var school_day: SchoolDay
 @export var o_an_quan: OAnQuan
+@export var hide_seek: HideSeek
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
 @export var chars_per_second: float = 48.0
@@ -289,6 +290,9 @@ func _build_options() -> Array[Dictionary]:
 	# Rủ chơi ô ăn quan (mục 27) — người, không phải bản sao trong nhà đang ngủ
 	if o_an_quan != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
 		all.push_front({"key": "oaq", "text": "{Npc} chơi ô ăn quan với {me} không{a}?", "answer": _ans_oaq, "next": _oaq_next})
+	# Rủ chơi trốn tìm (mục 28) — chỉ trẻ con
+	if hide_seek != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder"]:
+		all.push_front({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
 	if calendar != null:
 		all.append({"key": "date", "text": "Hôm nay là ngày bao nhiêu âm lịch{a}?", "answer": _ans_date})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
@@ -514,6 +518,22 @@ func _ans_weather() -> String:
 		"fog": return "Sương dày quá, đi đường cẩn thận kẻo lạc sang làng bên đấy."
 		"storm": return "Giông to thế này, về nhà mau lên!"
 	return "Nắng ráo thế này thì còn lâu mới mưa. Phơi thóc được đấy."
+
+
+func _ans_hs() -> String:
+	var no := hide_seek.refusal(npc)
+	if no != "":
+		return no
+	return _pick(["Chơi! Để {self} gọi thêm mấy đứa nữa. {You} đứng đây bịt mắt đếm đến mười nhé!",
+			"Thích quá! Nhưng {you} phải đếm to lên, không được hé mắt đâu đấy!"])
+
+
+func _hs_next() -> Array[Dictionary]:
+	if hide_seek.refusal(npc) != "":
+		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
+	var v := npc
+	return [{"text": "(Bịt mắt đếm)", "end": true, "then": func() -> void: hide_seek.start(v)},
+			{"text": "Thôi, để lúc khác.", "end": true}]
 
 
 func _ans_oaq() -> String:

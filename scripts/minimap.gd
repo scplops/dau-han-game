@@ -261,8 +261,8 @@ func _draw_people() -> void:
 		return
 	var r := 2.4 if mode == Mode.SMALL else 2.0
 	for v in villagers.people:
-		if not v.visible:
-			continue
+		if not v.visible or v.has_meta("hiding"):
+			continue                       # đang trốn (trốn tìm) thì không lộ trên bản đồ
 		var col := Palette.FLOWER_YELLOW if v.role in ["kid", "herder"] else Palette.HUD_TEXT
 		draw_circle(_w2m(Vector2(v.global_position.x, v.global_position.z)), r, col.darkened(0.1))
 		if v.has_meta("quest_offer"):

@@ -26,6 +26,7 @@ const NIGHT_END := 5.2
 @export var random_seed: int = 4242
 
 @export var school_day: SchoolDay
+@export var hide_seek: HideSeek
 
 @export_group("Đi lễ đình (mùng 1, rằm)")
 ## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
@@ -93,6 +94,7 @@ const ACTIVITY_TEXT := {
 	"fishing": ["đang vác cần ra sông", "đang ngồi câu cá ở bến sông"],
 	"football": ["đang ra sân bóng", "đang xem đá bóng"],
 	"worship": ["đang ra đình lễ", "đang thắp hương ở đình"],
+	"hideseek": ["đang chạy đi trốn", "đang chơi trốn tìm"],
 }
 
 
@@ -647,6 +649,10 @@ func _arrive(v: Villager) -> void:
 		v.dwell = _rng.randf_range(worship_minutes.x, worship_minutes.y)
 		return
 	v.dwell = _rng.randf_range(45.0, 100.0) if act in ["field", "graze", "fishing", "river"] else _rng.randf_range(20.0, 50.0)
+	if act == "hideseek":
+		if hide_seek != null:
+			hide_seek.on_arrive(v)    # trốn tìm (mục 28): tới chỗ trốn / về cột
+		return
 	if act == "school" and school_day != null:
 		school_day.on_arrive(v)       # tới trường: SchoolDay cho vào lớp / ra chơi theo thời khoá biểu
 		return

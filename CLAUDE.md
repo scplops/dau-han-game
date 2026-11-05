@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -194,6 +194,7 @@ scripts/
   lunar_calendar.gd    # lịch Việt Nam: dương lịch, thứ, âm lịch, can chi, ngày lễ (mục 25)
   school_day.gd        # thời khoá biểu, học sinh làng bên, vào lớp / ra chơi / chào cờ (mục 26)
   o_an_quan.gd         # trò chơi dân gian ô ăn quan với dân làng (mục 27)
+  hide_seek.gd         # trò chơi dân gian trốn tìm với trẻ con trong làng (mục 28)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -768,4 +769,33 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   ván nào cũng dứt — thường khó thắng ~85 %, ~16 nước một ván); rủ một đứa trẻ chơi qua hội thoại →
   đi vài nước → Esc. Chụp ảnh: `--fp --focus=x,z --oaq=N [--oaq-side]` (rủ người gần nhất, đi trước
   N lượt; `--oaq-side` nhìn ngang để xem dáng ngồi).
+
+## 28. Trò chơi dân gian: Trốn tìm (giai đoạn 5b)
+
+- `scripts/hide_seek.gd` (`HideSeek`, node con CUỐI của `Main`, sau `OAnQuan` — nhận Esc trước). Người
+  chơi đi tìm, bọn trẻ đi trốn. Rủ qua hội thoại với trẻ con / trẻ chăn trâu: "Chơi trốn tìm không em?
+  {Me} đi tìm cho!" → "(Bịt mắt đếm)". `refusal(v)`: người lớn, đang học, sau 19h / trước 6h, giông,
+  đang trên đường đi học / chăn trâu thì từ chối.
+- **Người trốn** (`hider_count` 4): đứa được rủ + trẻ con rảnh trong vòng 45 m; thiếu thì "trẻ nhà bên"
+  (Villager tạm `_make_temp`, hình như trẻ con làng, chơi xong thì xoá). Chỗ người chơi đứng là cột
+  (vòng phấn `BaseMark`).
+- **Chỗ trốn** (`_find_spots`): rải ngẫu nhiên trong `spot_range` (9–28 m) quanh cột; giữ chỗ mặt đất
+  (tia lớp 4 dò từ ngang tầm người) cao ngang cột ±0,6 m (bỏ bậc cao, lòng ao / sông), không kẹt trong
+  vật (cầu 0,32 m), tia nhìn từ mắt người ở cột tới đầu người ngồi thụp (0,7 m) BỊ CHẮN, sát một vật
+  che trong 1,4 m; cách nhau ≥ 5 m. Thiếu thì lấy chỗ chỉ thoả điều kiện khuất.
+- **Đếm** (`count_seconds` 10): màn hình tối, chữ "Bịt mắt đếm… Một … Mười"; người chơi đứng yên
+  (`FirstPerson._suspend("count")`, vẫn giữ camera). Trẻ con trong làng chạy đi trốn bằng việc
+  `hideseek` (Villagers đi theo đồ thị đường, tới nơi gọi `HideSeek.on_arrive`), trẻ tạm do HideSeek
+  điều khiển. Hết đếm ai chưa tới thì đặt luôn vào chỗ. Trốn: dáng `squat`, meta `hiding` + `talking`.
+- **Tìm** (`seek_seconds` 150): đứa nào trong `spot_distance` (7 m), gần giữa tầm nhìn (cos > 0,82) và tia
+  nhìn không bị chắn là bị bắt; hoặc nhìn vào "E: Thấy rồi!" (`FirstPerson._act` → `spot`). Bị bắt thì
+  nói một câu và chạy về cột đứng reo. Cứ `hint_interval` giây có "tiếng cười khúc khích ở phía …"
+  (hướng so với chỗ đang nhìn). Người chơi xa cột hơn `escape_distance` (16 m) thì đứa đang trốn (không
+  nằm trong tầm nhìn) có thể lén chạy về **đập cột** (`escaped`); bắt được giữa đường vẫn tính.
+  Bản đồ nhỏ không vẽ người đang trốn.
+- **Hết ván** (hết giờ / bắt hết / còn lại đều đã về cột): bảng kết quả 5 s, đứa chưa tìm ra đứng dậy
+  "ở đây này!"; `stop()` gỡ meta, trả trẻ trong làng về Villagers (dwell 0), xoá trẻ tạm. Esc: thôi chơi.
+- `tools/hideseek_test.gd`: Chủ nhật 15:00 rủ một đứa trẻ → đếm → 4/4 đang trốn, khuất tầm nhìn từ cột
+  → đi tới từng đứa → bắt hết → dọn dẹp; ván hai đứng xa cột quay lưng → có đứa về đập cột → Esc.
+  Chụp ảnh: `--fp --focus=x,z --hs [--hs-count] [--hs-look=N]` (đang đếm / đứng nhìn đứa thứ N).
 

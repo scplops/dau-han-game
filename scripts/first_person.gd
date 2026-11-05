@@ -19,6 +19,7 @@ const SOLID_LAYER := 4
 @export var hud: Hud
 @export var world: Node3D
 @export var dialogue: Dialogue
+@export var hide_seek: HideSeek
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -360,6 +361,8 @@ func _update_look() -> void:
 			target = col.get_meta("villager")
 			var tv := target as Villager
 			hint = ("E: trò chuyện  ·  " if not tv.role in ["dog", "buffalo", "chicken", "duck"] else "E: gọi  ·  ") + tv.display_name
+			if tv.has_meta("hiding"):
+				hint = "E: Thấy rồi!  ·  " + tv.display_name
 		elif col != null and col.has_meta("hint"):
 			target = col
 			hint = "E: " + str(col.get_meta("hint")).split("  ·  ")[0]
@@ -379,6 +382,9 @@ func _act() -> void:
 		return
 	if _look_target is Villager:
 		var v := _look_target as Villager
+		if v.has_meta("hiding") and hide_seek != null:
+			hide_seek.spot(v)
+			return
 		if dialogue != null and dialogue.start(v, self):
 			_suspend("talk")
 		return
