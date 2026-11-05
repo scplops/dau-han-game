@@ -166,10 +166,11 @@ calendar = NodePath("../../Calendar")
 school_day = NodePath("../../SchoolDay")
 hide_seek = NodePath("../../HideSeek")
 
-[node name="Football" type="Node3D" parent="World" node_paths=PackedStringArray("village", "villagers")]
+[node name="Football" type="Node3D" parent="World" node_paths=PackedStringArray("village", "villagers", "first_person")]
 script = ExtResource("22_football")
 village = NodePath("../Village")
 villagers = NodePath("../Villagers")
+first_person = NodePath("../../FirstPerson")
 
 [node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "world_environment", "house")]
 script = ExtResource("11_daynight")

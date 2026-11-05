@@ -24,11 +24,8 @@ func _run() -> void:
 	var kicks := 0
 	var secs := float(args.get("seconds", "240"))
 	for i in int(secs * 60.0):
-		var was_restart := f._restart_timer >= 0.0
 		var v0 := f._ball_vel
 		f._step(dt)
-		if not was_restart and f._restart_timer >= 0.0:
-			outs += 1
 		if f._ball_vel.length() > v0.length() + 2.0:
 			kicks += 1
 		if f._ball_vel.length() < 0.05 and f.phase == Football.Phase.PLAY:
@@ -45,5 +42,7 @@ func _run() -> void:
 		if f.phase == Football.Phase.IDLE:
 			print("%5.1fs  hết trận" % (i * dt))
 			break
-	print("cú chạm bóng: %d, bóng ra biên: %d, bóng nằm yên khi đang đá: %.1fs" % [kicks, outs, still])
+	outs = int(f.stats.throw) + int(f.stats.goal_kick) + int(f.stats.corner)
+	print("cú chạm bóng: %d, bóng ra ngoài: %d (ném biên %d, phát bóng lên %d, phạt góc %d), phạm lỗi %d, phạt đền %d, nghỉ giữa hiệp %s, bóng nằm yên khi đang đá: %.1fs" % [
+			kicks, outs, f.stats.throw, f.stats.goal_kick, f.stats.corner, f.stats.fouls, f.stats.penalty, f.half == 2, still])
 	quit()

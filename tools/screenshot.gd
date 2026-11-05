@@ -18,6 +18,7 @@ extends SceneTree
 ##        [--race=giây | --race-result] (đua thuyền: chèo đúng nhịp tới giây đó / tới đích)
 ##        [--race-mode=team|solo] [--race-boats=N] [--race-obstacles=0|1] [--race-seed=N] [--race-setup]
 ##        [--kite=giây] (cùng --fp: thả diều mượn của đứa trẻ gần nhất)
+##        [--fb-join=N] [--fb-restart=throw|corner|free|penalty] (cùng --fp: vào đá bóng)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
@@ -324,6 +325,42 @@ func _run() -> void:
 			kf._update_ui()
 			kk.look_at(Vector3(kf._kite_pos.x, kk.global_position.y, kf._kite_pos.z), Vector3.UP, true)
 			kf.set_process(true)
+
+	# Đá bóng cùng dân làng: --fb-join=N (cùng --fp): N người ra sân, người chơi vào đội, đứng sau bóng
+	# nhìn về khung thành đối phương; --fb-restart=throw|corner|free|penalty: chờ người chơi đá lại
+	var fbj := scene.get_node_or_null("World/Football") as Football
+	if fbj != null and args.has("fb-join") and fp != null and fp.active:
+		fbj.debug_match(int(args["fb-join"]), 5.0)
+		fbj.join_user()
+		var fc := fbj.rect.get_center()
+		var team := fbj.user_team
+		var gx := fbj.rect.end.x if fbj._attack_dir(team) > 0.0 else fbj.rect.position.x
+		if args.has("fb-restart"):
+			var kind := str(args["fb-restart"])
+			var rp := Vector3(fc.x + 3.0, 0, fbj.rect.position.y + 0.1)
+			if kind == "corner":
+				rp = Vector3(gx - signf(gx - fc.x) * 0.3, 0, fbj.rect.position.y + 0.3)
+			elif kind == "free":
+				rp = Vector3(lerpf(fc.x, gx, 0.45), 0, fc.y - 2.0)
+			elif kind == "penalty":
+				rp = Vector3(gx - signf(gx - fc.x) * 5.0, 0, fc.y)
+			fbj.phase = Football.Phase.PLAY
+			fbj._begin_restart(kind, team, rp, 0.0)
+			if kind == "penalty":
+				fbj._call("Phạt đền! Bạn sút")
+			for i in 150:
+				fbj._step(1.0 / 60.0)
+		var bp := fbj.ball_position()
+		var to := Vector3(gx, 0, fc.y) - bp
+		if args.has("fb-restart") and str(args["fb-restart"]) == "throw":
+			to = Vector3(fc.x, 0, fc.y) - bp
+		to.y = 0.0
+		fp.global_position = Vector3(bp.x, fp.global_position.y, bp.z) - to.normalized() * 1.1
+		fp.rotation.y = atan2(-to.x, -to.z)
+		fp._pitch = float(args.get("fp-pitch", "-12")) * PI / 180.0
+		fp.camera.rotation.x = fp._pitch
+		fbj._apply_visuals(0.0)
+		fbj._update_overlay()
 
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap

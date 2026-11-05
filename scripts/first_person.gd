@@ -99,6 +99,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not active or _suspended != "":
 		return
+	# Đang đá bóng cùng dân làng: chuột trái giữ / thả = sút, chuột phải = chuyền, Q = gọi chuyền
+	if football != null and football.user_team >= 0 and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		var look := -camera.global_transform.basis.z
+		if event.is_action_pressed("fb_shoot"):
+			football.user_charge_start()
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_released("fb_shoot"):
+			football.user_charge_release(look)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("fb_pass"):
+			football.user_pass(look)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed("fb_call"):
+			football.user_call()
+			get_viewport().set_input_as_handled()
+			return
 	if event.is_action_pressed("exit_interior"):
 		if _inside_walk:
 			_leave_building()
@@ -372,6 +391,15 @@ func _update_look() -> void:
 				hint = "E: ngồi câu cá"
 			elif football != null and col.get_parent() == football.ball_node():
 				hint = "E / chuột trái: sút bóng"
+	# Đứng trên sân bóng (không nhìn vào gì): "E: Xin vào đá bóng"; đang đá thì không hiện gợi ý sút bóng
+	if football != null:
+		if target == null:
+			var jh := football.join_hint(global_position)
+			if jh != "":
+				target = football
+				hint = jh
+		elif football.user_team >= 0 and target is StaticBody3D and (target as Node).get_parent() == football.ball_node():
+			hint = ""
 	_look_target = target
 	if hud != null:
 		hud.set_hint(hint)
@@ -379,6 +407,9 @@ func _update_look() -> void:
 
 func _act() -> void:
 	if _look_target == null:
+		return
+	if _look_target == football:
+		football.join_user()
 		return
 	if _look_target is Villager:
 		var v := _look_target as Villager

@@ -4,7 +4,7 @@
 > Mục tiêu giai đoạn này: **chỉ dựng cảnh quan để ngắm**, CHƯA có gameplay
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
-> mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
+> mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
 > và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
@@ -145,7 +145,8 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `time_forward`, `toggle_time`, `toggle_hud`, `interact` (E), `exit_interior` (Esc),
    `cycle_weather` (R), `follow_npc` (F), `fish_reel` (Space + chuột trái),
    `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
-   `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày)),
+   `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
+   `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -484,8 +485,38 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   đội hình `FORMATION` trượt theo bóng; đội từ 4 người có thủ môn. Cú chạm: trong tầm 14 m thì
   sút (đôi khi chệch cột), không thì chuyền cho đồng đội phía trên hoặc dẫn bóng lách đối phương;
   sau mỗi cú chạm có nhịp 0,3 s (`_touch_gap`) để hai bên không đá qua đá lại tại chỗ.
+- **Luật** (giai đoạn 5e, `Phase`: KICKOFF, PLAY, GOAL, RESTART, HALFTIME, FULLTIME): trận `match_length` chia
+  **2 hiệp**, nghỉ `halftime_seconds` rồi **đổi sân** (`half`, `_attack_dir` đảo dấu ở hiệp 2 — bàn thắng tính theo
+  đội tấn công về phía khung thành đó, không theo đầu sân); hiệp 2 đội kia giao bóng. Giao bóng: đội không giao đứng
+  ngoài vòng tròn giữa sân. Bóng ra ngoài (`_ball_out`, theo `_last_team` — đội chạm cuối): qua biên dọc → **ném
+  biên** cho đội kia tại chỗ bóng ra; qua vạch cuối → đội nhà chạm cuối thì **phạt góc**, đội tấn công chạm cuối
+  thì **phát bóng lên** (thủ môn đá). Tranh bóng khi đối phương đang giữ bóng (trong 1 m) có `foul_chance` thành
+  **phạm lỗi** → **đá phạt** tại chỗ; phạm lỗi trong vòng cấm nhà (3 × 7 m) → **phạt đền** ở chấm 5 m: thủ môn về
+  giữa khung, mọi người ra sau vạch chờ cách chấm 4 m (`_line_up_penalty`), cản hay không quyết định lúc sút
+  (`_decide_penalty_save`: `penalty_save`, sút càng sát cột càng khó cản, không có thủ môn thì rất khó cản) và 0,7 s
+  sau cú sút không ai được chạm bóng (không thì thủ môn chạy ra đá bóng như lúc chơi thường — đã gặp: 4/6 quả
+  "bị cản" ngoài ý muốn). **Đá lại** (`_restart`: kind, team, pos, taker, placed): chờ `restart_delay`, đặt bóng,
+  bóng nằm yên; người đá (`_pick_taker`, chọn SAU khi đã có `pos`) chạy tới rồi đá; đối phương cách 3 m (đá phạt 4 m),
+  ai ở xa chỗ đứng > 1 m thì chạy. Hết giờ: bảng "Hết giờ! … thắng / Hoà" 6 s rồi tản đi. Trọng tài hô bằng chữ
+  trên sân (`_call_label`) + dòng vàng trên bảng tỉ số. Đá làng không có việt vị. `stats` đếm từng loại.
+- **Người nhập vai vào đá** (`user_team`, không nằm trong `players`): đứng trên sân / mép sân (không nhìn vào gì) →
+  "E: Xin vào đá bóng" (`join_hint`, `FirstPerson._update_look` / `_act` → `join_user`) → vào đội ít người hơn; ít
+  hơn 5 người máy thì gọi trẻ con / đàn ông đang rảnh trong 170 m ra sân (`_gather` → `Villagers._next_activity(v,
+  "football")`; tối / giông thì không gọi được — tập sút một mình). Phím mới trong Input Map: `fb_shoot` (chuột trái
+  / J — giữ lấy lực `user_charge_time`, thả để sút `user_shot_speed`, nhìn lên thì bóng bổng; ném biên thì ném bằng
+  tay), `fb_pass` (chuột phải / K — chuyền cho đồng đội gần hướng nhìn nhất), `fb_call` (Q — "Chuyền đây!": đồng đội
+  có bóng chuyền tới trước chân người chơi nếu người chơi không bị kèm). Chỉ chạm bóng trong `user_reach`; lúc chờ
+  đá lại chỉ người được giao (người chơi được ưu tiên nếu gần ngang người máy, phạt đền thì luôn là người chơi).
+  Máy coi người chơi như cầu thủ: đồng đội không tranh bóng khi người chơi gần bóng hơn, chuyền cho người chơi, đối
+  phương lách / tranh bóng / phạm lỗi với người chơi. Người chơi chạy (> 4,2 m/s) xô vào đối phương đang giữ bóng là
+  phạm lỗi. Rời đội: thôi nhập vai, làm việc khác, ra xa sân 8 m. Bảng tỉ số riêng (trên giữa màn hình): tỉ số,
+  hiệp, đồng hồ, đội của bạn, khung thành đối phương ở phía nào (so với hướng nhìn), việc cần làm, thanh lực sút.
+- `tools/football_join_test.gd`: 7 tình huống luật (ném biên, phạt góc, phát bóng lên do thủ môn, đá phạt, phạt
+  đền ở chấm 5 m, bàn hiệp 2 đúng đội); một trận máy đấu máy (thường 4–9 bàn, ~5 ném biên, 2–4 phát bóng lên, 1–5
+  phạt góc, 1–5 phạm lỗi, có nghỉ giữa hiệp, hết giờ, tản đi); người nhập vai xin vào → gọi người → sút (~20 lần
+  chạm, vài bàn) → gọi chuyền → ném biên → 6 quả phạt đền → thôi nhập vai thì rời đội.
 - Chụp ảnh: `--football=<số người>` đưa người ra sân đá ngay (chạy trước 6 s), camera nhìn vào
-  sân. `tools/football_test.gd -- --players=12 --seconds=240` mô phỏng một trận không giao diện,
+  sân; `--fp --focus=-47,-145 --fb-join=N [--fb-restart=throw|corner|free|penalty]` vào đá cùng N người. `tools/football_test.gd -- --players=12 --seconds=240` mô phỏng một trận không giao diện,
   in bàn thắng / số lần chạm bóng / bóng ra biên (thường 4–7 bàn, ~150 lần chạm, ~10 lần ra biên
   mỗi 4 phút). Bóng chỉ mất đà khi rơi xuống thật mạnh (`vel.y < -1.5`): nếu trừ đà mỗi khi
   `vel.y < 0` thì lúc lăn (trọng lực kéo nhẹ mỗi khung) bóng mất 20 % tốc độ mỗi khung và khựng lại.
