@@ -16,6 +16,7 @@ extends SceneTree
 ##        [--date=YYYY-MM-DD] [--lunar-day=N] (ngày dương / nhảy tới ngày âm N, vd. 15 = rằm)
 ##        [--settle=giây] (chạy trước, tua nhanh, cho dân làng kịp đi tới nơi)
 ##        [--race=giây | --race-result] (đua thuyền: chèo đúng nhịp tới giây đó / tới đích)
+##        [--race-mode=team|solo] [--race-boats=N] [--race-obstacles=0|1] [--race-seed=N] [--race-setup]
 ##        [--kite=giây] (cùng --fp: thả diều mượn của đứa trẻ gần nhất)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
@@ -262,8 +263,15 @@ func _run() -> void:
 	# --race-result (chèo tới đích, chụp bảng kết quả)
 	var race := scene.get_node_or_null("BoatRace") as BoatRace
 	var racing := false
-	if race != null and (args.has("race") or args.has("race-result")):
+	if race != null and args.has("race-setup"):
 		race.start()
+		if str(args.get("race-mode", "team")) == "solo":
+			race._use_mode("solo", int(args.get("race-boats", "6")))
+		race._update_setup()
+		race._update_camera(1.0)
+	if race != null and (args.has("race") or args.has("race-result")):
+		race._rng.seed = int(args.get("race-seed", "500"))
+		race.begin(str(args.get("race-mode", "team")), int(args.get("race-boats", "4")), str(args.get("race-obstacles", "1")) != "0")
 		race.set_process(false)
 		var secs := 999.0 if args.has("race-result") else float(args.get("race", "0"))
 		if secs > 0.0:
@@ -271,7 +279,7 @@ func _run() -> void:
 			var tt := 0.0
 			while tt < secs and race.phase == BoatRace.Phase.RACE:
 				var b0: Dictionary = race.boats[0]
-				race.step(1.0 / 60.0, true, clampf((0.12 * (float(b0.lat) - race._lane(0)) - float(b0.head)) * 3.0, -1.0, 1.0))
+				race.step(1.0 / 60.0, true, clampf((0.3 * (float(b0.lat) - race.ai_target_lat(b0, 0)) - float(b0.head)) * 3.0, -1.0, 1.0))
 				if fmod(race._beat_t, race.beat_period) < 1.0 / 60.0:
 					race.press_beat()
 				tt += 1.0 / 60.0
@@ -279,6 +287,8 @@ func _run() -> void:
 			race._big.text = "3"
 		for b in race.boats:
 			race._place(b, race._clock)
+		for o in race.obstacles:
+			race._place_obstacle(o)
 		race._update_camera(1.0)
 		race._update_ui()
 		racing = true
@@ -330,6 +340,8 @@ func _run() -> void:
 			race.step(1.0 / 60.0, true, 0.0)
 			for b in race.boats:
 				race._place(b, race._clock)
+			for o in race.obstacles:
+				race._place_obstacle(o)
 			race._update_camera(1.0 / 60.0)
 			race._update_ui()
 		# Đưa chuột lên cửa để kiểm tra viền sáng + gợi ý

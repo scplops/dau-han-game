@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền, mục 30: thả diều) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -825,11 +825,32 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - **Diễn biến:** đếm ngược 3-2-1 "Bắt đầu!" → đua (thanh trên: m đã đi, hạng, giờ; góc dưới trái: thanh sức,
   thước nhịp có chấm chạy và vùng vàng) → về đích: bảng xếp hạng (thời gian / "còn N m") → E / Esc về bến.
   Esc giữa chừng là bỏ cuộc. Camera riêng `RaceCam` bám sau đuôi (mũi thuyền hướng +z cục bộ).
+- **Bảng chọn** (bấm bến → `Phase.SETUP`): 1 thuyền rồng / 2 thuyền đơn, A / D số thuyền đơn (2…`max_solo_boats` 10),
+  3 bật / tắt chướng ngại, E bắt đầu (`begin(mode, count, obstacles)`), Esc thôi; có cả nút bấm chuột.
+- **Thuyền đơn** (`_make_solo_boat`, `solo_boats`): thuyền nhỏ 3,4 m, một người chèo mái đơn đổi bên theo nhịp,
+  10 màu (`SOLO_COLORS`), tên `SOLO_NAMES` ("Bạn", "Anh Tú"…). Mọi tốc độ × `solo_speed_scale` (0,8); máy chênh
+  nhau nhiều hơn thuyền rồng (có người sát nút). Mỗi thuyền một từ điển trạng thái (`_boat_state`: `half_len`,
+  `beam`, `scale`, `solo`, `hits`…); `boats` trỏ tới bộ đang đua, thuyền không dùng thì ẩn.
+- **Làn** `_lane(i, s)`: dàn đều theo số thuyền và CO LẠI theo bề rộng sông tại `s` — làn cố định theo chỗ rộng
+  thì tới khúc hẹp làn ngoài cùng sát bờ, thuyền va bờ mãi (đã gặp: thuyền đơn chậm hẳn ở mét 240).
+- **Chướng ngại vật** (`_build_obstacles`, `obstacle_count` 12, rải lại mỗi cuộc đua từ mét 40 tới cách đích 20 m,
+  toạ độ đua `d` + `lat`, hộp `hs` × `hl`): **khúc gỗ trôi** dạt qua lại (`base` + `amp`·sin) — va mất đà còn
+  `log_hit_keep`; **đám bèo tây** — trong bèo chỉ còn `weed_slow` tốc độ ("Vướng bèo!"); **hàng cọc đăng** có lưới,
+  cờ đỏ ở đầu phía lòng sông, chắn 35–50 % bề ngang từ một bờ (hai hàng liền nhau đổi bờ) — va gần như đứng lại
+  (`stakes_hit_keep`) và bị chặn như tường, phải lái vòng. Va cứng tính một lần mỗi lần chạm (`touching`), đẩy ra
+  theo phía chồng ít hơn. Dòng đỏ "Phía trước: … (A / D để né)" khi có chướng ngại trên đường trong 30 m.
+- **Máy né** (`ai_target_lat`): mọi chướng ngại trong `ai_look_ahead` m chặn một khoảng ngang; chọn điểm trống gần
+  làn mình + chỗ đang đi nhất, hết chỗ thì bỏ cái xa nhất. (Né từng cái một thì né cái sau lại lao vào hàng cọc
+  vừa né — đã gặp kẹt.) Mỗi chướng ngại có `ai_miss_chance` máy "không kịp né": chỉ thấy khi còn ~2,5 m, va rồi
+  lách ra (bỏ qua hẳn thì kẹt sau hàng cọc mãi).
 - `step(delta, rowing, steer)` tách riêng cho bài thử. `tools/boat_race_test.gd` mô phỏng cả cuộc đua với
   từng cách chơi: không chèo (không về), giữ W suốt (~62 s, hạng 4), gõ trúng mọi nhịp (~48 s, nhất),
   trúng 70 % nhịp (~49 s), gõ bừa (~56 s, hạng 4); máy về 51–56 s. Thử lái đâm bờ (không vượt mép, vẫn đi
-  được), vào từ nhập vai → Esc.
-- Chụp ảnh: `--race=giây` (0 = đếm ngược; chèo đúng nhịp tới giây đó), `--race-result`.
+  được), vào từ nhập vai → Esc. Thêm: thuyền rồng có chướng ngại × 5 lần rải (trúng nhịp + né: nhất, ~49 s, va
+  ~0,4 lần; chỉ giữ làn: kẹt sau cọc đăng), thuyền đơn 10 thuyền (làn khe ≥ 1,9 m; trúng nhịp + né: hạng 1–5,
+  ~64 s; giữ W: bét; máy va ~0,7 lần / thuyền, thuyền máy nào cũng về đích), 2 thuyền, bảng chọn qua phím.
+- Chụp ảnh: `--race=giây` (0 = đếm ngược; chèo đúng nhịp tới giây đó), `--race-result`, `--race-setup`,
+  `--race-mode=team|solo`, `--race-boats=N`, `--race-obstacles=0|1`, `--race-seed=N`.
 
 ## 30. Trò chơi dân gian: Thả diều (giai đoạn 5d)
 
