@@ -30,6 +30,7 @@
 [ext_resource type="Script" path="res://scripts/boat_ride.gd" id="28_boat"]
 [ext_resource type="Script" path="res://scripts/lunar_calendar.gd" id="29_calendar"]
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
+[ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -237,7 +238,7 @@ outdoor_rig = NodePath("../CameraRig")
 dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 
-[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day")]
+[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan")]
 script = ExtResource("24_dialogue")
 villagers = NodePath("../World/Villagers")
 day_night = NodePath("../DayNight")
@@ -247,6 +248,7 @@ fishing = NodePath("../Fishing")
 quests = NodePath("../Quests")
 calendar = NodePath("../Calendar")
 school_day = NodePath("../SchoolDay")
+o_an_quan = NodePath("../OAnQuan")
 
 [node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue")]
 script = ExtResource("23_fp")
@@ -283,3 +285,9 @@ outdoor_rig = NodePath("../../CameraRig")
 house_entry = NodePath("../../HouseEntry")
 boat_ride = NodePath("../../BoatRide")
 school_day = NodePath("../../SchoolDay")
+
+[node name="OAnQuan" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "dialogue", "hud")]
+script = ExtResource("31_oaq")
+first_person = NodePath("../FirstPerson")
+dialogue = NodePath("../Dialogue")
+hud = NodePath("../HUD")

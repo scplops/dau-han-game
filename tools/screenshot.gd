@@ -15,6 +15,7 @@ extends SceneTree
 ##        khi đó tính so với hướng mũi đò)
 ##        [--date=YYYY-MM-DD] [--lunar-day=N] (ngày dương / nhảy tới ngày âm N, vd. 15 = rằm)
 ##        [--settle=giây] (chạy trước, tua nhanh, cho dân làng kịp đi tới nơi)
+##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
 ##        xoay camera đò quanh đò; trong lúc chờ khung hình vẫn chèo để thấy dáng chèo)
 ##        [--inside] (chụp trong nhà mình) [--enter=dinh|pagoda|house_N] [--hover] (rê chuột lên cửa)
@@ -187,6 +188,38 @@ func _run() -> void:
 			br._cam_yaw = deg_to_rad(float(args["boat-cam"]))
 		br._cam.global_position = br._cam_target()
 		rowing = true
+
+	# Ô ăn quan: --oaq=N (cùng --fp): rủ người gần nhất chơi, đi trước N lượt (tự chọn nước)
+	var oaq := scene.get_node_or_null("OAnQuan") as OAnQuan
+	if oaq != null and args.has("oaq") and fp != null and fp.active:
+		var vsq := scene.get_node("World/Villagers") as Villagers
+		var best: Villager = null
+		for v in vsq.people:
+			if v.visible and v.role in ["kid", "elder"] and (best == null or v.global_position.distance_to(fp.global_position) < best.global_position.distance_to(fp.global_position)):
+				best = v
+		if best != null:
+			best.state = Villager.State.IDLE
+			oaq.start(best)
+			print("Ô ăn quan với ", best.display_name, " · việc ", best.activity, " · ở trường ", best.has_meta("at_school"))
+			for k in int(args["oaq"]):
+				for f in 3000:
+					if oaq.over or (oaq.turn == OAnQuan.PLAYER and not oaq._busy and oaq._queue.is_empty()):
+						break
+					await process_frame
+				if oaq.over:
+					break
+				var m := oaq.ai_move(oaq.st, OAnQuan.PLAYER)
+				oaq._do_move(m.x, m.y)
+			# --oaq-side: camera nhìn ngang từ bên hông bàn (kiểm tra dáng ngồi)
+			if args.has("oaq-side"):
+				var bx := oaq._board.global_transform
+				oaq._cam.global_position = bx.origin + bx.basis.x * 2.6 + Vector3(0, 0.9, 0)
+				oaq._cam.look_at(bx.origin + Vector3(0, 0.3, 0), Vector3.UP)
+			# Chụp giữa lúc đang rải (còn sỏi trên tay)
+			for f in (3000 if int(args["oaq"]) > 0 else 0):
+				if not oaq._hand.is_empty() or oaq.over:
+					break
+				await process_frame
 
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap

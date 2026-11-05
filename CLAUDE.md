@@ -5,7 +5,8 @@
 > (không di chuyển nhân vật, không túi đồ, không nhiệm vụ).
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
-> **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20) và **lên đò, chèo đò trên sông** (mục 24) — chưa có túi đồ đầy đủ,
+> **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
+> và **trò chơi dân gian** (mục 27: ô ăn quan) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -192,6 +193,7 @@ scripts/
   boat_ride.gd         # lên đò, chèo đò trên sông, lên bờ (mục 24)
   lunar_calendar.gd    # lịch Việt Nam: dương lịch, thứ, âm lịch, can chi, ngày lễ (mục 25)
   school_day.gd        # thời khoá biểu, học sinh làng bên, vào lớp / ra chơi / chào cờ (mục 26)
+  o_an_quan.gd         # trò chơi dân gian ô ăn quan với dân làng (mục 27)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -245,7 +247,7 @@ screenshots/           # ảnh chụp, không commit
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
 - Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện,
-  việc nhờ, chèo đò); túi đồ đầy đủ, lưu game vẫn để giai đoạn sau.
+  việc nhờ, chèo đò, trò chơi dân gian); túi đồ đầy đủ, lưu game vẫn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
@@ -732,4 +734,38 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - `tools/school_calendar_test.gd`: thứ Hai 6:12 → 12:00 (đếm học sinh hiện / trong lớp / quanh cột
   cờ, trẻ trong làng ở trường), vào lớp lúc 8:00 (số em ngồi học + cô giáo), Chủ nhật (vắng),
   ngày thường và ngày rằm lúc 7:00 (số người đi lễ, cờ hội, người vái trong đình).
+
+## 27. Trò chơi dân gian: Ô ăn quan (giai đoạn 5a)
+
+- `scripts/o_an_quan.gd` (`OAnQuan`, node con CUỐI của `Main` — nhận Esc trước các phần khác).
+  Vào ván qua hội thoại (nhập vai): câu "{Npc} chơi ô ăn quan với {me} không?" (trẻ con, trẻ chăn
+  trâu, cụ già, nông dân, người gánh hàng — không phải bản sao trong nhà). `OAnQuan.refusal(v)` cho lời
+  từ chối khi người đó đang học, đang dở việc (ra đồng, đi lễ…). Đồng ý → lựa chọn "(Ngồi xuống chơi)"
+  (option `end` + `then` Callable — Dialogue gọi sau khi khép khung thoại) → `start(v)`.
+- **Bày bàn:** bàn kẻ phấn trên mảnh đất nện (`Board`, top_level) ở giữa người chơi và đối thủ, mặt đất
+  dò bằng tia lớp 4; đối thủ ngồi xổm (dáng mới `squat` — gối gập sâu, hông sát đất, tay với ra bàn)
+  phía bên kia, meta `talking` + `playing_oaq` (Villagers / SchoolDay đứng yên). Người chơi nhường
+  camera (`FirstPerson._suspend("game")`); camera riêng nhìn chéo từ sau lưng người chơi; HUD ẩn, giao
+  diện riêng: tên + điểm hai bên, lượt, nút "◀ Rải sang trái (A)" / "Rải sang phải (D) ▶".
+- **Luật** (hàm tĩnh thuần dữ liệu: `play`, `refill`, `collect`, `is_over`, `amount`): vòng 12 ô —
+  0 quan trái, 1…5 người chơi (trái → phải), 6 quan phải, 7…11 đối thủ. Mỗi ô dân `stones_per_square`
+  (5) sỏi, quan `quan_value` (10) điểm. Rải từng viên (qua cả ô quan); ô kế có sỏi → bốc rải tiếp; ô kế
+  trống mà ô sau có → ăn, cách một ô trống ăn tiếp; ô kế là ô quan → mất lượt. Luật **quan non**
+  (`quan_non` 5): ô quan còn viên quan mà ít hơn 5 sỏi dân thì chưa được ăn. Hàng mình hết sỏi → lấy
+  5 viên đã ăn rải lại (`refill`), không đủ thì thua (bên kia thu hết). Hết hai quan → thu quân.
+  **Trạng thái dùng `Array` (kiểu tham chiếu), KHÔNG dùng `PackedInt32Array`**: gán packed array sang
+  biến khác rồi sửa là sửa bản sao (đã gặp: rải không đổi số sỏi, tổng điểm lệch).
+- **Máy** (`ai_move`): chọn nước ăn nhiều nhất; chơi khó (cụ già, nửa số người lớn) trừ 0,9 × nước đáp
+  trả tốt nhất của người chơi; chơi dễ (trẻ con) cộng nhiễu lớn.
+- **Diễn hoạt:** mỗi nước sinh chuỗi sự kiện `pick` / `drop` / `take` / `give` / `end_turn` / `over`,
+  chạy lần lượt mỗi `sow_step` giây: sỏi bay lên tay, rơi từng viên vào ô, ô bị ăn bay về đống sỏi
+  của bên ăn; số sỏi mỗi ô (`Label3D`, ô quan "Q+n"), ô đang chọn tô vàng. Đối thủ nói câu ngắn (bark,
+  `Dialogue.fill_for` điền xưng hô) khi ăn quan / thắng / thua.
+- **Điều khiển:** bấm ô (hoặc W / S) chọn ô, A / D hoặc nút để rải, Esc thôi chơi; hết ván: E chơi
+  ván nữa.
+- `tools/oaq_test.gd`: 7 thế cờ dựng sẵn (ăn, ăn liên tiếp tới quan, quan non, gặp ô quan mất lượt, bốc
+  rải tiếp, rải qua ô quan, rải lại khi hết hàng); 200 ván máy dễ đấu máy khó (bảo toàn tổng điểm,
+  ván nào cũng dứt — thường khó thắng ~85 %, ~16 nước một ván); rủ một đứa trẻ chơi qua hội thoại →
+  đi vài nước → Esc. Chụp ảnh: `--fp --focus=x,z --oaq=N [--oaq-side]` (rủ người gần nhất, đi trước
+  N lượt; `--oaq-side` nhìn ngang để xem dáng ngồi).
 

@@ -672,6 +672,25 @@ func _animate(delta: float) -> void:
 						elbows[0].rotation.x = -1.6
 						elbows[1].rotation.x = -1.6
 						body.rotation.x = 0.35 * maxf(0.0, sin(t2 * 0.6))
+		"squat":
+			# Ngồi xổm sát đất chơi ô ăn quan: gối gập sâu, hông hạ thấp, tay đưa ra trước bốc sỏi
+			if legs.size() == 2:
+				legs[0].rotation.x = lerpf(swing, -1.75, idle)
+				legs[1].rotation.x = lerpf(-swing, -1.75, idle)
+			if knees.size() == 2:
+				knees[0].rotation.x = lerpf(knees[0].rotation.x, 2.35, idle)
+				knees[1].rotation.x = lerpf(knees[1].rotation.x, 2.35, idle)
+			if not legs.is_empty():
+				body.position.y -= idle * legs[0].position.y * 0.78
+			body.rotation.x = 0.28 * idle
+			var reach := 0.5 + 0.5 * sin(_work_time * 1.1)
+			if arms.size() == 2:
+				arms[0].rotation.x = -0.75 - 0.15 * reach
+				arms[1].rotation.x = -0.6 - 0.45 * reach
+				arms[0].rotation.z = 0.15
+				arms[1].rotation.z = -0.15
+			for e in elbows:
+				e.rotation.x = -0.35
 		"teach":
 			# Cô giáo đứng giảng: tay phải giơ chỉ lên bảng theo nhịp, thân xoay nhẹ
 			var k := 0.5 + 0.5 * sin(_work_time * 0.7)

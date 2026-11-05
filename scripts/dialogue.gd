@@ -19,6 +19,7 @@ signal finished
 @export var quests: Quests
 @export var calendar: LunarCalendar
 @export var school_day: SchoolDay
+@export var o_an_quan: OAnQuan
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
 @export var chars_per_second: float = 48.0
@@ -246,7 +247,10 @@ func _choose(i: int) -> void:
 		_options = [{"text": "(Đi tiếp)", "end": true}]
 		return
 	if o.get("end", false):
+		var then: Variant = o.get("then", null)
 		end()
+		if then is Callable:
+			(then as Callable).call()
 		return
 	var text: String = (o.answer as Callable).call()
 	if o.has("next"):
@@ -282,6 +286,9 @@ func _build_options() -> Array[Dictionary]:
 		all.append({"key": "catch", "text": "{Npc} xem giỏ cá {me} câu được này!", "answer": _ans_catch})
 	if football != null and football.phase != Football.Phase.IDLE and v.role != "kid":
 		all.append({"key": "match", "text": "Trận bóng thế nào rồi{a}?", "answer": _ans_match})
+	# Rủ chơi ô ăn quan (mục 27) — người, không phải bản sao trong nhà đang ngủ
+	if o_an_quan != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
+		all.push_front({"key": "oaq", "text": "{Npc} chơi ô ăn quan với {me} không{a}?", "answer": _ans_oaq, "next": _oaq_next})
 	if calendar != null:
 		all.append({"key": "date", "text": "Hôm nay là ngày bao nhiêu âm lịch{a}?", "answer": _ans_date})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
@@ -507,6 +514,34 @@ func _ans_weather() -> String:
 		"fog": return "Sương dày quá, đi đường cẩn thận kẻo lạc sang làng bên đấy."
 		"storm": return "Giông to thế này, về nhà mau lên!"
 	return "Nắng ráo thế này thì còn lâu mới mưa. Phơi thóc được đấy."
+
+
+func _ans_oaq() -> String:
+	var no := OAnQuan.refusal(npc)
+	if no != "":
+		return no
+	if npc.role in ["kid", "herder"]:
+		return _pick(["Chơi! Chơi! Để {self} kẻ ô, {you} đi nhặt sỏi đi!", "Thích quá! {Self} chơi ô ăn quan giỏi lắm đấy nhé."])
+	if npc.role == "elder":
+		return _pick(["Ô ăn quan à? Ngày bé {self} chơi suốt. Được, ngồi xuống đây.", "Ừ, chơi một ván cho vui. Đừng tưởng {self} già mà dễ thắng nhé!"])
+	return _pick(["Ừ, nghỉ tay chơi một ván.", "Lâu lắm rồi không chơi, được, chơi một ván!"])
+
+
+func _oaq_next() -> Array[Dictionary]:
+	if OAnQuan.refusal(npc) != "":
+		return [{"text": "Vâng, để lúc khác vậy{a}.", "end": true}]
+	var v := npc
+	return [{"text": "(Ngồi xuống chơi)", "end": true, "then": func() -> void: o_an_quan.start(v)},
+			{"text": "Thôi, để lúc khác{a}.", "end": true}]
+
+
+## Điền xưng hô theo người `v` (dùng cho lời nói ngoài khung thoại, vd. lúc chơi ô ăn quan).
+func fill_for(v: Villager, text: String) -> String:
+	var keep := npc
+	npc = v
+	var out := _fill(text)
+	npc = keep
+	return out
 
 
 func _ans_date() -> String:
