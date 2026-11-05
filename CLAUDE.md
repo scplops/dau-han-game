@@ -123,7 +123,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
      chuyển giữa: sáng sớm (hồng nhạt), trưa (trắng ấm), chiều (cam vàng),
      đêm (xanh tím đậm, ánh sáng yếu).
    - Phím `[` / `]`: lùi / tiến giờ. Phím `T`: bật/tắt tự chạy thời gian
-     (1 ngày = 2 phút). Mặc định khởi động lúc **17:00**.
+     (1 ngày = 8 phút, `day_length_seconds`). Mặc định khởi động lúc **17:00**.
    - Ban đêm: bật `OmniLight3D` vàng ấm ở cửa sổ nhà, vài đom đóm (`GPUParticles3D`).
    - Ánh sáng ambient ban đêm có mức tối thiểu (`@export`) để cảnh vẫn nhìn rõ.
 3. **Gió** (`shaders/wind_sway.gdshader`)

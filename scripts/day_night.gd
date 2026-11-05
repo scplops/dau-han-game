@@ -16,7 +16,7 @@ signal day_rolled(days: int)
 @export_range(0.0, 24.0, 0.01) var time_of_day: float = 17.0:
 	set = set_time_of_day
 @export var auto_run: bool = false
-@export var day_length_seconds: float = 120.0     # 1 ngày = 2 phút
+@export var day_length_seconds: float = 480.0     # 1 ngày = 8 phút
 @export var key_hours_per_second: float = 3.0     # tốc độ khi giữ [ hoặc ]
 
 @export_group("Mặt trời & mặt trăng")
