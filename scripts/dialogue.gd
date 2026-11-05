@@ -21,6 +21,7 @@ signal finished
 @export var school_day: SchoolDay
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
+@export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
 @export var chars_per_second: float = 48.0
@@ -293,6 +294,9 @@ func _build_options() -> Array[Dictionary]:
 	# Rủ chơi trốn tìm (mục 28) — chỉ trẻ con
 	if hide_seek != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder"]:
 		all.push_front({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
+	# Mượn diều thả (mục 30) — chỉ trẻ con
+	if kite != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder"]:
+		all.push_front({"key": "kite", "text": "Cho {me} mượn con diều thả với!", "answer": _ans_kite, "next": _kite_next})
 	if calendar != null:
 		all.append({"key": "date", "text": "Hôm nay là ngày bao nhiêu âm lịch{a}?", "answer": _ans_date})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
@@ -534,6 +538,26 @@ func _hs_next() -> Array[Dictionary]:
 	var v := npc
 	return [{"text": "(Bịt mắt đếm)", "end": true, "then": func() -> void: hide_seek.start(v)},
 			{"text": "Thôi, để lúc khác.", "end": true}]
+
+
+func _ans_kite() -> String:
+	var no := kite.refusal(npc, _player_pos())
+	if no != "":
+		return no
+	return _pick(["Đây, diều {self} mới dán đấy! Gió lên thì giật dây, gió to thì thả dây ra nhé.",
+			"Cho {you} mượn này. Cẩn thận kẻo đứt dây, diều bay mất là {self} khóc đấy!"])
+
+
+func _kite_next() -> Array[Dictionary]:
+	if kite.refusal(npc, _player_pos()) != "":
+		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
+	var v := npc
+	return [{"text": "(Thả diều)", "end": true, "then": func() -> void: kite.start(v)},
+			{"text": "Thôi, để lúc khác.", "end": true}]
+
+
+func _player_pos() -> Vector3:
+	return _player.global_position if _player != null else Vector3.INF
 
 
 func _ans_oaq() -> String:

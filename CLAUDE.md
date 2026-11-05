@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền, mục 30: thả diều) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -195,6 +195,8 @@ scripts/
   school_day.gd        # thời khoá biểu, học sinh làng bên, vào lớp / ra chơi / chào cờ (mục 26)
   o_an_quan.gd         # trò chơi dân gian ô ăn quan với dân làng (mục 27)
   hide_seek.gd         # trò chơi dân gian trốn tìm với trẻ con trong làng (mục 28)
+  boat_race.gd         # trò chơi dân gian đua thuyền trên sông (mục 29)
+  kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -798,4 +800,64 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - `tools/hideseek_test.gd`: Chủ nhật 15:00 rủ một đứa trẻ → đếm → 4/4 đang trốn, khuất tầm nhìn từ cột
   → đi tới từng đứa → bắt hết → dọn dẹp; ván hai đứng xa cột quay lưng → có đứa về đập cột → Esc.
   Chụp ảnh: `--fp --focus=x,z --hs [--hs-count] [--hs-look=N]` (đang đếm / đứng nhìn đứa thứ N).
+
+## 29. Trò chơi dân gian: Đua thuyền (giai đoạn 5c)
+
+- `scripts/boat_race.gd` (`BoatRace`, node con CUỐI của `Main`, sau `HideSeek`). **Bến đua** trên đê cạnh bến
+  sông `station_landing` (2 = bến bắc): cột tre cắm cờ ba màu, trống cái trên giá, biển "ĐUA THUYỀN"; vùng bấm
+  "Đua thuyền" (lớp 2, meta `activate` — ngắm cảnh bấm chuột, nhập vai nhìn vào + E). Nhập vai thì
+  `FirstPerson._suspend("race")`; thôi đua thì đứng lại trước bến (hoặc camera ngắm cảnh đặt tâm vào bến).
+- **Đường đua** `course_length` (300 m) dọc sông, bắt đầu cách bến 25 m, đi về phía đầu sông còn đủ dài
+  (`dir` ±1). Cổng "XUẤT PHÁT" / "ĐÍCH" (cột tre, dây, băng rôn đỏ, chữ hai mặt nhô khỏi băng rôn) và phao
+  báo khoảng cách mỗi 50 m; chỉ hiện khi đang đua (`Course`).
+- **Thuyền đua:** 4 thuyền dài 6,4 m sơn màu đội (`TEAM_COLORS`: Đỏ — người chơi, Xanh xóm Đông, Vàng xóm
+  Đoài, Lục xóm Chợ), mũi rồng thếp vàng, 4 tay chèo (mái chèo là node `Paddle*` quạt theo tốc độ, gợn nước
+  `River.splash` ở đuôi). Lúc chưa đua thì neo ở vạch xuất phát. Không có va chạm với nhập vai.
+- **Toạ độ đua:** `s` (dọc tim sông, `River.sample`), `lat` (lệch ngang), `head` (góc mũi so với chiều
+  đua) — khúc cong tự theo sông, người chơi chỉ lái giữ làn (`_lane(i)`). Chạm bờ: kẹp trong
+  `half_width - 1.4`, mất đà theo mức mũi đâm vào bờ, chỉ tính một lần mỗi lần va (meta `touch`) — trừ đà
+  mỗi khung thì thuyền dính bờ đứng im. Hai thuyền chồng nhau thì đẩy ra hai bên, cùng chậm lại.
+- **Chèo:** giữ W (`cam_forward`) → `row_speed` 6,4 m/s, tốn sức `stamina_drain`/s, thả ra hồi
+  `stamina_regen`; hết sức chỉ còn `tired_speed`. Space / chuột trái (`fish_reel`) đúng nhịp trống
+  (`beat_period` 0,72 s, ±`beat_window`) → "Đều tay! ×n": cộng `beat_boost` (tăng theo chuỗi, trần
+  `boost_cap`, giảm dần), hồi chút sức; lệch nhịp → "Lệch nhịp!", mất đà, mất chuỗi. A / D lái.
+  Máy: tốc độ `ai_speed` ngẫu nhiên + dao động, nước rút 60 m cuối, tự giữ làn.
+- **Diễn biến:** đếm ngược 3-2-1 "Bắt đầu!" → đua (thanh trên: m đã đi, hạng, giờ; góc dưới trái: thanh sức,
+  thước nhịp có chấm chạy và vùng vàng) → về đích: bảng xếp hạng (thời gian / "còn N m") → E / Esc về bến.
+  Esc giữa chừng là bỏ cuộc. Camera riêng `RaceCam` bám sau đuôi (mũi thuyền hướng +z cục bộ).
+- `step(delta, rowing, steer)` tách riêng cho bài thử. `tools/boat_race_test.gd` mô phỏng cả cuộc đua với
+  từng cách chơi: không chèo (không về), giữ W suốt (~62 s, hạng 4), gõ trúng mọi nhịp (~48 s, nhất),
+  trúng 70 % nhịp (~49 s), gõ bừa (~56 s, hạng 4); máy về 51–56 s. Thử lái đâm bờ (không vượt mép, vẫn đi
+  được), vào từ nhập vai → Esc.
+- Chụp ảnh: `--race=giây` (0 = đếm ngược; chèo đúng nhịp tới giây đó), `--race-result`.
+
+## 30. Trò chơi dân gian: Thả diều (giai đoạn 5d)
+
+- `scripts/kite.gd` (`KiteFlying`, node con CUỐI của `Main`, sau `BoatRace`). Rủ qua hội thoại (nhập vai) với
+  trẻ con / trẻ chăn trâu: "Cho {me} mượn con diều thả với!" → "(Thả diều)". `refusal(v, chỗ đứng)`: người
+  lớn, đang học, sau 18:30 / trước 6h, mưa phùn / giông (ướt giấy diều), sương mù (lặng gió), chỗ không thoáng.
+- **Chỗ thoáng** (`open_area`): tia lớp 4 lên trời không vướng; 8 tia xiên ở tầm 4–6 m vướng ≤ 2; phía xuôi gió
+  18 m trống; và không nằm dưới khối bao (nới 2 m) của mesh lá dùng shader gió (`_leaf_boxes` — tán lá không
+  có va chạm nên tia bay xuyên qua). Bờ ruộng, sân trước nhà mình được; dưới gốc đa, giữa làng thì không.
+- **Mô hình bay:** diều trên mặt cầu bán kính `line` quanh tay (`_hand`), xuôi gió (`wind_dir_deg` 145° — gió
+  nồm đông nam), góc ngẩng `el`, góc lệch `az`. Gió = `wind_base` × √`Weather.wind` × (0,75 + mạnh dần theo độ
+  cao) × (dao động chậm + cơn giật / lặng gió ngẫu nhiên mỗi `gust_every` giây). Gió biểu kiến: giật dây
+  (giữ Space / chuột trái) +`pull_boost` và dây ngắn lại; thả dây (W) trừ đi (diều trôi theo gió), dây dài ra
+  tới `max_line`; thu dây (S). Gió biểu kiến × "cửa sổ gió" (cos `az`, ngẩng quá cao kém gió) so với
+  `lift_need`: hơn thì lên, kém thì chúc xuống. A / D lái `az`.
+- **Sức căng** `tension = (gió biểu kiến / tension_ref)²`; quá 1 thì dây "mỏi" (`strain`) dần, mỏi hết là
+  **đứt dây** — diều bay mất theo gió. Diều chạm đất là **rơi**. Esc thu diều. Kết quả: cao nhất, số giây bay,
+  lời khen; E thả lại (diều màu khác), Esc trả diều (nhập vai đi tiếp).
+- **Hình:** diều sáo hình thoi hai màu (`KITE_COLORS`), khung tre chữ thập, ống sáo, cỡ `kite_scale`; đuôi dải vải
+  10 đốt bám theo nhau, gió thổi lượn sóng; dây là dải mỏng quay về camera, võng nhiều khi chùng (ImmediateMesh,
+  vẽ lại mỗi khung). Camera riêng `KiteCam` sau lưng người thả, ngước theo diều nhưng giữ chân trời ở mép dưới
+  (pitch 6°–36°). Đứa trẻ đứng cạnh (meta `talking`) quay mặt theo diều, reo khi diều lên 20 / 40 / 60 m, nhắc
+  "Gió giật đấy! Thả dây ra" / "Lặng gió rồi, giật dây đi".
+- **Giao diện:** dòng trên: cao, dây, giây + nhắc ("Dây căng quá! Thả dây ra (W)!", "Diều sắp rơi!"); góc dưới
+  trái: thanh sức căng (vùng đỏ > 1), sức gió (lặng / nhẹ / vừa / mạnh, giật), phím.
+- `step(delta, pulling, reel, steer)` tách riêng. `tools/kite_test.gd`: 90 s bay × cách chơi × thời tiết (6 lần
+  gieo gió): để mặc lơ lửng ~9 m; giật suốt ~7 m (trời nhiều mây có khi đứt); thả suốt thì rơi; "khéo" (thả khi
+  căng, giật khi chúc) lên 66–115 m; khéo tới 60 m dây rồi để mặc: nắng giữ được, nhiều mây đứt 5/6. Kiểm tra
+  chỗ thoáng / gốc đa / sân đình / sương mù, rủ qua hội thoại → thả → Esc → kết quả → Esc.
+- Chụp ảnh: `--fp --focus=x,z --kite=giây` (ví dụ `--focus=-8,14`: bờ ruộng trước nhà).
 

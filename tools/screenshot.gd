@@ -15,6 +15,8 @@ extends SceneTree
 ##        khi đó tính so với hướng mũi đò)
 ##        [--date=YYYY-MM-DD] [--lunar-day=N] (ngày dương / nhảy tới ngày âm N, vd. 15 = rằm)
 ##        [--settle=giây] (chạy trước, tua nhanh, cho dân làng kịp đi tới nơi)
+##        [--race=giây | --race-result] (đua thuyền: chèo đúng nhịp tới giây đó / tới đích)
+##        [--kite=giây] (cùng --fp: thả diều mượn của đứa trẻ gần nhất)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
@@ -256,6 +258,63 @@ func _run() -> void:
 				fp._pitch = atan2(dd.y, Vector2(dd.x, dd.z).length())
 				fp.camera.rotation.x = fp._pitch
 
+	# Đua thuyền: --race=giây (vào đua, chèo đúng nhịp tới giây đó; 0 = lúc đếm ngược),
+	# --race-result (chèo tới đích, chụp bảng kết quả)
+	var race := scene.get_node_or_null("BoatRace") as BoatRace
+	var racing := false
+	if race != null and (args.has("race") or args.has("race-result")):
+		race.start()
+		race.set_process(false)
+		var secs := 999.0 if args.has("race-result") else float(args.get("race", "0"))
+		if secs > 0.0:
+			race.phase = BoatRace.Phase.RACE
+			var tt := 0.0
+			while tt < secs and race.phase == BoatRace.Phase.RACE:
+				var b0: Dictionary = race.boats[0]
+				race.step(1.0 / 60.0, true, clampf((0.12 * (float(b0.lat) - race._lane(0)) - float(b0.head)) * 3.0, -1.0, 1.0))
+				if fmod(race._beat_t, race.beat_period) < 1.0 / 60.0:
+					race.press_beat()
+				tt += 1.0 / 60.0
+		else:
+			race._big.text = "3"
+		for b in race.boats:
+			race._place(b, race._clock)
+		race._update_camera(1.0)
+		race._update_ui()
+		racing = true
+
+	# Thả diều: --kite=giây (cùng --fp): mượn diều đứa trẻ gần nhất, chơi khéo tới giây đó
+	var kf := scene.get_node_or_null("KiteFlying") as KiteFlying
+	if kf != null and args.has("kite") and fp != null and fp.active:
+		var vsk := scene.get_node("World/Villagers") as Villagers
+		var kk: Villager = null
+		for v in vsk.people:
+			if v.role in ["kid", "herder"] and not v.has_meta("in_class") and (kk == null or v.global_position.distance_to(fp.global_position) < kk.global_position.distance_to(fp.global_position)):
+				kk = v
+		if kk != null:
+			kk.visible = true
+			kf.start(kk)
+			kf.set_process(false)
+			var kt := 0.0
+			while kt < float(args["kite"]) and kf.phase == KiteFlying.Phase.FLY:
+				var pull := false
+				var reel := 0.0
+				if kf.tension > 0.85 or kf.strain > 0.2:
+					reel = 1.0
+				elif kf.el < 0.5:
+					pull = true
+				elif kf.tension < 0.55 and kf.el > 0.7:
+					reel = 1.0
+				kf.step(1.0 / 60.0, pull, reel, 0.0)
+				kt += 1.0 / 60.0
+			kf._kite_pos = kf._kite_target()
+			for i in 30:
+				kf._place_kite(1.0 / 30.0)
+			kf._update_camera(1.0)
+			kf._update_ui()
+			kk.look_at(Vector3(kf._kite_pos.x, kk.global_position.y, kf._kite_pos.z), Vector3.UP, true)
+			kf.set_process(true)
+
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap
 	if mm != null and args.has("map"):
@@ -267,6 +326,12 @@ func _run() -> void:
 		await process_frame
 		if rowing:
 			br.step(1.0 / 60.0, 0.8, 0.0, false)
+		if racing and race.phase == BoatRace.Phase.RACE:
+			race.step(1.0 / 60.0, true, 0.0)
+			for b in race.boats:
+				race._place(b, race._clock)
+			race._update_camera(1.0 / 60.0)
+			race._update_ui()
 		# Đưa chuột lên cửa để kiểm tra viền sáng + gợi ý
 		if args.has("hover") and i == 3 and rig != null:
 			var house := scene.get_node_or_null("World/House") as Node3D
