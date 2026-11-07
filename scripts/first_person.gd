@@ -21,6 +21,7 @@ const SOLID_LAYER := 4
 @export var dialogue: Dialogue
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
+@export var tip_cat: TipCat
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -385,6 +386,8 @@ func _update_look() -> void:
 				hint = "E: Thấy rồi!  ·  " + tv.display_name
 			elif tv.has_meta("jumprope") and jump_rope != null:
 				hint = "E: Xin nhảy dây cùng  ·  " + tv.display_name
+			elif tv.has_meta("khang") and tip_cat != null:
+				hint = "E: Xin đánh khăng cùng  ·  " + tv.display_name
 		elif col != null and col.has_meta("hint"):
 			target = col
 			hint = "E: " + str(col.get_meta("hint")).split("  ·  ")[0]
@@ -421,6 +424,9 @@ func _act() -> void:
 			return
 		if v.has_meta("jumprope") and jump_rope != null:
 			jump_rope.join_at(v)
+			return
+		if v.has_meta("khang") and tip_cat != null:
+			tip_cat.join_at(v)
 			return
 		if dialogue != null and dialogue.start(v, self):
 			_suspend("talk")

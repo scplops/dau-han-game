@@ -28,6 +28,7 @@ const NIGHT_END := 5.2
 @export var school_day: SchoolDay
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
+@export var tip_cat: TipCat
 
 @export_group("Đi lễ đình (mùng 1, rằm)")
 ## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
@@ -97,6 +98,7 @@ const ACTIVITY_TEXT := {
 	"worship": ["đang ra đình lễ", "đang thắp hương ở đình"],
 	"hideseek": ["đang chạy đi trốn", "đang chơi trốn tìm"],
 	"jumprope": ["đang ra chỗ chơi nhảy dây", "đang chơi nhảy dây"],
+	"khang": ["đang ra bãi đánh khăng", "đang chơi đánh khăng"],
 }
 
 
@@ -406,7 +408,10 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			c = {"inside": 2.0, "yard": 1.0} if noon else {"dinh": 4.0, "pond": 2.0, "banyan": 1.0, "visit": 1.0, "yard": 1.0}
 	# Nhảy dây (mục 31): trẻ con rủ nhau ra sân đình / gốc đa đầu làng
 	if jump_rope != null and v.role == "kid" and jump_rope.ambient_ok(h):
-		c["jumprope"] = 3.0
+		c["jumprope"] = 3.0 if v.get_meta("female", false) else 1.5
+	# Đánh khăng (mục 32): con trai chơi nhiều hơn
+	if tip_cat != null and v.role in ["kid", "herder"] and tip_cat.ambient_ok(h):
+		c["khang"] = 1.0 if v.get_meta("female", false) else (3.0 if v.role == "kid" else 1.0)
 	# Trẻ con đi học theo thời khoá biểu (nghỉ Chủ nhật, nghỉ Tết — mục 25)
 	if school_day != null and v.role == "kid" and school_day.wants_pupils(h):
 		c = {"school": 8.0, "inside": 0.5}
@@ -509,6 +514,8 @@ func _target(v: Villager, act: String) -> Vector3:
 			return football.gather_spot(_rng)
 		"jumprope":
 			return jump_rope.site_target(v)
+		"khang":
+			return tip_cat.site_target(v)
 		"school":
 			return school.yard_spots[_rng.randi_range(0, school.yard_spots.size() - 1)] + Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1))
 		"river", "swim", "fishing":
@@ -656,6 +663,9 @@ func _arrive(v: Villager) -> void:
 		v.dwell = _rng.randf_range(worship_minutes.x, worship_minutes.y)
 		return
 	v.dwell = _rng.randf_range(45.0, 100.0) if act in ["field", "graze", "fishing", "river"] else _rng.randf_range(20.0, 50.0)
+	if act == "khang" and tip_cat != null:
+		tip_cat.on_arrive(v)          # đánh khăng (mục 32): TipCat giữ tới khi tan cuộc
+		return
 	if act == "jumprope" and jump_rope != null:
 		jump_rope.on_arrive(v)        # nhảy dây (mục 31): JumpRope giữ tới khi tan cuộc
 		return

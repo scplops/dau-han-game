@@ -20,6 +20,7 @@ extends SceneTree
 ##        [--kite=giây] (cùng --fp: thả diều mượn của đứa trẻ gần nhất)
 ##        [--fb-join=N] [--fb-restart=throw|corner|free|penalty] (cùng --fp: vào đá bóng)
 ##        [--rope=N] (bãi nhảy dây thứ N) [--rope-play[=số lần]] (cùng --fp: bạn đang nhảy dây)
+##        [--khang=N] (bãi đánh khăng thứ N) [--khang-play[=giai đoạn]] (cùng --fp: bạn đang đánh khăng)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
@@ -413,6 +414,65 @@ func _run() -> void:
 		jrs._update_ui(pg)
 		jrs.set_process(true)
 		jrs.process_mode = Node.PROCESS_MODE_DISABLED   # giữ nguyên khoảnh khắc cho khung chụp
+
+	# Đánh khăng: --khang=N bãi thứ N có 4 đứa đang chơi (chụp lúc khăng đang bay); --khang-play[=phase] (cùng --fp):
+	# rủ đứa trẻ gần nhất, tới lượt bạn, dừng ở giai đoạn `phase` (flick_ready | hop | throw_flight)
+	var tcs := scene.get_node_or_null("TipCat") as TipCat
+	if tcs != null and args.has("khang") and not tcs.sites.is_empty():
+		var si := clampi(int(args["khang"]), 0, tcs.sites.size() - 1)
+		var vsk2 := scene.get_node("World/Villagers") as Villagers
+		var nk := 0
+		for v in vsk2.people:
+			if v.role == "kid" and nk < 4:
+				v.visible = true
+				v.state = Villager.State.IDLE
+				v.global_position = tcs.sites[si] + Vector3(-1.5 + nk, 0, -1.5)
+				v.activity = "khang"
+				tcs.on_arrive(v)
+				nk += 1
+		var kg: Dictionary = tcs.games[0]
+		for i in 60 * 30:
+			tcs.step(kg, 1.0 / 60.0)
+			if i > 60 * 4 and String(kg.phase) in ["flick_flight", "strike_flight"] and float((kg.pos as Vector3).y) > 1.5:
+				break
+		tcs.process_mode = Node.PROCESS_MODE_DISABLED
+		if rig != null:
+			var mid := tcs.sites[si] + tcs.site_dirs[si] * 6.0
+			rig.set_focus(mid)
+			rig.global_position = mid
+	if tcs != null and args.has("khang-play") and fp != null and fp.active:
+		var vsk3 := scene.get_node("World/Villagers") as Villagers
+		var kd: Villager = null
+		for v in vsk3.people:
+			if v.role == "kid" and (kd == null or v.global_position.distance_to(fp.global_position) < kd.global_position.distance_to(fp.global_position)):
+				kd = v
+		kd.visible = true
+		kd.state = Villager.State.IDLE
+		tcs.start_with(kd)
+		tcs.set_process(false)
+		var pgk := tcs.player_game
+		var want := str(args["khang-play"]) if str(args["khang-play"]) != "true" else "hop"
+		for i in 60 * 40:
+			var ph := String(pgk.phase)
+			if pgk.striker is String:
+				if ph == want and (want != "hop" or float(pgk.hop_t) > 0.38):
+					break
+				if ph == "flick_ready" and want != "flick_ready":
+					pgk.aim = 0.15
+					tcs._flick(pgk, 0.75)
+				elif ph == "strike_ready":
+					tcs.player_press()
+				elif ph == "throw_flight" and want != "throw_flight":
+					pass
+				elif ph == "flick_ready":
+					tcs._charge = 0.6
+					tcs._charging = true
+					if i > 30:
+						break
+			tcs.step(pgk, 1.0 / 60.0)
+		tcs._update_camera(pgk, 1.0)
+		tcs._update_ui(pgk, 0.0)
+		tcs.process_mode = Node.PROCESS_MODE_DISABLED
 
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap

@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -199,6 +199,7 @@ scripts/
   boat_race.gd         # trò chơi dân gian đua thuyền trên sông (mục 29)
   kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
+  tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -568,7 +569,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   nhà ở đâu (`v.home.name`); khoe giỏ cá (khi `Fishing._total > 0`); tỉ số trận bóng.
 - **Câu ngắn trên đầu (bark):** con vật (gâu gâu, ò ọ, cục tác, cạp cạp) và người đang đá bóng
   chỉ nói một câu `Label3D` vài giây, không mở khung thoại.
-- **Rủ chơi trò dân gian** (`game_options(v)`: thả diều, nhảy dây, trốn tìm — trẻ con; ô ăn quan — cả người lớn): khung
+- **Rủ chơi trò dân gian** (`game_options(v)`: thả diều, nhảy dây, đánh khăng, trốn tìm — trẻ con; ô ăn quan — cả người lớn): khung
   chỉ hiện 3 câu, nên người rủ được từ 2 trò trở lên thì gom thành MỘT câu "Chơi gì không em?" (key `games`,
   `repeat` — không đánh dấu đã hỏi) → chọn trò ở bước sau. (Đẩy từng câu rủ lên đầu danh sách thì trò thêm sau
   đẩy trò trước ra ngoài — đã gặp: câu rủ ô ăn quan biến mất khi có nhảy dây.) Bài thử tìm câu rủ qua
@@ -954,4 +955,39 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   Esc dọn sạch; từ chối khi chật / mưa / người lớn.
 - Chụp ảnh: `--rope=N` (bãi thứ N có 4 đứa đang chơi; kèm `--distance --pitch --yaw=20`), `--fp --focus=x,z
   --rope-play[=số lần]` (bạn đang nhảy, chụp lúc lơ lửng; ví dụ `--focus=-10,-3 --fp-yaw=90`: sân gạch nhà mình).
+
+## 32. Trò chơi dân gian: Đánh khăng (giai đoạn 5g)
+
+- `scripts/tip_cat.gd` (`TipCat`, node con CUỐI của `Main`, sau `JumpRope`). Mỗi đứa cầm **khăng cái** (que dài
+  `khang_len` 0,6 m, gắn vào cẳng tay phải — `_give_bat`, gỡ ngay khi tan bằng `remove_child`), **khăng con** (que
+  ngắn vót hai đầu, làm to hơn thật cho dễ nhìn) đặt ngang **lỗ khăng** (rãnh đất sẫm). Người đánh lần lượt
+  (`order`), những đứa còn lại là bên đỡ toả ra trước mặt 7–15 m (meta `khang_home`):
+  1) **Hất khăng** (`_flick`, lực 0…1 → `flick_speed`, A / D ngắm `aim`). Bên đỡ đoán điểm rơi (`_predict`) và chạy tới
+     (trong 9 m); khăng đang rơi qua tầm tay (cao 0,3–1,8 m, trong `catch_radius`) → thử bắt, dính với xác suất
+     kỹ năng × `catch_skill` → **chết**; tuột tay thì đứa đó không bắt lại lần nữa (`tried`).
+  2) **Ném vào lỗ**: đứa gần nhất chạy tới nhặt (0,5 s) rồi ném về lỗ (lệch theo kỹ năng). Người đánh **vụt đỡ** một
+     lần (`_try_bat`: khăng trong 0,15–2,2 m quanh lỗ) → khăng bay ra (bên đỡ lại có thể bắt). Rơi cách lỗ
+     ≤ `khang_len` → **chết**.
+  3) **Đánh khăng** (`strikes` 3 lần): người đánh ra chỗ khăng nằm, gõ cho nảy (`_tap`, `hop_speed`), vụt khi khăng
+     lên cao nhất (`_strike`: lệch đỉnh nảy quá `strike_window` 0,22 s là hụt — mất một lần; đúng đỉnh thì bay xa
+     nhất `strike_speed`). Mỗi chuyến bay đều có thể bị bắt. Hết lần đánh: **được N khăng** = khoảng cách lỗ →
+     khăng con / `khang_len`. `turn_done(who, points, out)`.
+- **Trẻ con tự chơi:** việc `khang` của Villagers (trẻ con và trẻ chăn trâu, con trai nhiều hơn — con gái thích
+  nhảy dây hơn), giờ như nhảy dây (`ambient_ok`); `sites` + hướng đánh `site_dirs`: sân đình phía đông (bãi nhảy
+  dây ở phía tây) đánh về phía nam, bãi cỏ phía tây cổng làng đánh chếch tây nam. Meta `khang` + `talking`; đủ 2
+  đứa là chơi, chờ bạn tối đa 30 s; tan sau `game_seconds`, ≥ 18:00, mưa, giờ học.
+- **Người chơi:** nhìn đứa đang chơi "E: Xin đánh khăng cùng" (`join_at`) hoặc rủ qua hội thoại "Chơi đánh khăng
+  không em?" → "(Đào lỗ khăng ngay đây)" (`start_with`: lỗ 1,2 m trước mặt, đánh theo hướng nhìn, gọi ≤ 2 trẻ rảnh
+  trong 30 m, thiếu thì trẻ nhà bên). `refusal`: người lớn, đang học, tối, mưa, đang đi học / chăn trâu, phía trước
+  hẹp (`open_field`: 3 tia toả quạt ±20° tầm 1 m dài 14 m không vướng). Hình nhân `_avatar`, camera `KhangCam` sau
+  lưng người đánh lệch sang phía khăng con (đứng cùng phía người đánh thì người che mất khăng đang nảy), khi khăng
+  bay thì lùi cao nhìn theo. Space / chuột trái (`fish_reel`): giữ lấy lực rồi thả (hất) / bấm vụt đỡ / bấm gõ
+  rồi bấm vụt; A / D ngắm. Lượt bọn trẻ: E tua nhanh (time_scale 3). Chơi `rounds` vòng → "Hết 3 vòng! … thắng";
+  E / Esc thôi (cuộc chơi ở bãi thì bọn trẻ chơi tiếp, người chơi bày thì tan).
+- `step(g, dt)` tách riêng. `tools/tip_cat_test.gd`: bãi sân đình 4 đứa 89 s (~6 lượt, khoảng nửa số lượt chết, ~47
+  khăng / lượt sống; tan sạch meta + khăng cái); rủ qua hội thoại ở sân nhà mình; bot "chuẩn" (lực 0,8, đỡ khi
+  khăng còn ~1 m, vụt lệch ±0,03 s) 49–73 khăng / lượt, hiếm chết; "vụng" (lệch ±0,25 s) nửa số lượt chết; trọn
+  3 vòng có người thắng; Esc dọn sạch; từ chối người lớn / sát gốc đa / mưa.
+- Chụp ảnh: `--khang=N` (bãi thứ N, chụp lúc khăng đang bay; `--distance=14 --pitch=-26 --yaw=20`),
+  `--fp --focus=-14,-1 --fp-yaw=-90 --khang-play[=flick_ready|hop|throw_flight]` (bạn đang đánh).
 

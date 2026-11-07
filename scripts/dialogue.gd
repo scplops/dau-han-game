@@ -22,6 +22,7 @@ signal finished
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
+@export var tip_cat: TipCat
 @export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
@@ -84,6 +85,9 @@ func start(v: Villager, player: Node3D) -> bool:
 		return false
 	if v.work_anim == "sleep":
 		bark(v, ["Khò… khò…", "Ư… để mai nói…", "Zzz…"][_rng.randi_range(0, 2)])
+		return false
+	if tip_cat != null and tip_cat.is_member(v):
+		bark(v, ["Đang đánh, đứng xa ra kẻo khăng vào mặt!", "Vào chơi với bọn em đi!", "Bắt này!"][_rng.randi_range(0, 2)])
 		return false
 	if jump_rope != null and jump_rope.is_member(v):
 		bark(v, ["Vào nhảy với bọn em đi!", "Đang nhảy, chờ tí!", "Một, hai, ba…"][_rng.randi_range(0, 2)])
@@ -277,6 +281,8 @@ func game_options(v: Villager) -> Array[Dictionary]:
 		out.append({"key": "kite", "text": "Cho {me} mượn con diều thả với!", "answer": _ans_kite, "next": _kite_next})
 	if jump_rope != null and kid:
 		out.append({"key": "jumprope", "text": "Chơi nhảy dây không em?", "answer": _ans_rope, "next": _rope_next})
+	if tip_cat != null and kid:
+		out.append({"key": "khang", "text": "Chơi đánh khăng không em?", "answer": _ans_khang, "next": _khang_next})
 	if hide_seek != null and kid:
 		out.append({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
 	if o_an_quan != null and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
@@ -564,6 +570,30 @@ func _hs_next() -> Array[Dictionary]:
 	var v := npc
 	return [{"text": "(Bịt mắt đếm)", "end": true, "then": func() -> void: hide_seek.start(v)},
 			{"text": "Thôi, để lúc khác.", "end": true}]
+
+
+func _ans_khang() -> String:
+	var no := tip_cat.refusal(npc, _player_pos(), _player_dir())
+	if no != "":
+		return no
+	return _pick(["Chơi! {Self} có khăng đây. {You} đánh trước, bọn em đỡ cho!",
+			"Thích quá! Nhưng bị bắt được là chết đấy nhé, {you} đừng hất bổng quá!"])
+
+
+func _khang_next() -> Array[Dictionary]:
+	if tip_cat.refusal(npc, _player_pos(), _player_dir()) != "":
+		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
+	var v := npc
+	return [{"text": "(Đào lỗ khăng ngay đây)", "end": true, "then": func() -> void: tip_cat.start_with(v)},
+			{"text": "Thôi, để lúc khác.", "end": true}]
+
+
+func _player_dir() -> Vector3:
+	if _player == null:
+		return Vector3.ZERO
+	var f := -_player.global_transform.basis.z
+	f.y = 0.0
+	return f.normalized()
 
 
 func _ans_rope() -> String:
