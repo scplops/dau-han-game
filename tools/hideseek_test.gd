@@ -61,13 +61,8 @@ func _run() -> void:
 	await _frames(10)
 	dlg.start(kid, fp)
 	fp._suspend("talk")
-	var opts := dlg._build_options()
-	var idx := -1
-	for i in opts.size():
-		if str(opts[i].get("key", "")) == "hideseek":
-			idx = i
+	var idx := _game_option(dlg, "hideseek")
 	print("Câu rủ trốn tìm trong hội thoại: %s" % ("có" if idx >= 0 else "KHÔNG"))
-	dlg._options = opts
 	dlg._choose(idx)
 	dlg._choose(0)          # (Bịt mắt đếm)
 	await _frames(3)
@@ -150,3 +145,20 @@ func _run() -> void:
 	print("   Esc thôi chơi: tắt %s, nhập vai %s" % [hs.phase == HideSeek.Phase.OFF, fp._suspended == "" and fp.active])
 	Engine.time_scale = 1.0
 	quit()
+
+
+## Tìm câu rủ chơi `key`: ở danh sách đầu, hoặc trong "Chơi gì không em?" (chọn câu đó trước). Trả về chỉ số
+## trong `dlg._options` hiện tại (−1 nếu không có).
+func _game_option(dlg: Dialogue, key: String) -> int:
+	var opts := dlg._build_options()
+	dlg._options = opts
+	for i in opts.size():
+		if str(opts[i].get("key", "")) == key:
+			return i
+	for i in opts.size():
+		if str(opts[i].get("key", "")) == "games":
+			dlg._choose(i)
+			for j in dlg._options.size():
+				if str(dlg._options[j].get("key", "")) == key:
+					return j
+	return -1

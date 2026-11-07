@@ -19,6 +19,7 @@ extends SceneTree
 ##        [--race-mode=team|solo] [--race-boats=N] [--race-obstacles=0|1] [--race-seed=N] [--race-setup]
 ##        [--kite=giây] (cùng --fp: thả diều mượn của đứa trẻ gần nhất)
 ##        [--fb-join=N] [--fb-restart=throw|corner|free|penalty] (cùng --fp: vào đá bóng)
+##        [--rope=N] (bãi nhảy dây thứ N) [--rope-play[=số lần]] (cùng --fp: bạn đang nhảy dây)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
@@ -361,6 +362,57 @@ func _run() -> void:
 		fp.camera.rotation.x = fp._pitch
 		fbj._apply_visuals(0.0)
 		fbj._update_overlay()
+
+	# Nhảy dây: --rope=N bãi thứ N có 4 đứa đang chơi (camera nhìn vào bãi); --rope-play (cùng --fp): rủ đứa
+	# trẻ gần nhất, tới lượt bạn, chụp lúc đang lơ lửng trên dây
+	var jrs := scene.get_node_or_null("JumpRope") as JumpRope
+	if jrs != null and args.has("rope") and not jrs.sites.is_empty():
+		var site := jrs.sites[clampi(int(args["rope"]), 0, jrs.sites.size() - 1)]
+		var vsr := scene.get_node("World/Villagers") as Villagers
+		var n := 0
+		for v in vsr.people:
+			if v.role == "kid" and n < 4:
+				v.visible = true
+				v.state = Villager.State.IDLE
+				v.global_position = site + Vector3(-1.0 + n * 0.7, 0, 2.4)
+				v.activity = "jumprope"
+				jrs.on_arrive(v)
+				n += 1
+		var gg: Dictionary = jrs.games[0]
+		for i in 60 * 6:
+			jrs.step(gg, 1.0 / 60.0)
+		if rig != null:
+			rig.set_focus(site)
+			rig.global_position = site
+	if jrs != null and args.has("rope-play") and fp != null and fp.active:
+		var vsp := scene.get_node("World/Villagers") as Villagers
+		var kid: Villager = null
+		for v in vsp.people:
+			if v.role == "kid" and (kid == null or v.global_position.distance_to(fp.global_position) < kid.global_position.distance_to(fp.global_position)):
+				kid = v
+		kid.visible = true
+		kid.state = Villager.State.IDLE
+		jrs.start_with(kid)
+		jrs.set_process(false)
+		var pg := jrs.player_game
+		for i in 60 * 30:
+			if pg.jumper is String and float(pg.wait) <= 0.0:
+				break
+			jrs.step(pg, 1.0 / 60.0)
+		# nhảy đúng nhịp vài lần, dừng khi đang lơ lửng ngay lúc dây quét dưới chân
+		var jumps := 0
+		for i in 60 * 20:
+			var tb := (TAU - fmod(float(pg.phi), TAU)) / (TAU * float(pg.rev))
+			if float(pg.air) < 0.0 and tb <= 0.16 and tb > 0.14:
+				jrs.player_jump()
+				jumps += 1
+			jrs.step(pg, 1.0 / 60.0)
+			if jumps >= int(args.get("rope-play", "8")) and float(pg.air) > 0.14:
+				break
+		jrs._update_camera(pg, 1.0)
+		jrs._update_ui(pg)
+		jrs.set_process(true)
+		jrs.process_mode = Node.PROCESS_MODE_DISABLED   # giữ nguyên khoảnh khắc cho khung chụp
 
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap

@@ -20,6 +20,7 @@ const SOLID_LAYER := 4
 @export var world: Node3D
 @export var dialogue: Dialogue
 @export var hide_seek: HideSeek
+@export var jump_rope: JumpRope
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -382,6 +383,8 @@ func _update_look() -> void:
 			hint = ("E: trò chuyện  ·  " if not tv.role in ["dog", "buffalo", "chicken", "duck"] else "E: gọi  ·  ") + tv.display_name
 			if tv.has_meta("hiding"):
 				hint = "E: Thấy rồi!  ·  " + tv.display_name
+			elif tv.has_meta("jumprope") and jump_rope != null:
+				hint = "E: Xin nhảy dây cùng  ·  " + tv.display_name
 		elif col != null and col.has_meta("hint"):
 			target = col
 			hint = "E: " + str(col.get_meta("hint")).split("  ·  ")[0]
@@ -415,6 +418,9 @@ func _act() -> void:
 		var v := _look_target as Villager
 		if v.has_meta("hiding") and hide_seek != null:
 			hide_seek.spot(v)
+			return
+		if v.has_meta("jumprope") and jump_rope != null:
+			jump_rope.join_at(v)
 			return
 		if dialogue != null and dialogue.start(v, self):
 			_suspend("talk")

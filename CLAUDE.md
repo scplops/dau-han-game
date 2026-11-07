@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -198,6 +198,7 @@ scripts/
   hide_seek.gd         # trò chơi dân gian trốn tìm với trẻ con trong làng (mục 28)
   boat_race.gd         # trò chơi dân gian đua thuyền trên sông (mục 29)
   kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
+  jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -567,6 +568,11 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   nhà ở đâu (`v.home.name`); khoe giỏ cá (khi `Fishing._total > 0`); tỉ số trận bóng.
 - **Câu ngắn trên đầu (bark):** con vật (gâu gâu, ò ọ, cục tác, cạp cạp) và người đang đá bóng
   chỉ nói một câu `Label3D` vài giây, không mở khung thoại.
+- **Rủ chơi trò dân gian** (`game_options(v)`: thả diều, nhảy dây, trốn tìm — trẻ con; ô ăn quan — cả người lớn): khung
+  chỉ hiện 3 câu, nên người rủ được từ 2 trò trở lên thì gom thành MỘT câu "Chơi gì không em?" (key `games`,
+  `repeat` — không đánh dấu đã hỏi) → chọn trò ở bước sau. (Đẩy từng câu rủ lên đầu danh sách thì trò thêm sau
+  đẩy trò trước ra ngoài — đã gặp: câu rủ ô ăn quan biến mất khi có nhảy dây.) Bài thử tìm câu rủ qua
+  `_game_option(dlg, key)`.
 - `tools/talk_test.gd -- --hour=17 --weather=cloudy` in hội thoại mẫu với mỗi loại người / con vật
   để đọc lại lời lẽ. Chụp ảnh: `--fp --talk --talk-pick=N` (bắt chuyện người gần nhất).
 
@@ -912,4 +918,40 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   căng, giật khi chúc) lên 66–115 m; khéo tới 60 m dây rồi để mặc: nắng giữ được, nhiều mây đứt 5/6. Kiểm tra
   chỗ thoáng / gốc đa / sân đình / sương mù, rủ qua hội thoại → thả → Esc → kết quả → Esc.
 - Chụp ảnh: `--fp --focus=x,z --kite=giây` (ví dụ `--focus=-8,14`: bờ ruộng trước nhà).
+
+## 31. Trò chơi dân gian: Nhảy dây (giai đoạn 5f)
+
+- `scripts/jump_rope.gd` (`JumpRope`, node con CUỐI của `Main`, sau `KiteFlying`). Nhảy dây dài: hai đứa hai đầu
+  quay dây, những đứa khác xếp hàng (`queue`) lần lượt vào giữa nhảy; đứa nào vướng thì ra thay người quay
+  (`turners[0]` vào cuối hàng). Mỗi cuộc chơi là một từ điển (`games`): `center`, `axis` (hướng nối hai người quay),
+  `turners`, `queue`, `jumper`, `phi` (pha dây, 0 = đáy dây chạm đất giữa sân), `rev` (vòng/giây), `count`, `best`.
+- **Trẻ con tự chơi:** việc mới `jumprope` của Villagers (trẻ con, 7:00–17:30 trừ trưa, không mưa, không giờ học —
+  `ambient_ok`), đích ở bãi gần nhất trong `sites`: sân đình (`dinh_spot` − 9 m) và bãi cỏ đầu làng ngoài cổng
+  nam (dưới gốc đa thì tán lá che hết, đã thử). Tới nơi `on_arrive` → meta `jumprope` + `talking` (Villagers chỉ
+  diễn hoạt, JumpRope tự dắt tới chỗ đứng `_walk_to`, gỡ meta khi tan). Đủ 3 đứa mới nhảy; máy nhảy đúng lúc tới
+  "số phận" `kid_skill` lần thì nhảy sớm / muộn → vướng. Tan cuộc sau `game_seconds` giây thật (1 ngày = 15 phút
+  nên ~1–2 giờ trong game), hoặc ≥ 18:00, mưa, tới giờ học → dwell 0 cho Villagers chọn việc khác. Số lần nhảy
+  hiện bằng `Label3D` trên bãi; các đứa đứng quay reo (`CHANTS`) mỗi 10 lần.
+- **Người chơi:** nhập vai nhìn một đứa đang chơi "E: Xin nhảy dây cùng" (`FirstPerson` → `join_at`), hoặc rủ qua
+  hội thoại "Chơi nhảy dây không em?" → "(Vào nhảy)" (`start_with`: bày cuộc chơi 2,5 m trước mặt, dây quay ngang
+  tầm nhìn, gọi thêm ≤ 3 trẻ rảnh trong 30 m, thiếu người quay thì trẻ nhà bên chạy sang — `_make_temp`).
+  `refusal`: người lớn, đang học, tối, mưa, đang đi học / chăn trâu, chỗ chật (`open_ground`: 8 hướng × tầm 0,5 và
+  1,8 m không vướng gì trong nửa dây + 0,8 m). Dialogue không mở khung thoại với đứa đang nhảy dây (chỉ bark).
+- **Nhảy:** người chơi luôn là người nhảy (khách, không phải quay dây), hình nhân `_avatar` (dáng người lớn, không
+  nón), camera riêng `RopeCam` nhìn ngang. Space / chuột trái (`fish_reel`) nhảy khi chân chạm đất: lơ lửng
+  `jump_air` 0,32 s, cao `jump_height`; lúc dây quét qua đáy (pha qua bội 2π) chân phải cao hơn `need_clearance`
+  = `clearance` + `clearance_per_rev` × (dây nhanh hơn lúc đầu) → dây càng nhanh càng phải nhảy chuẩn. Dây quay
+  `start_rev` → `max_rev`, +`speed_step` mỗi `speed_every` lần. Vướng → lượt các đứa trong hàng → lại tới bạn;
+  bảng kỷ lục, hàng chờ, thước nhịp (chấm đỏ chạy theo pha dây, vạch vàng = dây chạm đất), số to giữa màn hình.
+  Esc: thôi (cuộc chơi người chơi bày thì tan, cuộc chơi ở bãi thì bọn trẻ chơi tiếp thêm 20–40 s).
+- **Dây:** cung tròn giữa hai bàn tay (`hand_height`, bán kính bằng tầm tay nên đáy sát đất, đỉnh ~2 m trên đầu),
+  ImmediateMesh dải mỏng quay về camera, chỉ vẽ trong 70 m. Người quay: tay phải đưa ra trước quay vòng theo
+  `phi`; người nhảy: nâng người theo cú nhảy, co gối, dang tay (ghi đè sau khi Villagers diễn hoạt — JumpRope
+  đứng sau World trong cây scene).
+- `step(g, dt)` tách riêng. `tools/jump_rope_test.gd`: 4 đứa ở bãi sân đình 60 s (lượt nhảy, đổi người quay, kỷ lục,
+  tan sạch meta); rủ qua hội thoại ở bờ ruộng; bot nhảy mỗi vòng một lần với độ lệch tay: lệch ≤ ±0,08 s trụ hết
+  45 s (~60 lần, dây lên ~2 vòng/s), ±0,1 s được 18–58 lần, ±0,14 s 0–11 lần, nhảy sớm / không nhảy vướng ngay;
+  Esc dọn sạch; từ chối khi chật / mưa / người lớn.
+- Chụp ảnh: `--rope=N` (bãi thứ N có 4 đứa đang chơi; kèm `--distance --pitch --yaw=20`), `--fp --focus=x,z
+  --rope-play[=số lần]` (bạn đang nhảy, chụp lúc lơ lửng; ví dụ `--focus=-10,-3 --fp-yaw=90`: sân gạch nhà mình).
 

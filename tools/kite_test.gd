@@ -104,13 +104,8 @@ func _run() -> void:
 	await _frames(5)
 	dlg.start(kid, fp)
 	fp._suspend("talk")
-	var opts := dlg._build_options()
-	var idx := -1
-	for i in opts.size():
-		if str(opts[i].get("key", "")) == "kite":
-			idx = i
+	var idx := _game_option(dlg, "kite")
 	print("Câu mượn diều trong hội thoại: %s" % ("có" if idx >= 0 else "KHÔNG"))
-	dlg._options = opts
 	dlg._choose(idx)
 	dlg._choose(0)          # (Thả diều)
 	await _frames(240)
@@ -127,3 +122,20 @@ func _run() -> void:
 	print("Esc lần nữa: %s, nhập vai tiếp %s, camera nhập vai %s, đứa trẻ thôi đứng xem %s" % [
 			KiteFlying.Phase.keys()[k.phase], fp._suspended == "" and fp.active, fp.camera.current, not kid.has_meta("talking")])
 	quit()
+
+
+## Tìm câu rủ chơi `key`: ở danh sách đầu, hoặc trong "Chơi gì không em?" (chọn câu đó trước). Trả về chỉ số
+## trong `dlg._options` hiện tại (−1 nếu không có).
+func _game_option(dlg: Dialogue, key: String) -> int:
+	var opts := dlg._build_options()
+	dlg._options = opts
+	for i in opts.size():
+		if str(opts[i].get("key", "")) == key:
+			return i
+	for i in opts.size():
+		if str(opts[i].get("key", "")) == "games":
+			dlg._choose(i)
+			for j in dlg._options.size():
+				if str(dlg._options[j].get("key", "")) == key:
+					return j
+	return -1

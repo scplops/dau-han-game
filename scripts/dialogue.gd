@@ -21,6 +21,7 @@ signal finished
 @export var school_day: SchoolDay
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
+@export var jump_rope: JumpRope
 @export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
@@ -83,6 +84,9 @@ func start(v: Villager, player: Node3D) -> bool:
 		return false
 	if v.work_anim == "sleep":
 		bark(v, ["Khò… khò…", "Ư… để mai nói…", "Zzz…"][_rng.randi_range(0, 2)])
+		return false
+	if jump_rope != null and jump_rope.is_member(v):
+		bark(v, ["Vào nhảy với bọn em đi!", "Đang nhảy, chờ tí!", "Một, hai, ba…"][_rng.randi_range(0, 2)])
 		return false
 	if football != null and football._find(v) >= 0:
 		bark(v, ["Đang đá, nói sau nhé!", "Chuyền đây! Chuyền đây!", "Ra cổ vũ đi!"][_rng.randi_range(0, 2)])
@@ -242,7 +246,7 @@ func _choose(i: int) -> void:
 	if i < 0 or i >= _options.size():
 		return
 	var o: Dictionary = _options[i]
-	if o.has("key"):
+	if o.has("key") and not o.get("repeat", false):
 		_asked[o.key] = true
 	if o.get("bye", false):
 		_say(_farewell(), false)
@@ -261,6 +265,23 @@ func _choose(i: int) -> void:
 		_options.assign((o.next as Callable).call())
 		return
 	_say(text, true)
+
+
+## Các trò dân gian rủ được người này chơi (ô ăn quan, trốn tìm, nhảy dây, thả diều).
+func game_options(v: Villager) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if v.has_meta("proxy_of"):
+		return out
+	var kid := v.role in ["kid", "herder"]
+	if kite != null and kid:
+		out.append({"key": "kite", "text": "Cho {me} mượn con diều thả với!", "answer": _ans_kite, "next": _kite_next})
+	if jump_rope != null and kid:
+		out.append({"key": "jumprope", "text": "Chơi nhảy dây không em?", "answer": _ans_rope, "next": _rope_next})
+	if hide_seek != null and kid:
+		out.append({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
+	if o_an_quan != null and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
+		out.append({"key": "oaq", "text": "{Npc} chơi ô ăn quan với {me} không{a}?", "answer": _ans_oaq, "next": _oaq_next})
+	return out
 
 
 ## Các câu người chơi có thể hỏi lúc này (bỏ câu đã hỏi), luôn có câu chào ra về ở cuối.
@@ -288,15 +309,20 @@ func _build_options() -> Array[Dictionary]:
 		all.append({"key": "catch", "text": "{Npc} xem giỏ cá {me} câu được này!", "answer": _ans_catch})
 	if football != null and football.phase != Football.Phase.IDLE and v.role != "kid":
 		all.append({"key": "match", "text": "Trận bóng thế nào rồi{a}?", "answer": _ans_match})
-	# Rủ chơi ô ăn quan (mục 27) — người, không phải bản sao trong nhà đang ngủ
-	if o_an_quan != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
-		all.push_front({"key": "oaq", "text": "{Npc} chơi ô ăn quan với {me} không{a}?", "answer": _ans_oaq, "next": _oaq_next})
-	# Rủ chơi trốn tìm (mục 28) — chỉ trẻ con
-	if hide_seek != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder"]:
-		all.push_front({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
-	# Mượn diều thả (mục 30) — chỉ trẻ con
-	if kite != null and not v.has_meta("proxy_of") and v.role in ["kid", "herder"]:
-		all.push_front({"key": "kite", "text": "Cho {me} mượn con diều thả với!", "answer": _ans_kite, "next": _kite_next})
+	# Rủ chơi trò dân gian (mục 27, 28, 30, 31). Khung thoại chỉ hiện 3 câu, nên người chơi được từ hai trò
+	# trở lên (trẻ con) thì gom thành một câu "Chơi gì không em?" rồi mới chọn trò (để rời thì trò thêm
+	# sau đẩy trò trước ra khỏi danh sách — đã gặp: câu rủ ô ăn quan biến mất khi có nhảy dây).
+	var games := game_options(v)
+	if games.size() == 1:
+		all.push_front(games[0])
+	elif games.size() > 1:
+		var kid := v.role in ["kid", "herder"]
+		all.push_front({"key": "games", "repeat": true, "text": "Chơi gì không em?" if kid else "{Npc} chơi gì với {me} không{a}?",
+				"answer": func() -> String: return _pick(["Chơi gì cũng được! {You} chọn đi.", "Thích quá! {You} muốn chơi trò gì?"]),
+				"next": func() -> Array[Dictionary]:
+					var opts: Array[Dictionary] = game_options(npc)
+					opts.append({"text": "Thôi, để lúc khác.", "end": true})
+					return opts})
 	if calendar != null:
 		all.append({"key": "date", "text": "Hôm nay là ngày bao nhiêu âm lịch{a}?", "answer": _ans_date})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
@@ -537,6 +563,22 @@ func _hs_next() -> Array[Dictionary]:
 		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
 	var v := npc
 	return [{"text": "(Bịt mắt đếm)", "end": true, "then": func() -> void: hide_seek.start(v)},
+			{"text": "Thôi, để lúc khác.", "end": true}]
+
+
+func _ans_rope() -> String:
+	var no := jump_rope.refusal(npc, _player_pos())
+	if no != "":
+		return no
+	return _pick(["Chơi! {Self} có dây chun đây. {You} nhảy trước nhé, bọn em quay cho!",
+			"Thích quá! Để {self} gọi thêm mấy đứa ra quay dây. {You} nhảy đi, vướng là phải nhường đấy!"])
+
+
+func _rope_next() -> Array[Dictionary]:
+	if jump_rope.refusal(npc, _player_pos()) != "":
+		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
+	var v := npc
+	return [{"text": "(Vào nhảy)", "end": true, "then": func() -> void: jump_rope.start_with(v)},
 			{"text": "Thôi, để lúc khác.", "end": true}]
 
 
