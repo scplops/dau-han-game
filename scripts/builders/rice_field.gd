@@ -2,6 +2,8 @@ class_name RiceField
 extends Node3D
 ## Lúa: hàng nghìn khóm nhỏ (MultiMesh) trồng theo luống trong 3 thửa ruộng,
 ## mỗi thửa một sắc xanh, lay theo gió. Chừa chỗ trống cho trâu và người đứng.
+## Giữ lại vị trí / thửa / thứ tự cấy của từng khóm (`base_xforms`, `paddy_of`, `order01`) để `Farming`
+## (mục 33) đổi cao thấp, màu, cấy dần, gặt dần theo mùa vụ; `ears_mm` là bông lúa (ẩn tới khi trổ).
 
 @export var terrain: Terrain
 @export var random_seed: int = 8108
@@ -26,6 +28,14 @@ extends Node3D
 @export var cast_shadows: bool = false
 
 var clump_count: int = 0
+var mm: MultiMesh
+var ears_mm: MultiMesh
+var base_xforms: Array[Transform3D] = []
+var base_colors: Array[Color] = []
+## Thửa (0…) của từng khóm và thứ tự cấy / gặt 0…1 trong thửa (theo luống, từ đầu bờ này sang bờ kia).
+var paddy_of: PackedInt32Array = PackedInt32Array()
+var order01: PackedFloat32Array = PackedFloat32Array()
+var paddy_count: int = 0
 
 
 func build() -> void:
@@ -39,6 +49,7 @@ func build() -> void:
 	var xforms: Array[Transform3D] = []
 	var cols: Array[Color] = []
 	var rects := terrain.paddy_rects()
+	paddy_count = rects.size()
 	for i in rects.size():
 		var r := rects[i].grow(-dike_margin)
 		var base_col := colors[i % colors.size()]
@@ -59,10 +70,17 @@ func build() -> void:
 						xforms.append(Transform3D(basis, p))
 						var k := 1.0 + rng.randf_range(-color_variation, color_variation)
 						cols.append(Color(base_col.r * k, base_col.g * k, base_col.b * k))
+						paddy_of.append(i)
+						# Cấy / gặt theo từng luống từ bờ tây sang bờ đông, trong luống từ bắc xuống nam
+						var fx := (p.x - rects[i].position.x) / rects[i].size.x
+						var fz := (p.z - rects[i].position.y) / rects[i].size.y
+						order01.append(clampf(floorf(fx * 12.0) / 12.0 + fz / 12.0, 0.0, 1.0))
 					z += row_spacing
 			x += terrain.furrow_spacing
 
-	var mm := MultiMesh.new()
+	base_xforms = xforms
+	base_colors = cols
+	mm = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	mm.mesh = _make_clump_mesh(rng)
@@ -80,6 +98,33 @@ func build() -> void:
 	if not cast_shadows:
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mmi)
+	# Bông lúa: chùm hạt rủ xuống trên ngọn khóm, ẩn (co về 0) tới khi lúa trổ bông
+	ears_mm = MultiMesh.new()
+	ears_mm.transform_format = MultiMesh.TRANSFORM_3D
+	ears_mm.use_colors = true
+	ears_mm.mesh = _make_ear_mesh()
+	ears_mm.instance_count = xforms.size()
+	var zero := Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO)
+	for i in xforms.size():
+		ears_mm.set_instance_transform(i, zero)
+		ears_mm.set_instance_color(i, Palette.RICE_1)
+	var emi := MultiMeshInstance3D.new()
+	emi.name = "RiceEars"
+	emi.multimesh = ears_mm
+	emi.material_override = MeshBuilder.wind_material(wind_strength * 1.6, -0.1, 0.25, wind_speed)
+	emi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(emi)
+
+
+## Bông lúa: 3 nhánh hạt cong rủ xuống từ gốc (gốc = ngọn khóm lúa).
+func _make_ear_mesh() -> ArrayMesh:
+	var mb := MeshBuilder.new(random_seed + 7, 0.0)
+	for k in 3:
+		var a := TAU * k / 3.0 + 0.4
+		var d := Vector3(cos(a), 0, sin(a))
+		mb.add_limb(Vector3(0, -0.02, 0), d * 0.07 + Vector3(0, 0.05, 0), 0.012, 0.016, 4, Color.WHITE)
+		mb.add_limb(d * 0.07 + Vector3(0, 0.05, 0), d * 0.13 - Vector3(0, 0.03, 0), 0.016, 0.006, 4, Color(0.92, 0.92, 0.92))
+	return mb.commit()
 
 
 func _is_cleared(p: Vector3) -> bool:

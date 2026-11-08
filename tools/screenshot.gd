@@ -21,6 +21,7 @@ extends SceneTree
 ##        [--fb-join=N] [--fb-restart=throw|corner|free|penalty] (cùng --fp: vào đá bóng)
 ##        [--rope=N] (bãi nhảy dây thứ N) [--rope-play[=số lần]] (cùng --fp: bạn đang nhảy dây)
 ##        [--khang=N] (bãi đánh khăng thứ N) [--khang-play[=giai đoạn]] (cùng --fp: bạn đang đánh khăng)
+##        [--crop-day=N] (ngày N trong vụ lúa: 2 cày, 8 cấy, 40 xanh, 60 trổ, 76 chín, 84 gặt, 89 rạ)
 ##        [--oaq=N] (cùng --fp: chơi ô ăn quan với người gần nhất, đi trước N lượt)
 ##        [--hs [--hs-count] [--hs-look=N]] (cùng --fp: trốn tìm với đứa trẻ gần nhất)
 ##        [--boat=N] [--boat-drive=giây] [--boat-cam=độ] (lên đò thứ N, chèo trước vài giây,
@@ -473,6 +474,14 @@ func _run() -> void:
 		tcs._update_camera(pgk, 1.0)
 		tcs._update_ui(pgk, 0.0)
 		tcs.process_mode = Node.PROCESS_MODE_DISABLED
+
+	# Mùa vụ: --crop-day=N đặt ngày N (0…90) trong vụ lúa (mục 33)
+	var fmc := scene.get_node_or_null("Farming") as Farming
+	if fmc != null and args.has("crop-day"):
+		fmc.set_cycle_day(float(args["crop-day"]))
+		var vsc := scene.get_node_or_null("World/Villagers") as Villagers
+		if vsc != null and args.has("hour"):
+			vsc.replan()
 
 	# Bản đồ nhỏ: --map=large | hidden
 	var mm := scene.get_node_or_null("HUD/MiniMap") as MiniMap

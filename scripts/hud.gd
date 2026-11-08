@@ -9,6 +9,7 @@ signal exit_requested
 @export var day_night: DayNight
 @export var weather: Weather
 @export var calendar: LunarCalendar
+@export var farming: Farming
 @export var show_fps: bool = true
 @export var time_font_size: int = 34
 @export var text_font_size: int = 15
@@ -158,7 +159,7 @@ func _update_text() -> void:
 		return
 	_time_label.text = day_night.time_text()
 	if calendar != null:
-		_date_label.text = calendar.date_text()
+		_date_label.text = calendar.date_text() + ("\n" + farming.stage_text() if farming != null else "")
 		_date_label.add_theme_color_override("font_color", Palette.FLOWER_YELLOW if calendar.holiday_name() != "" else Palette.HUD_TEXT)
 	_date_label.visible = calendar != null
 	var where := ((_place if _place != "" else "Trong nhà") if _inside

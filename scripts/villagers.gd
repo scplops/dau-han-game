@@ -29,6 +29,7 @@ const NIGHT_END := 5.2
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tip_cat: TipCat
+@export var farming: Farming
 
 @export_group("Đi lễ đình (mùng 1, rằm)")
 ## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
@@ -406,6 +407,9 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			c = {"banyan": 3.0, "pagoda": 2.0, "visit": 2.0, "dinh": 1.0, "yard": 2.0, "inside": 1.0}
 		"kid":
 			c = {"inside": 2.0, "yard": 1.0} if noon else {"dinh": 4.0, "pond": 2.0, "banyan": 1.0, "visit": 1.0, "yard": 1.0}
+	# Mùa vụ (mục 33): mùa cấy, mùa gặt ra đồng đông hơn
+	if farming != null and c.has("field"):
+		c["field"] = float(c["field"]) * farming.busy()
 	# Nhảy dây (mục 31): trẻ con rủ nhau ra sân đình / gốc đa đầu làng
 	if jump_rope != null and v.role == "kid" and jump_rope.ambient_ok(h):
 		c["jumprope"] = 3.0 if v.get_meta("female", false) else 1.5
@@ -677,7 +681,14 @@ func _arrive(v: Villager) -> void:
 		school_day.on_arrive(v)       # tới trường: SchoolDay cho vào lớp / ra chơi theo thời khoá biểu
 		return
 	match act:
-		"field": v.work_anim = "hoe" if v.role == "farmer" else "idle"
+		"field":
+			v.work_anim = "hoe" if v.role == "farmer" else "idle"
+			if farming != null and v.role in ["farmer", "carrier"]:
+				var fw := farming.field_work(v.global_position)
+				v.work_anim = String(fw.anim)
+				v.activity_text = String(fw.text)
+				if v.prop_node != null:
+					v.prop_node.visible = bool(fw.prop)
 		"graze": v.work_anim = "idle"
 		"dinh", "pond": v.work_anim = "play" if v.role in ["kid", "herder"] else "chat"
 		"banyan": v.work_anim = "sit" if v.role == "elder" else "chat"

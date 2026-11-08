@@ -713,6 +713,42 @@ func _animate(delta: float) -> void:
 				elbows[0].rotation.x = -1.6
 				elbows[1].rotation.x = -1.6
 			body.rotation.x = 0.3 * maxf(0.0, sin(_work_time * 0.9))
+		"plant", "reap":
+			# Cấy / làm cỏ (cúi sâu, tay phải cắm mạ xuống bùn, lùi dần) và gặt (cúi, tay trái nắm bó lúa,
+			# tay phải đưa liềm quẹt ngang). Thân cúi về trước, hông xoay ngược để chân vẫn đứng thẳng.
+			var reap := work_anim == "reap"
+			var bend := (0.95 if not reap else 0.75) * idle
+			body.rotation.x = bend
+			for l in legs:
+				l.rotation.x = lerpf(l.rotation.x, -bend + 0.08, idle)
+			if knees.size() == 2:
+				knees[0].rotation.x = maxf(knees[0].rotation.x, 0.25 * idle)
+				knees[1].rotation.x = maxf(knees[1].rotation.x, 0.25 * idle)
+			body.position.y -= 0.06 * idle
+			var cyc := _work_time * (1.6 if not reap else 2.0)
+			var u := fmod(cyc, 1.0)
+			if arms.size() == 2:
+				if reap:
+					arms[0].rotation.x = lerpf(arms[0].rotation.x, -1.0, idle)
+					arms[1].rotation.x = lerpf(arms[1].rotation.x, -0.9, idle)
+					arms[1].rotation.z = lerpf(0.0, -0.9 + 1.4 * smoothstep(0.0, 0.5, u) * (1.0 - smoothstep(0.6, 1.0, u)), idle)
+				else:
+					var dip := sin(u * PI)
+					arms[1].rotation.x = lerpf(arms[1].rotation.x, -0.7 - 0.6 * dip, idle)
+					arms[0].rotation.x = lerpf(arms[0].rotation.x, -0.9, idle)
+					arms[0].rotation.z = 0.25 * idle
+			for e in elbows:
+				e.rotation.x = lerpf(e.rotation.x, -0.5, idle)
+		"plow":
+			# Hai tay cầm bắp cày phía trước, người hơi đổ về trước khi đi
+			if arms.size() == 2:
+				arms[0].rotation.x = -0.75
+				arms[1].rotation.x = -0.75
+				arms[0].rotation.z = 0.12
+				arms[1].rotation.z = -0.12
+			for e in elbows:
+				e.rotation.x = -0.35
+			body.rotation.x = 0.18
 		"work":
 			# Đẩy tay cối xay: hai tay ra trước, người đưa tới đưa lui
 			var push := sin(_work_time * 2.2)

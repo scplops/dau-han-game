@@ -23,6 +23,7 @@ signal finished
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tip_cat: TipCat
+@export var farming: Farming
 @export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
@@ -403,6 +404,8 @@ func _ans_doing() -> String:
 		"field":
 			if v.role != "farmer":
 				return "{Self} mang cơm ra đồng cho người nhà đấy."
+			if farming != null:
+				return "{Self} %s đây. %s" % [v.activity_text, farming.rice_talk()]
 			return _pick(["{Self} đang làm cỏ lúa. Lúa đang thì con gái, phải chăm cho kỹ.",
 					"Ra thăm ruộng xem nước nôi thế nào. Ruộng mà khô là phải tát nước vào ngay."])
 		"graze":
@@ -487,6 +490,8 @@ func _ans_rice() -> String:
 	var h := _hour()
 	var s := _pick(["Năm nay mưa thuận gió hoà, chắc được mùa đấy {you} ạ.",
 			"Lúa đang thì con gái, tháng sau là trổ bông. Chỉ sợ cuối vụ có bão."])
+	if farming != null:
+		s = farming.rice_talk()
 	if h >= 16.0:
 		s += " Chiều mát thế này ra đồng là sướng nhất."
 	return s

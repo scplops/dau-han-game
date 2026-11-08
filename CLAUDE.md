@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -200,6 +200,7 @@ scripts/
   kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
+  farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
   wind_sway.gdshader
@@ -259,7 +260,7 @@ screenshots/           # ảnh chụp, không commit
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Trồng trọt, lưu game, âm thanh và nhạc nền,
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), lưu game, âm thanh và nhạc nền,
 thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -990,4 +991,36 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   3 vòng có người thắng; Esc dọn sạch; từ chối người lớn / sát gốc đa / mưa.
 - Chụp ảnh: `--khang=N` (bãi thứ N, chụp lúc khăng đang bay; `--distance=14 --pitch=-26 --yaw=20`),
   `--fp --focus=-14,-1 --fp-yaw=-90 --khang-play[=flick_ready|hop|throw_flight]` (bạn đang đánh).
+
+## 33. Mùa vụ lúa (giai đoạn 6a)
+
+- `scripts/farming.gd` (`Farming`, node con của `Main` ngay sau `Calendar` — NGOÀI `World` nên nhập vai không dựng
+  va chạm cho nước ruộng, bó lúa…). Một vụ `cycle_days` 90 ngày theo lịch trong game (≈ 3 tháng; 1 ngày = 15 phút
+  thật nên cả vụ ≈ 22,5 giờ thật — phím `,` / `.` để lướt ngày). Ngày trong vụ = (ngày Julius + giờ / 24 − mốc
+  `epoch_date` 24/08/2026) mod 90 + độ lệch thửa (`home_offsets` 0 / −1,5 / −3; ô ngoài đồng `outer_offset_range`
+  −6…+2) → đồng không chín đều tăm tắp. Mốc chọn để 8/11/2026 là ngày 77: lúa chín vàng, sắp gặt (vụ mùa ngoài Bắc).
+- **Giai đoạn** (`STAGES`, `stage_of(d)`, `state_of(d)` → nước, bùn, đã cấy, cao, chín, bông, đã gặt):
+  cày bừa 0 (ruộng ngập nước đục, chưa có lúa) → cấy 5 (cấy dần theo luống, nước trong) → lúa non 11 (cao dần,
+  xanh non) → thì con gái 30 (xanh đậm, nước rút dần từ ngày 44) → trổ bông 55 (bông lúa mọc) → chín 65 (xanh →
+  vàng) → gặt 80 (gặt dần theo luống thành gốc rạ) → ruộng nghỉ 87 (gốc rạ, rơm).
+- **Ruộng nhà mình:** `RiceField` giữ dữ liệu từng khóm (`base_xforms`, `base_colors`, `paddy_of`, `order01` — thứ
+  tự cấy / gặt theo luống từ bờ tây sang bờ đông) và MultiMesh bông lúa `ears_mm` (ẩn tới khi trổ). Farming đặt lại
+  transform / màu từng khóm (chưa cấy → co về 0, đã gặt → gốc rạ thấp màu rơm), nước ruộng (`PaddyWater*`, đục khi
+  cày, trong khi cấy), bó lúa nằm (`Sheaves`) chỗ đã gặt tới khi gánh về. **Trâu kéo cày** (`PlowTeam`: trâu, bác
+  nông dân dáng `plow`, cái cày gỗ) đi luống đi luống về trên thửa đang cày, ban ngày, trời không mưa.
+- **Đồng ngoài làng:** mỗi ô ruộng của `Terrain.outer_fields` một tấm phủ có luống (`OuterCrop`, MultiMesh, màu
+  instance theo giai đoạn: bùn → mạ lấm tấm → xanh → vàng → gốc rạ), nước ruộng (`OuterWater`, khuất dần khi lúa
+  lên), đống rơm (`StrawStacks`) chất dần khi gặt. **Trong làng:** sân phơi thóc vàng (`DryingGrain`) trước một nửa
+  số nhà và sân nhà mình từ ngày 81 tới 89,5.
+- Chỉ vẽ lại khi trạng thái đổi đáng kể (`_sig` lượng tử hoá, kiểm mỗi `update_interval`); vẽ lại toàn bộ ~2 ms.
+  **Renderer headless không giữ transform MultiMesh** → bài thử đọc số đếm `counts` (khóm đang hiện, gốc rạ, bông,
+  bó lúa, ô có nước, đống rơm, sân phơi) do Farming tự đếm lúc vẽ.
+- **Dân làng:** trọng số việc `field` × `busy()` (cấy / gặt ×2,2, cày ×1,4, lúa đang lên ×0,9, ruộng nghỉ ×0,6);
+  tới ruộng thì `field_work(pos)` theo ô ruộng gần nhất: cuốc đất / đắp bờ (`hoe`), cấy và làm cỏ (dáng mới
+  `plant` — cúi sâu, tay cắm mạ), gặt (dáng mới `reap` — cúi, tay quẹt liềm), đứng xem lúa chín; cất cuốc khi cấy /
+  gặt. Dáng cúi: thân xoay về trước, hông xoay ngược để chân vẫn thẳng. Hội thoại "Lúa năm nay thế nào?" và "đang
+  làm gì" nói theo giai đoạn (`rice_talk`). HUD có dòng "Đồng: … (ngày N/90 của vụ)" dưới dòng ngày (`stage_text`).
+- `tools/farming_test.gd`: đi qua 10 ngày trong vụ (số khóm / gốc rạ / bông / bó lúa / nước / rơm / sân phơi / trâu
+  cày / mức bận / việc ngoài đồng), thời gian vẽ lại, dân làng ra đồng mùa cấy (dáng `plant`) và mùa gặt (`reap`).
+  Chụp ảnh: `--crop-day=N` (2 cày, 8 cấy, 40 xanh, 60 trổ, 76 chín, 84 gặt, 89 rạ), kèm `--hour=10`.
 
