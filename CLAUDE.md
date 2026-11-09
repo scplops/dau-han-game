@@ -6,8 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36) — chưa có túi đồ đầy đủ,
-> chưa lưu game.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -147,6 +146,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
+   `save_game` (F5), `new_game` (Ctrl+F5),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -200,6 +200,7 @@ scripts/
   kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
+  save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
   farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
@@ -260,7 +261,7 @@ screenshots/           # ảnh chụp, không commit
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), lưu game, âm thanh và nhạc nền,
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), âm thanh và nhạc nền (đang làm theo lộ trình mục 37),
 thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -445,7 +446,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   kéo cá: giữ chuột để cuộn dây, thả khi dây căng; dây căng quá thì đứt, chùng lâu thì cá sổng.
 - **Loài cá** lấy theo màu của con cá mắc câu (chép, chép đỏ, diếc, trắm cỏ, trê, mè trắng);
   cân nặng theo cỡ con cá, loài to giãy khoẻ hơn. Câu được thì cá về giỏ, con cá trong sông
-  sinh lại ở đoạn xa. Sổ câu (số con, con nặng nhất từng loài) chỉ giữ trong lần chạy (chưa lưu game).
+  sinh lại ở đoạn xa. Sổ câu (số con, con nặng nhất từng loài) được lưu lại (mục 37).
 - **Giờ & thời tiết:** cá ăn mạnh lúc sáng sớm và chiều muộn, kém buổi trưa, rất kém ban đêm;
   mưa phùn cá ăn hơn; mưa giông thì không câu được (đang câu thì tự thu cần về).
   Ban đêm đèn bão cạnh chỗ ngồi tự sáng (nhóm `night_light`).
@@ -1106,4 +1107,26 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   đập cột), 5–7 diều cùng bay, một cuộc đua thuyền đủ 4 thuyền về đích, nhảy dây, đánh khăng; rồi người chơi vào từng trò →
   ô ăn quan ván mới 0–0, trốn tìm ván mới (người chơi đếm), mượn diều thả lại từ dây 9 m, đua thuyền về vạch xuất phát,
   nhảy dây đếm lại 0, đánh khăng điểm về 0.
+
+## 37. Lưu game (giai đoạn 7a) — lộ trình giai đoạn 7
+
+- **Lộ trình giai đoạn 7** (người dùng duyệt, làm lần lượt, mỗi bước dừng lại chờ xác nhận): 7a lưu game → 7b âm thanh
+  → 7c sổ tay người chơi → 7d chợ phiên → 7e lễ hội theo lịch âm (Tết, rằm tháng Giêng, Trung thu) → 7f các mùa trong
+  năm → 7g kéo co → 7h trò dân gian khác (bịt mắt bắt dê, rồng rắn lên mây, chơi chuyền, bắn bi, đá cầu) → 7i hiệu năng.
+- `scripts/save_game.gd` (`SaveGame`, node con cuối của `Main`). File JSON `save_path` (`user://lang_que_save.json`):
+  `version`, `saved_at`, `jd` (ngày), `hour`, `auto_run`, `weather`, `camera` (tâm, yaw, khoảng cách camera ngắm cảnh),
+  `fish_log` / `fish_total` / `basket` (Fishing), `gifts` (Quests), `met` (Dialogue `_met` — lưu theo `display_name`,
+  nạp lại khớp tên vì dân làng sinh theo seed cố định), `records` (kỷ lục người chơi).
+- **Kỷ lục** (`records`) lấy từ tín hiệu sẵn có: `JumpRope.turn_over` ("Bạn" → `rope_best`), `TipCat.turn_done`
+  (`khang_best` lượt không chết), `BoatRace.finished` (`race_best_team` / `race_best_solo`, `race_wins`),
+  `KiteFlying.finished` (`kite_best`), `OAnQuan.finished` (thắng / thua / hoà — chỉ ván chơi hết), `HideSeek.finished`,
+  `Football.goal_scored` (`goals` của người chơi).
+- **Khi nào lưu:** mỗi `autosave_seconds` (60) giây thật, khi đóng cửa sổ (`NOTIFICATION_WM_CLOSE_REQUEST`), F5
+  (`save_game`, hiện chữ "Đã lưu game"). Mở game có file thì nạp (`_load` gọi trễ một nhịp, sau khi mọi phần đã
+  dựng; ngày lưu thay cho ngày hôm nay của máy) rồi `Villagers.replan()`. Ctrl+F5 (`new_game`): xoá file, lần mở
+  sau chơi lại từ đầu. File hỏng thì bỏ qua (cảnh báo).
+- Chạy bằng `-s` (bài thử, `tools/screenshot.gd`) thì `SaveGame` không đọc / ghi file (`_disabled`) — ảnh chụp và bài
+  thử không bị file lưu của người chơi làm lệch.
+- `tools/save_test.gd`: đặt trạng thái (kỷ lục qua tín hiệu thật) → lưu file tạm → xáo trộn → nạp lại: 12/12 mục đúng;
+  file hỏng thì bỏ qua.
 

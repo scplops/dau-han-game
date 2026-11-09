@@ -33,6 +33,7 @@
 [ext_resource type="Script" path="res://scripts/jump_rope.gd" id="35_rope"]
 [ext_resource type="Script" path="res://scripts/tip_cat.gd" id="36_khang"]
 [ext_resource type="Script" path="res://scripts/farming.gd" id="37_farm"]
+[ext_resource type="Script" path="res://scripts/save_game.gd" id="38_save"]
 [ext_resource type="Script" path="res://scripts/lunar_calendar.gd" id="29_calendar"]
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
 [ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
@@ -378,3 +379,21 @@ hud = NodePath("../HUD")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 village = NodePath("../World/Village")
+
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek")]
+script = ExtResource("38_save")
+calendar = NodePath("../Calendar")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+outdoor_rig = NodePath("../CameraRig")
+fishing = NodePath("../Fishing")
+quests = NodePath("../Quests")
+dialogue = NodePath("../Dialogue")
+villagers = NodePath("../World/Villagers")
+football = NodePath("../World/Football")
+jump_rope = NodePath("../JumpRope")
+tip_cat = NodePath("../TipCat")
+boat_race = NodePath("../BoatRace")
+kite = NodePath("../KiteFlying")
+o_an_quan = NodePath("../OAnQuan")
+hide_seek = NodePath("../HideSeek")
