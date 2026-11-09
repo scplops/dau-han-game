@@ -28,8 +28,8 @@ enum Mode { SMALL, LARGE, HIDDEN }
 ## Bán kính vùng nhìn của bản đồ nhỏ (m).
 @export var small_radius: float = 75.0
 @export var large_size: float = 680.0
-@export var large_center: Vector2 = Vector2(-15.0, -92.0)
-@export var large_radius: float = 165.0
+@export var large_center: Vector2 = Vector2(-15.0, -100.0)
+@export var large_radius: float = 185.0
 @export var redraw_interval: float = 0.05
 
 var mode: Mode = Mode.SMALL

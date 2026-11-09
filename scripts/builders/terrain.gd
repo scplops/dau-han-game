@@ -43,7 +43,7 @@ extends Node3D
 
 @export_group("Làng & đồng")
 ## Vùng đất phẳng của làng (Village dựng nhà, đường gạch trên đó).
-@export var village_rect: Rect2 = Rect2(-112.0, -184.0, 224.0, 152.0)
+@export var village_rect: Rect2 = Rect2(-136.0, -208.0, 272.0, 176.0)
 @export var village_cell: float = 4.0
 ## Đường đất nối cổng làng ra đồng.
 @export var roads: Array[PackedVector2Array] = [

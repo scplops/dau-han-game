@@ -12,10 +12,10 @@ extends Node3D
 @export var random_seed: int = 5150
 
 @export_group("Hình dáng")
-@export var offset_radii: Vector2 = Vector2(130.0, 98.0)
+@export var offset_radii: Vector2 = Vector2(152.0, 108.0)
 @export var arc_degrees: Vector2 = Vector2(180.0, 360.0)     # từ tây, qua bắc, sang đông
-@export var west_tail: PackedVector2Array = PackedVector2Array([Vector2(-430, -40), Vector2(-320, -44), Vector2(-225, -48), Vector2(-160, -55), Vector2(-130, -72)])
-@export var east_tail: PackedVector2Array = PackedVector2Array([Vector2(130, -72), Vector2(160, -55), Vector2(225, -48), Vector2(320, -44), Vector2(430, -40)])
+@export var west_tail: PackedVector2Array = PackedVector2Array([Vector2(-430, -40), Vector2(-320, -44), Vector2(-240, -50), Vector2(-184, -62), Vector2(-152, -82)])
+@export var east_tail: PackedVector2Array = PackedVector2Array([Vector2(152, -82), Vector2(184, -62), Vector2(240, -50), Vector2(320, -44), Vector2(430, -40)])
 @export var width_range: Vector2 = Vector2(18.0, 26.0)
 ## Cả lòng sông nằm TRÊN nền cỏ (y = 0) để nền không lộ qua làn nước trong.
 @export var bed_level: float = 0.06
@@ -101,7 +101,7 @@ static func _t(x: float, y: float, z: float) -> Transform3D:
 # --- Tim sông -------------------------------------------------------------------------
 
 func _make_centerline() -> void:
-	var c := village.center if village != null else Vector2(0, -105)
+	var c := village.center if village != null else Vector2(0, -115)
 	var raw := PackedVector2Array(west_tail)
 	var a := arc_degrees.x
 	while a <= arc_degrees.y:
@@ -764,7 +764,7 @@ func _bank_point(d_range: Vector2) -> Array:
 		n = -n
 	var d := _rng.randf_range(d_range.x, d_range.y)
 	var q := c + n * (half_width(s) + d)
-	var vc := village.center if village != null else Vector2(0, -105)
+	var vc := village.center if village != null else Vector2(0, -115)
 	var outer := q.distance_to(vc) > c.distance_to(vc)
 	return [q, n, d, outer, c]
 

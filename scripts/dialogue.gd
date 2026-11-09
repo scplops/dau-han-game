@@ -690,7 +690,53 @@ func _ans_home() -> String:
 	var home_name := str(npc.home.get("name", "")).to_lower()
 	if str(npc.home.get("key", "")) == "main":
 		return "Nhà {self} ngay cạnh ruộng đầu làng đấy, cái nhà ngói có cây đa ấy."
-	return "Nhà {self} là cái %s ở trong làng. Lúc nào rảnh sang chơi uống nước chè." % home_name
+	var fam := _family_text()
+	return "Nhà {self} là cái %s ở trong làng.%s Lúc nào rảnh sang chơi uống nước chè." % [home_name, fam]
+
+
+## "Nhà có bốn người: vợ Bưởi, bà cụ Hoa, cu Mướp với {self}." — kể người cùng hộ theo quan hệ với người nói.
+func _family_text() -> String:
+	var fam: Array = npc.home.get("family", [])
+	if fam.size() < 2 or not npc.has_meta("relation"):
+		return ""
+	var me := str(npc.get_meta("relation"))
+	var parts: Array[String] = []
+	for m: Villager in fam:
+		if m == npc:
+			continue
+		var given := m.display_name.get_slice(" ", m.display_name.get_slice_count(" ") - 1)
+		parts.append("%s %s" % [_relation_word(me, str(m.get_meta("relation", "")), m), given])
+	var count_word: String = ["", "một", "hai", "ba", "bốn", "năm", "sáu"][mini(fam.size(), 6)]
+	return " Nhà có %s người: %s với {self}." % [count_word, ", ".join(parts)]
+
+
+## Người nói (quan hệ `me` trong hộ) gọi người kia (quan hệ `other`) là gì.
+static func _relation_word(me: String, other: String, m: Villager) -> String:
+	var female := bool(m.get_meta("female", false))
+	match me:
+		"con":
+			match other:
+				"bố", "mẹ", "ông", "bà":
+					return other
+		"bố":
+			match other:
+				"mẹ": return "vợ"
+				"ông": return "ông cụ"
+				"bà": return "bà cụ"
+		"mẹ":
+			match other:
+				"bố": return "chồng"
+				"ông": return "ông cụ"
+				"bà": return "bà cụ"
+		"ông", "bà":
+			match other:
+				"bố": return "anh con trai"
+				"mẹ": return "chị con dâu"
+				"con": return "cháu"
+				"ông", "bà": return "ông nhà" if other == "ông" else "bà nhà"
+	if other == "con":
+		return "cái" if female else "cu"
+	return other
 
 
 func _score_text() -> String:

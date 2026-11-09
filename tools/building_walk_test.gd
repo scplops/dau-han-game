@@ -1,5 +1,5 @@
 extends SceneTree
-## Kiểm tra đi bộ bên trong MỌI toà nhà (nhập vai): nhà mình, 41 nhà làng, đình, chùa, lớp học.
+## Kiểm tra đi bộ bên trong MỌI toà nhà (nhập vai): nhà mình, 60 nhà làng, đình, chùa, lớp học.
 ## Mỗi toà: đứng trước cửa nhìn cửa → E → vào; đứng vững trên nền, không kẹt trong tường; đi sâu
 ## vào trong, sang trái, sang phải (đo quãng đi được, có xuyên tường lọt ra ngoài / rơi khỏi nền
 ## không); quay ra cửa đi thẳng → về sân. In một dòng cho mỗi toà và tổng kết cuối.

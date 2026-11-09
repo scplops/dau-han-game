@@ -277,11 +277,11 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   gian trái giường, tủ; gian phải chạn bát, chum gạo, nong nia, quang gánh.
   Đèn dầu thuộc nhóm `night_light` để tự sáng khi tối.
 - **Vùng bấm** là `StaticBody3D` ở lớp va chạm 2, tạo bằng `HouseEntry.make_click_target()`.
-- **Mọi toà đều vào được** (nhà mình, 41 nhà làng, đình, chùa): cửa tạo bằng
+- **Mọi toà đều vào được** (nhà mình, 60 nhà làng, đình, chùa): cửa tạo bằng
   `HouseEntry.make_entry_target(parent, xform, size, hint, spec, key)`. `spec` là thông số
   nội thất; `Interior.load_spec(spec)` xoá nội thất cũ và dựng lại lúc màn hình tối, nên chỉ
   có MỘT nội thất tồn tại tại một thời điểm (không tốn FPS ngoài làng). Khoá: `main`, `dinh`,
-  `pagoda`, `house_0`…`house_40`; chụp ảnh bằng `--enter=<khoá>`.
+  `pagoda`, `house_0`…`house_59`; chụp ảnh bằng `--enter=<khoá>`.
 - **Nhà làng:** kích thước, tường, mặt tiền khớp bên ngoài (do `VillageHouse.build_house` trả
   về). Gian giữa luôn là bàn thờ + bàn trà; các gian bên chọn theo seed từ `Interior.ROOM_TYPES`
   (buồng ngủ, phản + chõng tre, kho, khung cửi, cối xay thóc, góc học), luôn có chỗ ngủ.
@@ -297,7 +297,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 ## 11. Làng (giai đoạn 1c)
 
 - **Vị trí:** khu nhà chính + ruộng giữ nguyên ở gốc toạ độ; làng nằm phía bắc (z âm),
-  trong elip `Village.center` (0, −105), bán kính (100, 70). Đất làng phẳng (y = 0) do
+  trong elip `Village.center` (0, −115), bán kính (122, 80) — mép nam vẫn ở z −35 (cổng làng), 6 ngõ
+  (`alley_z` −52…−152), 60 nhà (mục 34). Đất làng phẳng (y = 0) do
   `Terrain.village_rect` dựng; ngoài làng là đồng (`Terrain.outer_fields`) và đường đất
   (`Terrain.roads`) nối cổng làng ra đồng.
 - **Quy hoạch kiểu làng Bắc Bộ:** lũy tre dày bao quanh, cổng làng phía nam, đường trục lát gạch
@@ -344,9 +345,9 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 ## 13. Dân làng đi lại (giai đoạn 1e)
 
 - `scripts/villagers.gd` (node `World/Villagers`, dựng sau `Village`) + `scripts/villager.gd`.
-  Mặc định 36 người (12 nông dân vác cuốc, 6 người gánh hàng, 6 cụ già chống gậy, 8 trẻ con,
-  4 trẻ chăn trâu) và 37 con vật (4 trâu theo trẻ chăn, 3 chó theo chủ, 6 sân gà × 4, 6 vịt
-  bơi nối đuôi ở ao làng). Số lượng chỉnh bằng `@export`. Dân số sinh theo `random_seed` cố định.
+  Dân làng sinh theo **hộ** (mục 34): mỗi nhà làng 3–4 người — 60 hộ ≈ 207 người (bố nông dân vác cuốc,
+  mẹ làm ruộng / gánh hàng, ông / bà chống gậy, con: trẻ con / trẻ chăn trâu) — và ~75 con vật (trâu theo
+  trẻ chăn, 10 chó theo chủ, 12 sân gà × 4, 6 vịt bơi nối đuôi ở ao làng). Số lượng chỉnh bằng `@export`. Dân số sinh theo `random_seed` cố định.
 - **Đường đi:** `AStar3D` dựng từ đường trục, các ngõ (`Village.lane_points/alley_lines`),
   đường đất (`Terrain.roads`) và lối sân nhà mình. Ra khỏi nhà: cửa → trước hiên → cổng
   (`Village.homes[i].gate`) → đồ thị; về nhà thì ngược lại rồi ẩn ("vào nhà"). Mỗi người lệch
@@ -367,7 +368,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   dùng chung `Villager.soft_head()` (tai, chỏm tóc, búi tóc cho phụ nữ, mắt, lông mày, má hồng) —
   người câu cá (`Fishing`) và tượng nông dân (`Characters`) cũng dùng hàm này. Dáng đi: gối co khi
   chân đưa lên, thân lắc / xoay nhẹ theo bước, khuỷu hơi gập (tay cầm đồ thì thẳng), thở khi đứng
-  yên, ngồi thì gập gối (hông hạ đúng một đoạn đùi). Mỗi người ~2.100 tam giác (36 người ~75 nghìn).
+  yên, ngồi thì gập gối (hông hạ đúng một đoạn đùi). Mỗi người ~2.100 tam giác (207 người ~430 nghìn, phần lớn khuất / ở trong nhà / quá `visibility_range_end`).
   Bộ đồ (`_outfits`) lưu cả `knees` / `elbows`.
 - **Hiệu năng:** mesh từng bộ phận dùng chung qua bộ đệm; chỉ diễn hoạt NPC trong
   `animate_distance` quanh camera; mỗi phần có `visibility_range_end`.
@@ -376,7 +377,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 ## 14. Sông quanh làng (giai đoạn 1f)
 
 - `scripts/builders/river.gd` (node `World/River`, dựng sau `Village`). Sông hình móng ngựa
-  ôm ba mặt làng (tây → bắc → đông) theo elip của làng nới ra `offset_radii` (130, 98), uốn
+  ôm ba mặt làng (tây → bắc → đông) theo elip của làng nới ra `offset_radii` (152, 108), uốn
   khúc nhẹ; hai đầu (`west_tail`, `east_tail`) vòng thoải rồi chảy xa ra đồng. Mặt nam để trống
   (cổng làng, ruộng). Dài khoảng 1 km, rộng 18–26 m (`width_range`). Nới rộng sông thì phải nới
   `offset_radii` theo, nếu không chân đê phía trong lấn vào lũy tre.
@@ -465,8 +466,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 
 - `scripts/builders/football.gd` (node `World/Football`, đứng SAU `Villagers` để điều khiển
   cầu thủ sau khi Villagers tick xong mỗi khung). Sân 30 × 18 m ở `Village.pitch_rect`
-  (x −62…−32, z −154…−136): góc tây bắc làng, sau ngõ cuối, cạnh lối ra sông phía bắc.
-  `Village._reserved` và vườn tạp né vùng này nên làng còn 41 nhà (3 lô nhường chỗ).
+  (x −64…−34, z −176…−158): góc tây bắc làng, sau ngõ cuối, cạnh lối ra sông phía bắc.
+  `Village._reserved` và vườn tạp né vùng này.
 - **Sân kiểu làng:** cỏ mòn thành đất ở khung thành và giữa sân, vạch vôi hơi xiêu, khung thành
   tre có lưới cước, cờ góc đỏ, ghế băng tre, bảng tỉ số gỗ (Label3D, tên hai đội "Xóm Đông" đỏ –
   "Xóm Đoài" xanh), hai cây bàng, đống rơm, xe đạp dựng.
@@ -604,7 +605,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 
 ## 21. Đi bộ bên trong các công trình (giai đoạn 3d)
 
-- Khi đang nhập vai, nhìn vào cửa (nhà mình, 41 nhà làng, đình, chùa, lớp học) và nhấn E: vẫn
+- Khi đang nhập vai, nhìn vào cửa (nhà mình, 60 nhà làng, đình, chùa, lớp học) và nhấn E: vẫn
   chuyển cảnh mờ đen như mục 10, nhưng `HouseEntry.walk_inside = true` → `Interior.walk_mode = true`
   và người chơi đứng ngay sau ô cửa (`Interior.entry_point`), đi bộ tự do bên trong.
 - **Nội thất kiểu đi bộ** (`Interior.walk_mode`): tường trước đủ cao gồm phần dưới bậu, dải cửa sổ
@@ -624,7 +625,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   camera ở `inside_changed(true)`.
 - **Lớp học:** cửa trong mở vào lối đi giữa dãy bàn bên phải và tường hồi; dãy bàn chừa ~1,5 m
   trước cửa (đặt cửa giữa dãy bàn thì vào là kẹt trong bàn ghế).
-- `tools/building_walk_test.gd [-- --only=house_3,dinh]`: kiểm tra MỌI toà (45) — đứng ngoài sân đi
+- `tools/building_walk_test.gd [-- --only=house_3,dinh]`: kiểm tra MỌI toà (64) — đứng ngoài sân đi
   thẳng tới cửa → "E: vào" → vào; đứng trên nền, không kẹt; đi sâu / trái / phải (quãng đi được, xuyên
   tường, rơi khỏi nền); đi ra cửa về sân. In một dòng mỗi toà + tổng kết. Dò mặt đất trước cửa từ
   ngang tầm người (dò từ trên cao thì trúng mái hiên).
@@ -759,7 +760,7 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   13:00–13:30, `class`, `recess` 9:12–9:36 / 14:54–15:15, `leave` 11:00–11:24 / 16:30–16:54,
   thứ Hai 7:00–7:30 `flag` (chào cờ); thứ Bảy chỉ học sáng; `off` ngoài giờ, Chủ nhật, từ 23 tháng
   Chạp tới mùng 7 Tết (`LunarCalendar.is_school_day`).
-- **Học sinh làng bên** (`pupil_count` 28, `pupils`): Villager trẻ con mặc đồng phục, meta `pupil`,
+- **Học sinh làng bên** (`pupil_count` 16 — làng đã đông trẻ con, `pupils`): Villager trẻ con mặc đồng phục, meta `pupil`,
   `class` (0…4 = 5 lớp tầng 1), `spawn` (đầu đường đất phía nam cổng). Đến trường: đi đường đất →
   cổng (`School.gate_out/gate_in`) → sân; tan học thì đi ngược ra và ẩn ở đầu đường.
 - **Trẻ con trong làng** (Villagers, việc `school` khi `wants_pupils`): tới trường thì
@@ -1023,4 +1024,24 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - `tools/farming_test.gd`: đi qua 10 ngày trong vụ (số khóm / gốc rạ / bông / bó lúa / nước / rơm / sân phơi / trâu
   cày / mức bận / việc ngoài đồng), thời gian vẽ lại, dân làng ra đồng mùa cấy (dáng `plant`) và mùa gặt (`reap`).
   Chụp ảnh: `--crop-day=N` (2 cày, 8 cấy, 40 xanh, 60 trổ, 76 chín, 84 gặt, 89 rạ), kèm `--hour=10`.
+
+## 34. Làng 60 hộ (giai đoạn 6b)
+
+- **Làng nới rộng** để đủ 60 nhà không trùng kiểu (thu hẹp lô thì gần hết là nhà 2 gian — mất đa dạng):
+  `Village.center` (0, −115), `radii` (122, 80), thêm ngõ thứ 6 ở z −152, `max_houses` 60. Đình (luôn sau ngõ cuối)
+  lùi lên bắc 20 m, sân bóng dời tới `pitch_rect` (−64, −176, 30, 18). Kéo theo: `Terrain.village_rect`
+  (−136, −208, 272, 176 — bội của ô 8 m), sông `offset_radii` (152, 108) + hai đuôi (nối vào (±152, −82)),
+  đồi / núi lùi ra sau (`hill_z_range` −284…−312, `peak_z_range` −325…−385), bản đồ lớn `large_center` (−15, −100),
+  `large_radius` 185. Mép nam (cổng, ao làng, cây đa, giếng, bãi chơi ngoài cổng) giữ nguyên.
+- **Hộ dân** (`Villagers._household(size)`, `household_size` (3, 4), `elder_chance` 0,45, `herder_chance` 0,16,
+  `carrier_chance` 0,35, `max_households` 0 = mọi nhà): bố (nông dân) + mẹ (làm ruộng / gánh hàng) + có khi ông
+  hoặc bà + các con (trẻ con / trẻ chăn trâu); hộ 3 người có ông / bà thì chỉ một bố hoặc mẹ. Nhà mình (`main`) không có
+  người máy ở. Mỗi người có meta `household` (chỉ số nhà), `relation` (bố / mẹ / ông / bà / con); `home.family` là
+  danh sách người trong hộ (`Villagers.family_of(v)`). Thường ra ~89 nông dân, 17 gánh hàng, 27 cụ, 63 trẻ con,
+  11 trẻ chăn trâu. Tên: kho tên `MALE` / `FEMALE` / `KID` ~45 mỗi loại, `_unique_name` hết chỗ ngẫu nhiên thì duyệt
+  lần lượt — không ai trùng tên.
+- **Hội thoại** "Nhà … ở đâu?" kể thêm người trong nhà theo quan hệ với người nói (`Dialogue._family_text`,
+  `_relation_word`): "Nhà có bốn người: vợ Duyên, bà cụ Mơ, cu Mít với bác."
+- **Hiệu năng:** Villagers._process ~1,5–2 ms / khung lúc ~200 người ngoài đường (đo headless), ~12 MeshInstance mỗi
+  người (chỉ bộ đồ đang mặc hiện). Ban đêm hầu hết ẩn trong nhà.
 

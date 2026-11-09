@@ -39,16 +39,21 @@ const NIGHT_END := 5.2
 @export var worship_minutes: Vector2 = Vector2(30.0, 60.0)
 
 @export_group("Số lượng")
-@export_range(0, 80) var farmers: int = 12
-@export_range(0, 40) var carriers: int = 6
-@export_range(0, 40) var elders: int = 6
-@export_range(0, 40) var kids: int = 8
-@export_range(0, 20) var herders: int = 4
-@export_range(0, 20) var dogs: int = 3
-@export_range(0, 20) var chicken_yards: int = 6
+## Mỗi nhà trong làng là một hộ: số người mỗi hộ (ngẫu nhiên trong khoảng, theo seed).
+@export var household_size: Vector2i = Vector2i(3, 4)
+## Tỉ lệ hộ có ông / bà sống cùng (ba thế hệ).
+@export_range(0.0, 1.0) var elder_chance: float = 0.45
+## Tỉ lệ con trong nhà đi chăn trâu (mỗi đứa chăn trâu có một con trâu).
+@export_range(0.0, 1.0) var herder_chance: float = 0.16
+## Tỉ lệ vợ đi gánh hàng (còn lại làm ruộng cùng chồng).
+@export_range(0.0, 1.0) var carrier_chance: float = 0.35
+## Giới hạn số hộ có người (0 = mọi nhà trong làng).
+@export_range(0, 200) var max_households: int = 0
+@export_range(0, 40) var dogs: int = 10
+@export_range(0, 40) var chicken_yards: int = 12
 @export_range(1, 8) var chickens_per_yard: int = 4
 @export_range(0, 12) var ducks: int = 6
-@export_range(0, 6) var lantern_walkers: int = 3
+@export_range(0, 20) var lantern_walkers: int = 6
 
 @export_group("Hiệu năng")
 @export var animate_distance: float = 90.0
@@ -68,10 +73,18 @@ var _weather_check: float = 0.0
 var _info_timer: float = 0.0
 var _following: bool = false
 var _used_names: Dictionary = {}
+## Số hộ có người ở (có sau build()).
+var households: int = 0
 
-const MALE := ["Tư", "Năm", "Sáu", "Bảy", "Tám", "Chín", "Hùng", "Dũng", "Lực", "Sửu", "Dần", "Mão", "Tỵ", "Thìn", "Khoai", "Bình", "Toàn", "Thắng"]
-const FEMALE := ["Hoa", "Lan", "Mận", "Đào", "Thắm", "Liên", "Hà", "Nụ", "Huệ", "Cúc", "Xoan", "Gấm", "Nhài", "Sen", "Mơ", "Tươi"]
-const KID := ["Tí", "Tèo", "Bống", "Mít", "Na", "Cốm", "Thóc", "Gạo", "Bin", "Bông", "Su", "Nhím", "Cò", "Bơ"]
+const MALE := ["Tư", "Năm", "Sáu", "Bảy", "Tám", "Chín", "Hùng", "Dũng", "Lực", "Sửu", "Dần", "Mão", "Tỵ", "Thìn", "Khoai", "Bình", "Toàn", "Thắng",
+		"Hai", "Ba", "Mười", "Cường", "Hải", "Long", "Quý", "Tý", "Ngọ", "Mùi", "Thân", "Tuất", "Hợi", "Sơn", "Thành", "Đức", "Phúc", "Lộc",
+		"Thọ", "Khánh", "Chiến", "Tiến", "Vượng", "Hưng", "Nghĩa", "Trung", "Kiên", "Tùng"]
+const FEMALE := ["Hoa", "Lan", "Mận", "Đào", "Thắm", "Liên", "Hà", "Nụ", "Huệ", "Cúc", "Xoan", "Gấm", "Nhài", "Sen", "Mơ", "Tươi",
+		"Hồng", "Mai", "Thu", "Hương", "Nga", "Yến", "Loan", "Phượng", "Duyên", "Hạnh", "Thơm", "Mến", "Ngát", "Lụa", "Vân", "Bưởi",
+		"Hằng", "Nhung", "Thoa", "Tuyết", "Quế", "Lý", "Thìn", "Hiền", "Lành", "Na"]
+const KID := ["Tí", "Tèo", "Bống", "Mít", "Na", "Cốm", "Thóc", "Gạo", "Bin", "Bông", "Su", "Nhím", "Cò", "Bơ",
+		"Cún", "Bi", "Bé", "Út", "Còi", "Đậu", "Lạc", "Vừng", "Ngô", "Khoai", "Sóc", "Chuột", "Tũn", "Bờm", "Hến", "Ốc",
+		"Tôm", "Tép", "Mướp", "Bầu", "Bí", "Sắn", "Mỡ", "Cua", "Kẹo", "Mía", "Chanh", "Quýt", "Hạt", "Nhót", "Sấu", "Thị"]
 
 const ROLE_NAMES := {
 	"farmer": "Nông dân", "carrier": "Người gánh hàng", "elder": "Cụ già", "kid": "Trẻ con",
@@ -113,7 +126,7 @@ func build() -> void:
 	_collect_field_spots()
 	_spawn_people()
 	_spawn_animals()
-	print("Villagers: %d người, %d con vật, %d điểm đường" % [people.size(), animals.size(), _astar.get_point_count()])
+	print("Villagers: %d hộ, %d người, %d con vật, %d điểm đường" % [households, people.size(), animals.size(), _astar.get_point_count()])
 
 
 static func _t(x: float, y: float, z: float) -> Transform3D:
@@ -226,54 +239,102 @@ func _collect_field_spots() -> void:
 # --- Sinh người ------------------------------------------------------------------------
 
 func _unique_name(prefixes: Array, names: Array) -> String:
-	for i in 50:
+	for i in 60:
 		var n := "%s %s" % [prefixes[_rng.randi_range(0, prefixes.size() - 1)], names[_rng.randi_range(0, names.size() - 1)]]
 		if not _used_names.has(n):
 			_used_names[n] = true
 			return n
-	return "Người làng"
+	# Hết chỗ ngẫu nhiên: duyệt lần lượt mọi tổ hợp
+	for pre in prefixes:
+		for nm in names:
+			var n := "%s %s" % [pre, nm]
+			if not _used_names.has(n):
+				_used_names[n] = true
+				return n
+	return "%s %s" % [prefixes[0], names[_rng.randi_range(0, names.size() - 1)]]
+
+
+## Thành phần một hộ `size` người: [[vai, nữ?, quan hệ], ...]. Bố mẹ trước, ông / bà, rồi các con.
+func _household(size: int) -> Array:
+	var out: Array = []
+	var grand := _rng.randf() < elder_chance
+	var kids_n := size - 2 - (1 if grand else 0)
+	if kids_n < 1 and grand:
+		# Ba người mà có ông / bà: một bố hoặc mẹ + ông / bà + một con
+		kids_n = 1
+		var mum_only := _rng.randf() < 0.4
+		if mum_only:
+			out.append(["carrier" if _rng.randf() < carrier_chance else "farmer", true, "mẹ"])
+		else:
+			out.append(["farmer", false, "bố"])
+	else:
+		out.append(["farmer", false, "bố"])
+		out.append(["carrier" if _rng.randf() < carrier_chance else "farmer", true, "mẹ"])
+	if grand:
+		var gf := _rng.randf() < 0.55
+		out.append(["elder", gf, "bà" if gf else "ông"])
+	for k in kids_n:
+		var role := "herder" if _rng.randf() < herder_chance else "kid"
+		var f := _rng.randf() < (0.15 if role == "herder" else 0.5)
+		out.append([role, f, "con"])
+	return out
 
 
 func _spawn_people() -> void:
-	var roles: Array[String] = []
-	for i in farmers: roles.append("farmer")
-	for i in carriers: roles.append("carrier")
-	for i in elders: roles.append("elder")
-	for i in kids: roles.append("kid")
-	for i in herders: roles.append("herder")
 	var lanterns := 0
-	for i in roles.size():
-		var role := roles[i]
-		var v := Villager.new()
-		v.name = "Villager%d" % i
-		v.role = role
-		v.role_name = ROLE_NAMES[role]
-		v.terrain = terrain
-		v.home = _homes[_rng.randi_range(0, _homes.size() - 1)]
-		v.side_offset = _rng.randf_range(-0.7, 0.7)
-		var female := _rng.randf() < (0.8 if role == "carrier" else (0.15 if role == "herder" else 0.45))
-		v.set_meta("female", female)
-		var look := _look(role, female)
-		match role:
-			"elder":
-				v.display_name = _unique_name(["Bà", "Cụ bà"] if female else ["Ông", "Cụ ông"], FEMALE if female else MALE)
-				v.speed = _rng.randf_range(0.6, 0.85)
-			"kid", "herder":
-				v.display_name = _unique_name(["Cái", "Bé"] if female else ["Cu", "Thằng"], KID)
-				v.speed = _rng.randf_range(1.6, 2.2) if role == "kid" else 1.1
-			_:
-				v.display_name = _unique_name(["Chị", "Cô", "Thím"] if female else ["Anh", "Chú", "Bác"], FEMALE if female else MALE)
-				v.speed = _rng.randf_range(1.2, 1.5) if role != "carrier" else 1.15
-		add_child(v)
-		v.build_person(look)
-		if role == "kid" and school != null:
-			v.add_uniform(look)
-		if role in ["farmer", "carrier", "elder"] and lanterns < lantern_walkers:
-			v.add_lantern(true)
-			v.set_meta("lantern", true)
-			lanterns += 1
-		people.append(v)
-		_start(v)
+	var n_homes := 0
+	for hi in _homes.size():
+		var home: Dictionary = _homes[hi]
+		if str(home.key) == "main":
+			continue          # nhà mình không có người máy ở
+		if max_households > 0 and n_homes >= max_households:
+			break
+		n_homes += 1
+		var size := _rng.randi_range(household_size.x, maxi(household_size.x, household_size.y))
+		var family: Array[Villager] = []
+		for m in _household(size):
+			var role: String = m[0]
+			var female: bool = m[1]
+			var v := Villager.new()
+			v.name = "Villager%d" % people.size()
+			v.role = role
+			v.role_name = ROLE_NAMES[role]
+			v.terrain = terrain
+			v.home = home
+			v.side_offset = _rng.randf_range(-0.7, 0.7)
+			v.set_meta("female", female)
+			v.set_meta("household", hi)
+			v.set_meta("relation", m[2])
+			var look := _look(role, female)
+			match role:
+				"elder":
+					v.display_name = _unique_name(["Bà", "Cụ bà"] if female else ["Ông", "Cụ ông"], FEMALE if female else MALE)
+					v.speed = _rng.randf_range(0.6, 0.85)
+				"kid", "herder":
+					v.display_name = _unique_name(["Cái", "Bé"] if female else ["Cu", "Thằng"], KID)
+					v.speed = _rng.randf_range(1.6, 2.2) if role == "kid" else 1.1
+				_:
+					v.display_name = _unique_name(["Chị", "Cô", "Thím"] if female else ["Anh", "Chú", "Bác"], FEMALE if female else MALE)
+					v.speed = _rng.randf_range(1.2, 1.5) if role != "carrier" else 1.15
+			add_child(v)
+			v.build_person(look)
+			if role == "kid" and school != null:
+				v.add_uniform(look)
+			if role in ["farmer", "carrier", "elder"] and lanterns < lantern_walkers and _rng.randf() < 0.12:
+				v.add_lantern(true)
+				v.set_meta("lantern", true)
+				lanterns += 1
+			people.append(v)
+			family.append(v)
+		home["family"] = family
+		for v in family:
+			_start(v)
+	households = n_homes
+
+
+## Người cùng hộ với `v` (kể cả `v`).
+func family_of(v: Villager) -> Array:
+	return v.home.get("family", [v])
 
 
 func _look(role: String, female: bool) -> Dictionary:

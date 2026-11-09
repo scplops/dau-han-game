@@ -14,7 +14,7 @@ extends Node3D
 @export var calendar: LunarCalendar
 @export var day_night: DayNight
 @export var weather: Weather
-@export_range(0, 60) var pupil_count: int = 28
+@export_range(0, 60) var pupil_count: int = 16
 @export var random_seed: int = 2027
 @export var walk_speed: Vector2 = Vector2(1.3, 1.8)
 @export var animate_distance: float = 70.0

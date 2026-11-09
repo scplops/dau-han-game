@@ -12,14 +12,14 @@ extends Node3D
 @export var random_seed: int = 2024
 
 @export_group("Quy hoạch")
-@export var center: Vector2 = Vector2(0.0, -105.0)
-@export var radii: Vector2 = Vector2(100.0, 70.0)
-@export var alley_z: PackedFloat32Array = PackedFloat32Array([-52.0, -72.0, -92.0, -112.0, -132.0])
+@export var center: Vector2 = Vector2(0.0, -115.0)
+@export var radii: Vector2 = Vector2(122.0, 80.0)
+@export var alley_z: PackedFloat32Array = PackedFloat32Array([-52.0, -72.0, -92.0, -112.0, -132.0, -152.0])
 @export var main_lane_width: float = 3.6
 @export var alley_width: float = 2.4
 @export var plot_width_range: Vector2 = Vector2(11.0, 15.0)
 @export var plot_depth: float = 17.4
-@export_range(10, 60) var max_houses: int = 48
+@export_range(10, 90) var max_houses: int = 60
 @export_range(0.5, 1.0) var plot_margin: float = 0.95   # lô phải nằm trong elip co lại
 
 @export_group("Công trình")
@@ -30,7 +30,7 @@ extends Node3D
 @export var banyan_position: Vector3 = Vector3(16.0, 0.0, -44.0)
 @export var well_position: Vector3 = Vector3(7.5, 0.0, -47.0)
 ## Sân bóng làng (x, z, dài, rộng) — không xây lô, không trồng vườn tạp lên đây (mục 17).
-@export var pitch_rect: Rect2 = Rect2(-62.0, -154.0, 30.0, 18.0)
+@export var pitch_rect: Rect2 = Rect2(-64.0, -176.0, 30.0, 18.0)
 
 @export_group("Lối ra sông")
 ## Các ngõ được nối dài xuyên lũy tre ra sông (chỉ số trong alley_lines: ngõ thứ i có

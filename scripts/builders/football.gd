@@ -103,7 +103,7 @@ var _ui_call: Label
 
 func build() -> void:
 	_rng.seed = random_seed
-	rect = village.pitch_rect if village != null else Rect2(-62, -154, 30, 18)
+	rect = village.pitch_rect if village != null else Rect2(-64, -176, 30, 18)
 	var ground := MeshBuilder.new(random_seed, 0.025)
 	var stat := MeshBuilder.new(random_seed + 1, 0.04)
 	stat.contact_shade_height = 0.4
