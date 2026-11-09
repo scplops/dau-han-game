@@ -710,8 +710,8 @@ func stop() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if phase == Phase.IDLE:
-		return
+	if phase == Phase.IDLE or ambient:
+		return                 # dân làng tự đua: không nhận phím của người chơi
 	if phase == Phase.SETUP:
 		var used := true
 		if event.is_action_pressed("dialog_1"):
