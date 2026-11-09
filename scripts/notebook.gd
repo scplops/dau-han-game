@@ -20,8 +20,9 @@ extends CanvasLayer
 @export var first_person: FirstPerson
 @export var hud: Hud
 @export var outdoor_rig: CameraRig
+@export var market: Market
 
-const PAGES: Array[String] = ["Kỷ lục", "Câu cá", "Người quen", "Quà & việc", "Làng hôm nay"]
+const PAGES: Array[String] = ["Kỷ lục", "Câu cá", "Người quen", "Quà & đồ", "Làng hôm nay"]
 const PAPER := Color("#f3e6c4")
 const INK := Color("#3b2a1a")
 const INK_SOFT := Color("#7a5a3a")
@@ -210,7 +211,23 @@ func _people_text() -> String:
 func _gifts_text() -> String:
 	if quests == null:
 		return ""
-	var t := _h("Việc giúp dân làng  ·  %d việc đã xong" % quests.done_count)
+	var t := ""
+	if market != null:
+		t += _h("Túi tiền  ·  %d nghìn đồng" % market.money)
+		if market.bag.is_empty():
+			t += _soft("Chưa mua gì. Sáng ngày phiên chợ ra bãi cỏ ngoài cổng làng mua bán; câu cá bán cho hàng cá lấy tiền.")
+		else:
+			var cnt := {}
+			var order: Array[String] = []
+			for it in market.bag:
+				if not cnt.has(it):
+					order.append(it)
+				cnt[it] = int(cnt.get(it, 0)) + 1
+			t += "[color=#%s]Đồ đã mua (đem biếu dân làng được):[/color]\n" % INK_SOFT.to_html(false)
+			for it in order:
+				t += "•  %s%s\n" % [it, ("  × %d" % int(cnt[it])) if int(cnt[it]) > 1 else ""]
+		t += "\n"
+	t += _h("Việc giúp dân làng  ·  %d việc đã xong" % quests.done_count)
 	if quests.active.is_empty():
 		t += _soft("Không có việc nào đang làm. Ai có dấu \"!\" vàng trên đầu là đang cần người giúp.")
 	else:
@@ -245,6 +262,8 @@ func _village_text() -> String:
 		t += _row("Trời", weather.display_name())
 	if farming != null:
 		t += _row("Đồng", farming.stage_text().trim_prefix("Đồng: "))
+	if market != null:
+		t += _row("Chợ", market.status_text())
 	if villagers != null:
 		t += _row("Dân làng", "%d hộ  ·  %d người  ·  %d con vật" % [villagers.households, villagers.people.size(), villagers.animals.size()])
 	if save_game != null:

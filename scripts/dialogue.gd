@@ -24,6 +24,7 @@ signal finished
 @export var jump_rope: JumpRope
 @export var tip_cat: TipCat
 @export var farming: Farming
+@export var market: Market
 @export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
@@ -307,6 +308,11 @@ func _build_options() -> Array[Dictionary]:
 	# Việc nhờ / báo việc xong / nhắn tin luôn đứng đầu
 	if quests != null:
 		out.assign(quests.dialog_options(_real(v)))
+	# Chợ phiên (mục 40): xem hàng / bán cá cho người bán, biếu quà cho ai cũng được
+	if market != null:
+		for o in market.dialog_options(v, self):
+			if out.size() < 3:            # khung thoại chỉ hiện 3 câu + câu chào
+				out.append(o)
 	var all: Array[Dictionary] = []
 	all.append({"key": "doing", "text": "{Npc} đang làm gì đấy{a}?", "answer": _ans_doing})
 	match v.role:
@@ -507,8 +513,9 @@ func _ans_rice() -> String:
 
 
 func _ans_market() -> String:
-	return _pick(["Chợ làng họp phiên sáng mồng năm, có bánh đúc, kẹo kéo, có cả hàng xén. Trẻ con mê lắm.",
-			"Phiên chợ vừa rồi rau muống rẻ như cho. {Self} gánh ra mà bán chẳng được bao nhiêu."])
+	var when := (" Chợ " + market.status_text() + ".") if market != null else ""
+	return _pick(["Chợ làng họp phiên sáng mùng một, mùng sáu… cứ năm ngày một phiên, ngay bãi cỏ ngoài cổng làng. Có bánh đa, kẹo kéo, có cả hàng nón.",
+			"Phiên chợ vừa rồi rau muống rẻ như cho. {Self} gánh ra mà bán chẳng được bao nhiêu."]) + when
 
 
 func _ans_lore() -> String:

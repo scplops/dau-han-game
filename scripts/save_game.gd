@@ -28,6 +28,7 @@ signal loaded(path: String)
 @export var kite: KiteFlying
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
+@export var market: Market
 
 const VERSION := 1
 
@@ -166,6 +167,9 @@ func snapshot() -> Dictionary:
 			if is_instance_valid(v) and v is Villager:
 				met[(v as Villager).display_name] = int(dialogue._met[v])
 		d["met"] = met
+	if market != null:
+		d["money"] = market.money
+		d["bag"] = market.bag.duplicate()
 	d["records"] = records.duplicate()
 	return d
 
@@ -208,6 +212,11 @@ func apply(d: Dictionary) -> void:
 		for v in villagers.people:
 			if met.has(v.display_name):
 				dialogue._met[v] = int(met[v.display_name])
+	if market != null:
+		market.money = int(d.get("money", market.money))
+		market.bag.clear()
+		for it: Variant in d.get("bag", []):
+			market.bag.append(str(it))
 	var rec: Dictionary = d.get("records", {})
 	for k: String in rec:
 		if records.has(k):

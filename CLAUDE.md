@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -177,6 +177,7 @@ scripts/
     river.gd           # sông móng ngựa quanh làng: đê, lòng sông, nước, cá, đầm sen, đò (mục 14)
     school.gd          # trường tiểu học kiểu năm 2000 phía tây nhà mình (mục 15)
     football.gd        # sân bóng làng + bóng + trận đấu của dân làng (mục 17)
+    market.gd          # chợ phiên ngoài cổng làng: lều, hàng, người bán, mua bán, biếu quà (mục 40)
   interior.gd          # không gian trong nhà kiểu nhà búp bê (mục 10)
   house_entry.gd       # bấm cửa / E để vào, Esc để ra; chuyển camera, HUD, hiệu ứng mờ
   camera_rig.gd
@@ -932,8 +933,8 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   (`turners[0]` vào cuối hàng). Mỗi cuộc chơi là một từ điển (`games`): `center`, `axis` (hướng nối hai người quay),
   `turners`, `queue`, `jumper`, `phi` (pha dây, 0 = đáy dây chạm đất giữa sân), `rev` (vòng/giây), `count`, `best`.
 - **Trẻ con tự chơi:** việc mới `jumprope` của Villagers (trẻ con, 7:00–17:30 trừ trưa, không mưa, không giờ học —
-  `ambient_ok`), đích ở bãi gần nhất trong `sites`: sân đình (`dinh_spot` − 9 m) và bãi cỏ đầu làng ngoài cổng
-  nam (dưới gốc đa thì tán lá che hết, đã thử). Tới nơi `on_arrive` → meta `jumprope` + `talking` (Villagers chỉ
+  `ambient_ok`), đích ở bãi gần nhất trong `sites`: sân đình (`dinh_spot` − 9 m) và bãi cỏ phía tây cổng làng
+  (`center.x − 30`; phía đông cổng là chợ phiên — mục 40; dưới gốc đa thì tán lá che hết, đã thử). Tới nơi `on_arrive` → meta `jumprope` + `talking` (Villagers chỉ
   diễn hoạt, JumpRope tự dắt tới chỗ đứng `_walk_to`, gỡ meta khi tan). Đủ 3 đứa mới nhảy; máy nhảy đúng lúc tới
   "số phận" `kid_skill` lần thì nhảy sớm / muộn → vướng. Tan cuộc sau `game_seconds` giây thật (1 ngày = 15 phút
   nên ~1–2 giờ trong game), hoặc ≥ 18:00, mưa, tới giờ học → dwell 0 cho Villagers chọn việc khác. Số lần nhảy
@@ -1173,4 +1174,35 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - Chụp ảnh: `--notebook=0..4` (mở trang đó, kèm dữ liệu mẫu). `tools/notebook_test.gd`: mở / gấp ở ngắm cảnh và nhập
   vai, lật trang, W không làm camera chạy, số liệu thật hiện trên các trang, không mở khi đang trò chuyện. Bài thử gửi
   phím bằng `Input.parse_input_event` phải chờ `process_frame` (khi nhập vai, sự kiện vào trễ một khung).
+
+## 40. Chợ phiên (giai đoạn 7d)
+
+- `scripts/builders/market.gd` (`Market`, node `World/Market`, dựng TRƯỚC `Villagers` để nối lối chợ vào đồ thị đường).
+  Bãi cỏ ngoài cổng làng phía đông nam (giữa đường đất `roads[1]` và cây đa nhà mình): lối giữa (`origin` (7,2; −20,5),
+  nền đất nện), hai dãy 4 lều tre (`stall_spacing` 3,8 m, `row_offset` 3,6 m) quay mặt vào lối giữa; mỗi lều: 4 cột tre,
+  sạp nan tre cao 0,72 m, mái lá (shader gió) hoặc bạt xanh dốc ra lối, ghế đẩu sau sạp. Cổng tre + biển "CHỢ PHIÊN"
+  (`Label3D` `BILLBOARD_FIXED_Y` — đọc được cả hai phía). Lều dựng sẵn; **hàng hoá** (`Goods`) chỉ hiện trong phiên: rau,
+  chuối + bưởi, chậu cá, lồng gà + trứng, thúng gạo, nồi đất / chum, chồng nón + quạt nan, mẹt bánh đa + kẹo lạc.
+- **Phiên chợ:** ngày âm lịch chia 5 dư 1 (mùng 1, 6, 11, 16, 21, 26 — `is_market_day`), `market_hours` 5:30–11:30, không
+  họp khi giông. Bãi nhảy dây ngoài cổng dời sang phía tây cổng (`JumpRope.sites[1]`).
+- **Người bán:** từ `prep_hours` (1,25 h) trước giờ họp, `_call_sellers` gọi người gánh hàng (thiếu thì phụ nữ làm ruộng)
+  — meta `market_stall`, việc `market_sell` (`Villagers._choices` trả về `market_sell` khi đã nhận sạp, kể cả khi lịch bị
+  lên lại) → tới ghế đẩu `on_seller_arrive`: ngồi (`sit`) mặt ra lối, meta `market_seller`, dwell rất lớn. Giờ bị nhảy
+  thẳng vào giữa phiên (chỉnh giờ, mở game đã lưu) thì người bán ngồi sẵn (`instant`). Tan chợ: `_release_sellers`.
+  (Đã gặp: gọi đúng giờ mở chợ thì người gánh hàng 1,15 m/s đi từ trong làng ra mất ~2 phút thật = 3 giờ trong game.)
+- **Người đi chợ:** việc `market` (phụ nữ làm ruộng / gánh hàng 4, cụ già 2,5, trẻ con 1,5, đàn ông 0,6) → đứng trước một
+  sạp (`shopper_target`), quay vào sạp, dáng `chat`.
+- **Mua bán với người chơi** (qua `Dialogue` — `market.dialog_options(v, dlg)` thêm lên đầu, tối đa 3 câu): nói chuyện với
+  người bán (nhập vai nhìn vào: "E: Mua bán · tên (hàng…)") → "Cho {me} xem hàng" → mua món (`STALLS[].items`, giá nghìn
+  đồng; thiếu tiền thì không bán) → đồ vào `bag`; hàng cá mua hết cá trong giỏ (`sell_fish`: cân × `FISH_PRICE`). Người
+  chơi có `money` (bắt đầu `start_money` 20 nghìn). Ai cũng nhận quà: "{Me} biếu {npc} chút quà" → chọn món trong `bag` →
+  người nhận cảm ơn, `Dialogue._met` +2 (quen thân hơn). Tín hiệu `traded(text)`.
+- Lưu `money`, `bag` (SaveGame); sổ tay trang "Quà & đồ" (túi tiền, đồ đã mua) và dòng "Chợ" ở "Làng hôm nay"
+  (`status_text`: "hôm nay có phiên…" / "phiên tới ngày N âm lịch (còn N ngày)"); bản đồ vẽ các lều (đỏ khi đang họp) và
+  nhãn "Chợ"; Soundscape thêm tiếng chợ ồn ào (`_murmur`: 7 giọng răng cưa lọc nói ngắt quãng, nguồn 3D ở giữa chợ, chỉ khi
+  họp). Câu "Chợ phiên có gì vui không?" của người gánh hàng nói đúng lịch phiên.
+- `tools/market_test.gd`: ngày phiên 6:30 (8/8 người bán ngồi sạp, ~10 người đi chợ, hàng bày) → mua (trừ tiền, vào giỏ đồ),
+  hết tiền không mua được, bán cá (1,5 kg chép + 0,3 kg diếc = 44 nghìn), biếu quà (giỏ đồ bớt, quen thêm) → lưu / nạp tiền +
+  giỏ đồ → 11:36 tan chợ (cất hàng, người bán về) → hôm sau đóng, báo phiên tới. Chụp ảnh: `--hour=8 --settle=40 --fp
+  --focus=1.5,-20.5 --fp-yaw=-70` (đứng ở lối giữa chợ; nhìn từ trên cao thì mái lều che người bán).
 

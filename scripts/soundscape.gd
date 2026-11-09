@@ -25,6 +25,7 @@ const SAMPLE_RATE := 16000
 @export var football: Football
 @export var boat_race: BoatRace
 @export var calendar: LunarCalendar
+@export var market: Market
 @export_group("Âm lượng (dB)")
 @export var master_db: float = 0.0
 @export var wind_db: Vector2 = Vector2(-34.0, -14.0)      # gió nhẹ … gió mạnh
@@ -43,6 +44,7 @@ var _rng := RandomNumberGenerator.new()
 var _queue: Array[String] = []       # tiếng còn chờ tạo
 var _loops: Dictionary = {}          # tên → AudioStreamPlayer
 var _river_player: AudioStreamPlayer3D
+var _market_player: AudioStreamPlayer3D
 var _pool: Array[AudioStreamPlayer3D] = []
 var _pool_i: int = 0
 var _timers: Dictionary = {}
@@ -68,7 +70,7 @@ func _ready() -> void:
 		_rng.randomize()
 	_setup_buses()
 	_queue.assign(["wind", "rain", "river", "crickets", "frogs", "bird0", "bird1", "bird2", "rooster", "drum", "bell",
-			"thunder", "splash", "step", "bark", "cluck", "cheer"])
+			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur"])
 	for i in 14:
 		var p := AudioStreamPlayer3D.new()
 		p.bus = "Effects"
@@ -83,6 +85,12 @@ func _ready() -> void:
 	_river_player.max_distance = 140.0
 	_river_player.volume_db = river_db
 	add_child(_river_player)
+	_market_player = AudioStreamPlayer3D.new()
+	_market_player.bus = "Ambient"
+	_market_player.unit_size = 10.0
+	_market_player.max_distance = 90.0
+	_market_player.volume_db = -80.0
+	add_child(_market_player)
 	if weather != null:
 		weather.lightning.connect(func() -> void: _thunder.append(_rng.randf_range(0.6, 3.2)))
 	if river != null:
@@ -135,6 +143,11 @@ func _process(delta: float) -> void:
 		elif nm == "river":
 			_river_player.stream = sounds[nm]
 			_river_player.play()
+		elif nm == "murmur":
+			_market_player.stream = sounds[nm]
+			if market != null:
+				_market_player.global_position = market.origin + Vector3(0, 1.5, 0)
+			_market_player.play()
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
@@ -159,6 +172,10 @@ func _process(delta: float) -> void:
 		var c: Vector2 = river.sample(s)[0]
 		_river_player.global_position = Vector3(c.x, river.water_level, c.y)
 		_river_player.volume_db = river_db + (-12.0 if inside else 0.0)
+	# Chợ phiên: tiếng người mua bán ồn ào khi chợ họp
+	if market != null and _market_player.stream != null:
+		var want := (-4.0 if market.is_open else -80.0) + (-12.0 if inside else 0.0)
+		_market_player.volume_db = move_toward(_market_player.volume_db, want, delta * 30.0)
 	if inside:
 		_tick_timers(delta, listen, h, night, rain, true)
 		return
@@ -332,6 +349,7 @@ func _make(nm: String) -> AudioStreamWAV:
 		"bark": return _wav(_bark(), false)
 		"cluck": return _wav(_cluck(), false)
 		"cheer": return _wav(_cheer(), false)
+		"murmur": return _wav(_murmur(5.0), true)
 	return _wav(PackedFloat32Array([0.0]), false)
 
 
@@ -645,3 +663,33 @@ func _cheer() -> PackedFloat32Array:
 		lp += (_rng.randf_range(-1.0, 1.0) - lp) * 0.3
 		x[i] += lp * 0.25 * clampf((1.5 - t) / 0.5, 0.0, 1.0)
 	return _norm(x, 0.8)
+
+
+## Chợ ồn ào: nhiều giọng nói chuyện (răng cưa lọc, cao độ lên xuống theo câu, ngắt quãng theo âm tiết) chồng lên nhau.
+func _murmur(sec: float) -> PackedFloat32Array:
+	var n := int(sec * SAMPLE_RATE) + 4000
+	var x := PackedFloat32Array()
+	x.resize(n)
+	for v in 7:
+		var f0 := _rng.randf_range(150.0, 320.0)
+		var syl := _rng.randf_range(4.0, 6.5)        # âm tiết / giây
+		var ph := 0.0
+		var lp := 0.0
+		var lp2 := 0.0
+		var talk := _rng.randf() < 0.5
+		var next_switch := _rng.randf_range(0.4, 1.6)
+		for i in n:
+			var t := float(i) / SAMPLE_RATE
+			if t > next_switch:
+				talk = not talk                       # nói một câu rồi nghỉ
+				next_switch = t + (_rng.randf_range(0.8, 2.0) if talk else _rng.randf_range(0.3, 1.0))
+			if not talk:
+				continue
+			var f := f0 * (1.0 + 0.18 * sin(TAU * 0.7 * t + v) + 0.08 * sin(TAU * syl * 0.5 * t))
+			ph += TAU * f / SAMPLE_RATE
+			var saw := fmod(ph / TAU, 1.0) * 2.0 - 1.0
+			lp += (saw - lp) * 0.22
+			lp2 += (lp - lp2) * 0.22
+			var env := maxf(0.0, sin(PI * fmod(t * syl, 1.0)))
+			x[i] += (lp - lp2 * 0.7) * env * 0.35
+	return _norm(_seamless(x, 4000), 0.6)

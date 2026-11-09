@@ -394,6 +394,8 @@ func _update_look() -> void:
 				hint = "E: Xin chơi ô ăn quan (ván mới)  ·  " + tv.display_name
 			elif tv.has_meta("hs_amb") and hide_seek != null:
 				hint = "E: Xin chơi trốn tìm (chơi lại từ đầu)  ·  " + tv.display_name
+			elif tv.has_meta("market_seller"):
+				hint = "E: Mua bán  ·  %s (%s)" % [tv.display_name, tv.activity_text.trim_prefix("đang bán ")]
 			elif tv.has_meta("kite_amb") and kite != null:
 				hint = "E: Mượn diều thả  ·  " + tv.display_name
 		elif col != null and col.has_meta("hint"):

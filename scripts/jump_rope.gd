@@ -78,7 +78,7 @@ func _ready() -> void:
 	if village != null:
 		sites.append(village.dinh_spot + Vector3(-9.0, 0.0, 1.5))     # sân đình (lát gạch, rộng)
 		# Bãi đất đầu làng, ngoài cổng phía nam, lệch khỏi đường trục (dưới gốc đa thì tán lá che hết)
-		sites.append(Vector3(village.center.x + 5.0, 0.0, village.center.y + village.radii.y + 9.0))
+		sites.append(Vector3(village.center.x - 30.0, 0.0, village.center.y + village.radii.y + 4.5))   # bãi cỏ phía tây cổng (phía đông là chợ phiên)
 
 
 # --- Trẻ con tự chơi -----------------------------------------------------------------------------

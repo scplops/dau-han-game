@@ -32,6 +32,7 @@ const NIGHT_END := 5.2
 @export var farming: Farming
 @export var o_an_quan: OAnQuan
 @export var kite: KiteFlying
+@export var market: Market
 
 @export_group("Đi lễ đình (mùng 1, rằm)")
 ## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
@@ -118,6 +119,8 @@ const ACTIVITY_TEXT := {
 	"oaq": ["đang ra chỗ chơi ô ăn quan", "đang ngồi chơi ô ăn quan"],
 	"hs_play": ["đang ra chỗ chơi trốn tìm", "đang chơi trốn tìm"],
 	"kite": ["đang mang diều ra đồng", "đang thả diều"],
+	"market": ["đang đi chợ", "đang xem hàng ở chợ phiên"],
+	"market_sell": ["đang gánh hàng ra chợ", "đang ngồi bán hàng ở chợ"],
 }
 
 
@@ -168,6 +171,10 @@ func _build_graph() -> void:
 		for r in terrain.roads:
 			_join_to_graph(r, 6.0)
 		_join_to_graph(terrain.path_points, 2.0)
+	# Chợ phiên: lối vào từ đường đất + lối giữa hai dãy lều
+	if market != null and not market.aisle.is_empty():
+		_join_to_graph(market.entry_path, 2.0)
+		_join_to_graph(market.aisle, 2.5)
 	# Đường vào trường
 	if school != null and not school.entry_path.is_empty():
 		_join_to_graph(school.entry_path, 3.0)
@@ -460,6 +467,9 @@ func _choices(v: Villager, h: float) -> Dictionary:
 		return {"inside": 1.0}
 	if h >= 19.0:
 		return {"inside": 5.0, "visit": 1.0} if not v.has_meta("lantern") else {"lantern": 3.0, "inside": 1.0}
+	# Người đã nhận sạp ở chợ phiên: chợ còn họp thì ra sạp ngồi bán (kể cả khi lịch bị lên lại)
+	if market != null and market._called and v.has_meta("market_stall"):
+		return {"market_sell": 1.0}
 	var c := {}
 	var noon := h >= 11.0 and h < 13.0
 	match v.role:
@@ -482,6 +492,10 @@ func _choices(v: Villager, h: float) -> Dictionary:
 	# Đánh khăng (mục 32): con trai chơi nhiều hơn
 	if tip_cat != null and v.role in ["kid", "herder"] and tip_cat.ambient_ok(h):
 		c["khang"] = 1.0 if v.get_meta("female", false) else (3.0 if v.role == "kid" else 1.0)
+	# Chợ phiên (mục 40): phụ nữ, cụ già, trẻ con đi chợ buổi sáng ngày phiên
+	if market != null and market.is_open and not v.has_meta("market_stall"):
+		var female: bool = v.get_meta("female", false)
+		c["market"] = 4.0 if (female and v.role in ["farmer", "carrier"]) else (2.5 if v.role == "elder" else (1.5 if v.role == "kid" else 0.6))
 	# Ô ăn quan (mục 27, 36): cụ già, trẻ con ngồi chơi dưới gốc đa / sân chùa
 	if o_an_quan != null and o_an_quan.ambient_ok(h) and v.role in ["elder", "kid", "herder"]:
 		c["oaq"] = 1.6 if v.role == "elder" else (0.0 if noon and v.role != "elder" else 1.0)
@@ -597,6 +611,10 @@ func _target(v: Villager, act: String) -> Vector3:
 			return tip_cat.site_target(v)
 		"oaq":
 			return o_an_quan.site_target(v)
+		"market":
+			return market.shopper_target()
+		"market_sell":
+			return market.seller_target(v)
 		"hs_play":
 			return hide_seek.site_target(v)
 		"kite":
@@ -751,6 +769,11 @@ func _arrive(v: Villager) -> void:
 	if act == "khang" and tip_cat != null:
 		tip_cat.on_arrive(v)          # đánh khăng (mục 32): TipCat giữ tới khi tan cuộc
 		return
+	if act == "market_sell" and market != null:
+		market.on_seller_arrive(v)    # chợ phiên (mục 40): ngồi bán tới khi tan chợ
+		return
+	if act == "market" and market != null:
+		market.on_shopper_arrive(v)
 	if act == "oaq" and o_an_quan != null:
 		o_an_quan.on_arrive(v)        # ô ăn quan (mục 36): ngồi xổm chơi tới khi tan ván
 		return

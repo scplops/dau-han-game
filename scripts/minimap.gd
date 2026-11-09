@@ -22,6 +22,7 @@ enum Mode { SMALL, LARGE, HIDDEN }
 @export var house_entry: HouseEntry
 @export var boat_ride: BoatRide
 @export var school_day: SchoolDay
+@export var market: Market
 
 @export_group("Hiển thị")
 @export var small_size: float = 230.0
@@ -180,6 +181,11 @@ func _draw() -> void:
 		draw_circle(_w2m(Vector2(village.banyan_position.x, village.banyan_position.z)), maxf(5.0 * _scale, 3.0), Palette.BANYAN_LEAF_1)
 		_rect(village.pitch_rect, Palette.GRASS.lerp(Palette.DIKE, 0.3))
 		draw_rect(Rect2(_w2m(village.pitch_rect.position), village.pitch_rect.size * _scale), Palette.SCHOOL_TRIM, false, 1.0)
+	# Chợ phiên: các lều (mái lá / bạt)
+	if market != null:
+		for st in market.stalls:
+			var sp: Vector3 = st.pos
+			_rect(Rect2(sp.x - 1.5, sp.z - 1.2, 3.0, 2.4), Palette.THATCH if not market.is_open else Palette.FLAG_RED.lightened(0.2))
 	# Trường
 	if school != null:
 		_rect(school.site, Palette.SCHOOL_YARD)
@@ -330,6 +336,8 @@ func _draw_labels() -> void:
 		labels.append([Vector2(village.banyan_position.x + 9.0, village.banyan_position.z + 4.0), "Cây đa"])
 		labels.append([village.pitch_rect.get_center(), "Sân bóng"])
 		labels.append([village.gate_point() + Vector2(0, 6.0), "Cổng làng"])
+	if market != null:
+		labels.append([Vector2(market.origin.x, market.origin.z + 6.0), "Chợ" + (" (đang họp)" if market.is_open else "")])
 	if school != null:
 		labels.append([school.site.get_center(), "Trường học"])
 	if house != null:
