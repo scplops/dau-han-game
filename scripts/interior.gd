@@ -60,6 +60,11 @@ var _door_x: float = 0.0
 var _wall := "lime_yellow"
 var _front := "veranda_wood"
 var _poor: bool = false
+## Nhà 2 tầng: số tầng, cao tầng 2, dày sàn; cầu thang (toạ độ cục bộ) có sau khi dựng.
+var _floors: int = 1
+var _h2: float = 2.4
+var _slab: float = 0.2
+var stair: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
 
@@ -105,6 +110,10 @@ func build() -> void:
 	_wall = spec.get("wall", "lime_yellow")
 	_front = spec.get("front", "veranda_wood")
 	_poor = spec.get("roof", "") == "thatch" or _wall == "mud"
+	_floors = int(spec.get("floors", 1)) if kind == "home" else 1
+	_h2 = float(spec.get("height2", _h * 0.92))
+	_slab = float(spec.get("slab", 0.2))
+	stair = {}
 	_back_z = -_dep * 0.5
 	_front_z = _back_z + (_dep - _ver)
 	_door_x = 0.0
@@ -176,6 +185,12 @@ func build() -> void:
 		fill.set_meta("max_energy", daylight_fill)
 		fill.add_to_group("day_fill")      # DayNight tắt dần khi trời tối
 		add_child(fill)
+		if _floors > 1:
+			var up := fill.duplicate() as OmniLight3D
+			up.name = "DaylightFillUpper"
+			up.position.y = upper_y() + _h2 * 0.8
+			up.set_meta("max_energy", daylight_fill)
+			add_child(up)
 
 	# Bấm vào ô cửa / bậc thềm để ra sân
 	exit_z = _front_z if _ver > 0.0 or kind == "home" else _dep * 0.5
@@ -210,6 +225,9 @@ func _build_ceiling(mb: MeshBuilder, kind: String) -> void:
 	elif kind == "school":
 		under = Palette.SCHOOL_TRIM.darkened(0.08)
 	var over := 1.0 if kind in ["dinh", "pagoda"] else 0.5
+	if _floors > 1:
+		_build_slab(mb)
+		top = upper_y() + _h2
 	if kind == "school":
 		mb.add_box(Vector3(_len + 0.4, 0.18, _dep + 0.4), under, _t(0.0, top, 0.0))
 		return
@@ -390,6 +408,8 @@ func _build_home(shell: MeshBuilder, floor_mb: MeshBuilder, furn: MeshBuilder, f
 		_build_floor(floor_mb, Palette.FLOOR, 0.42)
 
 	var rooms := _pick_rooms()
+	if _floors > 1:
+		rooms[0] = "stairs"        # gian đầu hồi trái là chân cầu thang; buồng ngủ ở trên gác
 	var mid := _bays >> 1
 	for i in _bays:
 		var x0 := -_len * 0.5 + _gian * i
@@ -403,6 +423,9 @@ func _build_home(shell: MeshBuilder, floor_mb: MeshBuilder, furn: MeshBuilder, f
 			"loom": _room_loom(furn, x0, x1)
 			"mill": _room_mill(furn, x0, x1)
 			"study": _room_study(furn, flames, lamps, x0, x1)
+			"stairs": _room_stairs(shell, furn, x0, x1)
+	if _floors > 1 and walk_mode:
+		_build_upper(shell, floor_mb, furn, flames, lamps)
 
 
 ## Gian giữa là bàn thờ; các gian bên: có ít nhất một chỗ ngủ, còn lại chọn theo seed.
@@ -714,6 +737,185 @@ func _room_study(mb: MeshBuilder, flames: MeshBuilder, lamps: Array[Vector3], x0
 			mb.add_box(Vector3(0.1, h, 0.2), [Palette.ALTAR_RED, Palette.STRAW, Palette.BLANKET, Palette.SACK][k % 4],
 					_t(cx - 0.42 + k * 0.17, y + 0.03, bz))
 	_lamp(mb, flames, lamps, Vector3(cx + 0.35, p + 0.32, cz - 0.05))
+
+
+# --- Nhà 2 tầng: cầu thang + gác ------------------------------------------------------
+
+## Mặt sàn tầng 2 (cục bộ).
+func upper_y() -> float:
+	return _p + _h + _slab
+
+
+## Cầu thang xây dọc tường hồi trái, lên từ phía trước ra phía sau; bậc gỗ, tay vịn gỗ.
+## Bậc cao ≤ 0,24 m (nhập vai tự bước lên, `step_height` 0,35), mặt bậc 0,24 m.
+func _room_stairs(shell: MeshBuilder, mb: MeshBuilder, x0: float, x1: float) -> void:
+	var t := wall_thickness
+	var rise_total := _h + _slab
+	var n := int(ceil(rise_total / 0.235))
+	var r := rise_total / n
+	var d := 0.24
+	var run := (n - 1) * d
+	var sw := 0.9
+	var sx := x0 + t + sw * 0.5 + 0.02
+	var avail := (_front_z - t) - (_back_z + t)
+	var gap := clampf(avail - run - 0.85, 0.45, 1.0)
+	var zb := _front_z - t - gap          # mép trước bậc đầu tiên
+	var zt := zb - run                    # mép sau bậc trên cùng — bước tiếp là lên sàn gác
+	stair = {"x": sx, "w": sw, "z_bottom": zb, "z_top": zt, "hole_x1": sx + sw * 0.5 + 0.08,
+			"bottom": Vector3(sx + 0.6, _p, zb + 0.45), "top": Vector3(sx, upper_y(), zt - 0.45)}
+	var block := VillageHouse.wall_color(_wall).darkened(0.06)
+	for i in range(1, n):
+		var h := i * r
+		var zc := zb - (i - 0.5) * d
+		shell.add_box(Vector3(sw, h - 0.03, d), block, _t(sx, _p, zc))
+		shell.add_box(Vector3(sw + 0.02, 0.03, d + 0.03), Palette.WOOD, _t(sx, _p + h - 0.03, zc + 0.01))
+	# Tay vịn phía trong: trụ mỗi hai bậc + thanh vịn chạy dốc
+	var rx := sx + sw * 0.5 - 0.04
+	var posts: Array[Vector3] = []
+	for i in range(1, n, 2):
+		var base := Vector3(rx, _p + i * r, zb - (i - 0.5) * d)
+		shell.add_box(Vector3(0.05, 0.9, 0.05), Palette.WOOD, _t(base.x, base.y, base.z))
+		posts.append(base + Vector3(0, 0.9, 0))
+	if posts.size() >= 2:
+		shell.add_limb(posts[0], posts[posts.size() - 1] + Vector3(0, r * 0.5, -d), 0.035, 0.035, 6, Palette.WOOD.darkened(0.1))
+	shell.add_box(Vector3(0.1, 1.0, 0.1), Palette.WOOD.darkened(0.15), _t(rx, _p, zb + 0.02))   # trụ chân cầu thang
+	# Gầm cầu thang: bao tải thóc; phần còn lại của gian: chum nước, tủ, ghế
+	for k in 3:
+		mb.add_box(Vector3(0.5, 0.4, 0.4), Palette.SACK, _t(sx + _rng.randf_range(-0.1, 0.1), _p, zt + 0.3 + k * 0.45))
+	var fx := (rx + 0.2 + x1) * 0.5
+	mb.add_box(Vector3(0.9, 1.6, 0.5), Palette.WOOD, _t(fx, _p, _back_z + t + 0.3))
+	mb.add_box(Vector3(0.8, 0.03, 0.02), Palette.WOOD_LIGHT, _t(fx, _p + 0.8, _back_z + t + 0.56))
+	mb.add_prism(0.28, 0.22, 0.6, 10, Palette.WALL_DARK.darkened(0.3), _t(x1 - 0.45, _p, _front_z - 0.6))
+	_table(mb, Vector3(1.0, 0.42, 0.35), Vector3(fx, _p, (_back_z + _front_z) * 0.5 + 0.3), Palette.WOOD_LIGHT, 0.05)
+	_seat(Vector3(fx, _p, (_back_z + _front_z) * 0.5 + 0.3), "sit", "home_rest", [], null, PI * 0.5)
+
+
+## Sàn giữa hai tầng (mặt dưới là trần tầng 1), chừa lỗ cầu thang.
+func _build_slab(mb: MeshBuilder) -> void:
+	var y := _p + _h
+	var col := Palette.WALL_WHITE.darkened(0.04)
+	for r in _slab_rects():
+		mb.add_box(Vector3(r.size.x, _slab, r.size.y), col, _t(r.get_center().x, y, r.get_center().y))
+	# Dầm gỗ dưới sàn theo ranh giới các gian (tránh lỗ cầu thang)
+	for i in range(1, _bays):
+		var x := -_len * 0.5 + _gian * i
+		mb.add_box(Vector3(0.18, 0.22, _dep - _ver), Palette.WOOD.darkened(0.1), _t(x, y - 0.22, _back_z + (_dep - _ver) * 0.5))
+
+
+## Mặt sàn tầng 2 trừ lỗ cầu thang: các hình chữ nhật (x, z).
+func _slab_rects() -> Array[Rect2]:
+	var all := Rect2(-_len * 0.5, -_dep * 0.5, _len, _dep)
+	if stair.is_empty():
+		return [all]
+	var hole := Rect2(-_len * 0.5, float(stair.z_top), float(stair.hole_x1) + _len * 0.5, float(stair.z_bottom) - float(stair.z_top) + 0.05)
+	var out: Array[Rect2] = []
+	out.append(Rect2(all.position.x, all.position.y, all.size.x, hole.position.y - all.position.y))   # phía sau lỗ
+	out.append(Rect2(all.position.x, hole.end.y, all.size.x, all.end.y - hole.end.y))                 # phía trước lỗ
+	out.append(Rect2(hole.end.x, hole.position.y, all.end.x - hole.end.x, hole.size.y))               # bên phải lỗ
+	return out
+
+
+## Tầng 2 (chỉ dựng khi đi bộ): sàn gỗ, tường, cửa sổ, cửa ra ban công, lan can quanh lỗ cầu thang,
+## các buồng ngủ / góc học — dùng lại hàm bày gian của tầng 1 với `_p` nâng lên mặt sàn gác.
+func _build_upper(shell: MeshBuilder, floor_mb: MeshBuilder, furn: MeshBuilder, flames: MeshBuilder,
+		lamps: Array[Vector3]) -> void:
+	var t := wall_thickness
+	var y := upper_y()
+	var wc := VillageHouse.wall_color(_wall)
+	var wd := VillageHouse.wall_dark(_wall)
+	var core := _dep - _ver
+	var core_z := _back_z + core * 0.5
+	# Sàn gỗ
+	for r in _slab_rects():
+		var a := Vector3(r.position.x + (t if r.position.x <= -_len * 0.5 + 0.01 else 0.0), y + 0.006, r.position.y)
+		var b := Vector3(r.end.x - (t if r.end.x >= _len * 0.5 - 0.01 else 0.0), y + 0.006, r.end.y)
+		floor_mb.add_quad(Vector3(a.x, a.y, a.z), Vector3(b.x, a.y, a.z), Vector3(b.x, a.y, b.z), Vector3(a.x, a.y, b.z),
+				Palette.WOOD_LIGHT, Vector3(a.x, y - 1.0, a.z))
+		var z := a.z + 0.3
+		while z < b.z - 0.05:
+			floor_mb.add_box(Vector3(b.x - a.x, 0.004, 0.02), Palette.WOOD, _t((a.x + b.x) * 0.5, y + 0.006, z))
+			z += 0.3
+	# Tường sau + hai hồi
+	shell.add_box(Vector3(_len, _h2, t), wc, _t(0.0, y, _back_z + t * 0.5))
+	for sx in [-1.0, 1.0]:
+		shell.add_box(Vector3(t, _h2, core), wc, _t(sx * (_len * 0.5 - t * 0.5), y, core_z))
+	shell.add_box(Vector3(_len - t * 2.0, 0.2, 0.03), wd, _t(0.0, y, _back_z + t + 0.015))
+	# Tường trước: cửa sổ mỗi gian, gian giữa là cửa ra ban công
+	var fz := _front_z - t * 0.5
+	var mid := _bays >> 1
+	var balcony := _ver > 0.0
+	for i in _bays:
+		var x0 := -_len * 0.5 + _gian * i
+		var x1 := x0 + _gian
+		var cx := (x0 + x1) * 0.5
+		if i == mid and balcony:
+			var dw := 1.1
+			for seg: Vector2 in [Vector2(x0, cx - dw * 0.5), Vector2(cx + dw * 0.5, x1)]:
+				shell.add_box(Vector3(seg.y - seg.x, _h2, t), wc, _t((seg.x + seg.y) * 0.5, y, fz))
+			shell.add_box(Vector3(dw, _h2 - 2.05, t), wc, _t(cx, y + 2.05, fz))
+			shell.add_box(Vector3(dw + 0.2, 0.1, t + 0.08), Palette.WOOD, _t(cx, y + 2.0, fz))
+			for e in [-1.0, 1.0]:
+				shell.add_box(Vector3(0.08, 2.05, t + 0.06), Palette.WOOD, _t(cx + e * (dw * 0.5 + 0.04), y, fz))
+			continue
+		var ww := 1.0
+		shell.add_box(Vector3(_gian, window_sill, t), wc, _t(cx, y, fz))
+		shell.add_box(Vector3(_gian, _h2 - window_top, t), wc, _t(cx, y + window_top, fz))
+		for seg: Vector2 in [Vector2(x0, cx - ww * 0.5), Vector2(cx + ww * 0.5, x1)]:
+			shell.add_box(Vector3(seg.y - seg.x, window_top - window_sill, t), wc, _t((seg.x + seg.y) * 0.5, y + window_sill, fz))
+		var bx := cx - ww * 0.5 + 0.12
+		while bx < cx + ww * 0.5 - 0.05:
+			shell.add_box(Vector3(0.045, window_top - window_sill, 0.06), Palette.WOOD, _t(bx, y + window_sill, fz))
+			bx += 0.14
+	# Ban công: lan can con tiện + hai đầu xây
+	if balcony:
+		var rz := _dep * 0.5 - 0.1
+		var trim := Palette.WALL_WHITE
+		shell.add_box(Vector3(_len + 0.3, 0.12, 0.16), trim, _t(0.0, y, rz))
+		shell.add_box(Vector3(_len + 0.3, 0.08, 0.2), trim, _t(0.0, y + 0.92, rz))
+		var n := int(_len / 0.22)
+		for k in n + 1:
+			shell.add_prism(0.045, 0.045, 0.8, 5, trim, _t(-_len * 0.5 - 0.1 + (_len + 0.2) * k / n, y + 0.12, rz))
+		for e in [-1.0, 1.0]:
+			shell.add_box(Vector3(0.16, 1.0, _ver), trim, _t(e * (_len * 0.5 + 0.07), y, _dep * 0.5 - _ver * 0.5))
+		_seat(Vector3(_gx(mid) + 0.9, y, rz - 0.5), "sit", "home_rest", [], Vector3(_gx(mid) + 0.9, y, rz + 3.0))
+	# Lan can quanh lỗ cầu thang (để trống phía sau — chỗ bước lên)
+	var hx1: float = stair.hole_x1
+	var zb: float = stair.z_bottom
+	var zt: float = stair.z_top
+	var rail := Palette.WOOD.darkened(0.1)
+	var z := zt + 0.05
+	while z <= zb + 0.06:
+		shell.add_box(Vector3(0.05, 0.9, 0.05), rail, _t(hx1, y, z))
+		z += 0.4
+	shell.add_box(Vector3(0.07, 0.07, zb - zt + 0.1), rail, _t(hx1, y + 0.9, (zb + zt) * 0.5))
+	shell.add_box(Vector3(0.05, 0.9, 0.05), rail, _t(hx1, y, zb + 0.05))
+	var wx := -_len * 0.5 + t
+	var xx := wx + 0.35
+	while xx < hx1:
+		shell.add_box(Vector3(0.05, 0.9, 0.05), rail, _t(xx, y, zb + 0.05))
+		xx += 0.35
+	shell.add_box(Vector3(hx1 - wx, 0.07, 0.07), rail, _t((hx1 + wx) * 0.5, y + 0.9, zb + 0.05))
+	# Các gian trên gác: buồng ngủ, phản, góc học
+	var first_seat := seats.size()
+	var saved_p := _p
+	_p = y
+	var kinds: Array[String] = ["bedroom", "plank", "bedroom", "study"]
+	for i in range(1, _bays):
+		var x0 := -_len * 0.5 + _gian * i
+		var x1 := x0 + _gian
+		var outer := -1.0 if i < mid else 1.0
+		match kinds[(i - 1) % kinds.size()]:
+			"bedroom": _room_bedroom(shell, furn, flames, lamps, x0, x1, outer)
+			"plank": _room_plank(furn, x0, x1, outer)
+			"study": _room_study(furn, flames, lamps, x0, x1)
+	# Góc gian cầu thang trên gác: rương gỗ cạnh tường trước
+	var cx0 := (hx1 + (-_len * 0.5 + _gian)) * 0.5
+	furn.add_box(Vector3(0.9, 0.5, 0.5), Palette.WOOD.darkened(0.05), _t(cx0, _p, _front_z - t - 0.35))
+	_p = saved_p
+	# Ai ngồi / ngủ trên gác thì đi qua cầu thang
+	for k in range(first_seat, seats.size()):
+		seats[k]["via"] = [stair.bottom, stair.bottom + Vector3(-0.6, 0, -0.3), stair.top]
+		seats[k]["tags"] = (seats[k].tags as Array) + ["upstairs"]
 
 
 # --- Lớp học (trường kiểu năm 2000) ----------------------------------------------------

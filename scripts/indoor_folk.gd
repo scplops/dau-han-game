@@ -255,9 +255,15 @@ func _walk_to_seat(f: Dictionary) -> void:
 	var door := interior.to_global(interior.entry_point + Vector3(0, 0, 1.2))
 	p.global_position = door
 	var target: Vector3 = st.pos
+	var via: Array = st.get("via", [])
 	if st.pose == "sleep":
-		target = Vector3(target.x, interior.entry_point.y, target.z + 0.5)   # tới cạnh giường rồi nằm
-	p.walk_path(PackedVector3Array([interior.to_global(interior.entry_point), interior.to_global(target)]))
+		var floor_y: float = (via[via.size() - 1] as Vector3).y if not via.is_empty() else interior.entry_point.y
+		target = Vector3(target.x, floor_y, target.z + 0.5)   # tới cạnh giường rồi nằm
+	var pts := PackedVector3Array([interior.to_global(interior.entry_point)])
+	for q: Vector3 in via:
+		pts.append(interior.to_global(q))      # chỗ trên gác: đi qua cầu thang
+	pts.append(interior.to_global(target))
+	p.walk_path(pts)
 	p.work_anim = "idle"
 	f.arriving = true
 
@@ -267,8 +273,14 @@ func _leave(f: Dictionary) -> void:
 	f.leaving = true
 	p.basis = Basis(Vector3.UP, p.rotation.y)    # đứng dậy (nếu đang nằm)
 	p.work_anim = "idle"
-	p.walk_path(PackedVector3Array([interior.to_global(interior.entry_point),
-			interior.to_global(interior.entry_point + Vector3(0, 0, 1.6))]))
+	var pts := PackedVector3Array()
+	if f.has("seat") and int(f.seat) < interior.seats.size():
+		var via: Array = interior.seats[int(f.seat)].get("via", [])
+		for k in range(via.size() - 1, -1, -1):
+			pts.append(interior.to_global(via[k]))     # từ trên gác xuống cầu thang
+	pts.append(interior.to_global(interior.entry_point))
+	pts.append(interior.to_global(interior.entry_point + Vector3(0, 0, 1.6)))
+	p.walk_path(pts)
 
 
 func _process(delta: float) -> void:

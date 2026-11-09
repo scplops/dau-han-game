@@ -341,6 +341,9 @@ func _build_plots() -> void:
 						for key in ["bays", "roof", "form", "wall", "front", "layout"]:
 							var bucket: Dictionary = style_stats.get_or_add(key, {})
 							bucket[str(st[key])] = int(bucket.get(str(st[key]), 0)) + 1
+						var fb: Dictionary = style_stats.get_or_add("floors", {})
+						var fl := str(VillageHouse.floors_of(st))
+						fb[fl] = int(fb.get(fl, 0)) + 1
 						var info := VillageHouse.build_plot(stat, glow, leaves, ground, xf, w, depth, st, _rng)
 						info["seed"] = random_seed * 31 + house_count
 						info["name"] = VillageHouse.describe(st)

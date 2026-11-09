@@ -6,6 +6,7 @@ extends SceneTree
 ##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
+##        [--enter=house_0 --fp --fp-in=stair|up|x,y,z] (đứng ở chân cầu thang / trên gác nhà 2 tầng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus;
 ##        cùng --enter=khoá thì đi bộ bên trong toà nhà đó)
 ##        [--quest=water,lost,…] (nhận sẵn các việc nhờ từ người gần nhất có vai hợp)
@@ -144,6 +145,20 @@ func _run() -> void:
 			if args.has("fp-yaw"):
 				fp.rotation.y = brd.river.boat_nodes[bi].rotation.y + PI + deg_to_rad(float(args["fp-yaw"]))
 		elif args.has("fp-yaw"): fp.rotation.y = deg_to_rad(float(args["fp-yaw"]))
+		# --fp-in=x,y,z: chỗ đứng trong toà nhà (toạ độ cục bộ nội thất; "stair" = chân cầu thang, "up" = trên gác)
+		if inside and args.has("fp-in"):
+			var itr := entry.interior
+			var where := str(args["fp-in"])
+			var lp: Vector3
+			if where == "stair":
+				lp = itr.stair.bottom + Vector3(0, 0.05, 0.6)
+			elif where == "up":
+				lp = itr.stair.top + Vector3(1.2, 0.05, 0.1)
+			else:
+				var c := where.split(",")
+				lp = Vector3(float(c[0]), float(c[1]), float(c[2]))
+			fp.global_position = itr.to_global(lp)
+			fp.velocity = Vector3.ZERO
 		if args.has("fp-pitch"):
 			fp._pitch = deg_to_rad(float(args["fp-pitch"]))
 			fp.camera.rotation.x = fp._pitch

@@ -10,10 +10,10 @@ extends Node3D
 @export_group("Nhà chính")
 @export var house_position: Vector3 = Vector3(-11.8, 0.0, -13.6)
 @export_range(-45.0, 45.0) var house_yaw_deg: float = 8.0
-@export var length: float = 10.0
-@export var depth: float = 5.6
+@export var length: float = 11.0
+@export var depth: float = 6.4
 @export var veranda_depth: float = 1.6
-@export var wall_height: float = 2.6
+@export var wall_height: float = 2.8
 @export var plinth_height: float = 0.4
 @export var roof_rise: float = 2.3
 @export var roof_overhang: float = 0.6

@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -1047,4 +1047,28 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - `tools/building_walk_test.gd` thử mọi nhà theo `Village.house_count` (64 toà).
 - **Hiệu năng:** Villagers._process ~1,5–2 ms / khung lúc ~200 người ngoài đường (đo headless), ~12 MeshInstance mỗi
   người (chỉ bộ đồ đang mặc hiện). Ban đêm hầu hết ẩn trong nhà.
+
+## 35. Nhà rộng hơn, nhà 2 tầng có cầu thang (giai đoạn 6c)
+
+- **Nhà rộng hơn ~15 %** (nội thất lấy kích thước từ nhà bên ngoài nên rộng theo): nhà làng gian 3,1–3,75 m, sâu
+  5,8–7,2 m, tường cao 2,6–3,0 m (`VillageHouse.build_plot` → `dims`; số lần rút số ngẫu nhiên giữ nguyên nên vị trí
+  lô không đổi); nhà mình `House.length` 11, `depth` 6,4, `wall_height` 2,8.
+- **Nhà 2 tầng** (`VillageHouse.floors_of(st)`: mái ngói, tường vôi / gạch, `signature().hash() % 3 == 0` — không rút
+  số ngẫu nhiên; thường 13/60 nhà, thống kê `floors` khi chạy). Bên ngoài (`_upper_floor`): sàn bê tông viền trắng
+  `SLAB` 0,2 m đua ra thành ban công trên hiên, tường tầng 2 cao `height2` = 0,92 × tầng 1, cửa sổ có cánh chớp xanh
+  `SHUTTER`, cửa giữa ra ban công, lan can con tiện, gờ chỉ trắng dưới mái; mái đặt trên đỉnh tầng 2. Sâu tối thiểu
+  6,6 m. Tên: "Nhà 2 tầng 3 gian · …". Spec nội thất có `floors`, `height2`, `slab`.
+- **Nội thất** (`Interior`): gian đầu hồi trái là chân cầu thang (`rooms[0] = "stairs"`, `_room_stairs`): cầu thang
+  xây dọc tường hồi, lên từ phía trước ra phía sau, bậc cao ≤ 0,235 m, mặt bậc 0,24 m, mặt bậc gỗ, tay vịn phía
+  trong; gầm thang có bao thóc, cạnh đó tủ, chum, ghế. `Interior.stair` = {x, w, z_bottom, z_top, hole_x1, bottom,
+  top}; `upper_y()` = mặt sàn gác. Kiểu đi bộ: `_build_slab` (sàn chừa lỗ thang — `_slab_rects`, mặt dưới là trần
+  tầng 1, dầm gỗ) + `_build_upper` (sàn gỗ, tường, cửa sổ song gỗ, cửa ra ban công, lan can quanh lỗ thang — để trống
+  phía sau là chỗ bước lên, buồng ngủ / phản / góc học ở các gian còn lại — dùng lại hàm bày gian với `_p` tạm nâng lên
+  mặt sàn gác), trần mái trên đỉnh tầng 2, đèn phụ `DaylightFillUpper`. Kiểu nhà búp bê chỉ dựng tầng 1 (thang lên
+  tới trần).
+- **Người trong nhà** (IndoorFolk): chỗ trên gác có tag `upstairs` và `via` (chân thang → bậc đầu → đầu thang); bản
+  sao đi theo `via` lên gác, ra về thì đi ngược xuống. Ban đêm cả nhà lên gác ngủ.
+- `tools/stairs_test.gd [-- --only=house_0]`: mỗi nhà 2 tầng: đi lên thang (tới đúng sàn gác), sang gian bên, đẩy vào
+  lỗ thang từ bên hông (lan can chặn), ra ban công (không rơi), đi xuống tới nền; ban đêm người nhà lên gác ngủ.
+  Chụp ảnh: `--enter=house_0 --fp --fp-in=stair|up|x,y,z --fp-yaw=… --fp-pitch=…`.
 

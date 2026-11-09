@@ -13,6 +13,8 @@ const FRONTS: Array[String] = ["veranda_wood", "veranda_brick", "panel_doors"]
 const LAYOUTS: Array[String] = ["single", "L_left", "L_right", "U", "kitchen"]
 ## Nửa bề rộng lối đi để trống thẳng trước cửa chính (nhà phụ không được lấn vào).
 const door_lane_half := 1.0
+## Bề dày sàn giữa hai tầng.
+const SLAB := 0.2
 const FENCES: Array[String] = ["brick_wall", "bamboo_fence", "hibiscus_hedge", "low_edge"]
 const GARDEN: Array[String] = ["areca", "banana", "fruit_tree", "vegetables", "haystack", "water_tank", "trellis"]
 
@@ -52,6 +54,14 @@ static func all_styles(rng: RandomNumberGenerator) -> Array[Dictionary]:
 
 static func signature(style: Dictionary) -> String:
 	return "%d|%s|%s|%s|%s|%s" % [style.bays, style.roof, style.form, style.wall, style.front, style.layout]
+
+
+## Nhà 2 tầng (nhà gác kiểu những năm 2000): chỉ nhà mái ngói, tường vôi / gạch, khoảng 1/3 số đó.
+## Tính từ chữ ký kiểu nhà (không rút số ngẫu nhiên) để vị trí các lô trong làng không đổi.
+static func floors_of(st: Dictionary) -> int:
+	if st.roof == "thatch" or st.wall == "mud" or int(st.bays) < 2:
+		return 1
+	return 2 if absi(signature(st).hash()) % 3 == 0 else 1
 
 
 ## Bề rộng lô tối thiểu cho kiểu nhà (nhà + lối hai bên).
@@ -286,22 +296,80 @@ static func build_house(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, st:
 			var rw := Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(s * (L * 0.5 + 0.02), P + H * 0.62, -D * 0.5 + core * 0.5))
 			glow.add_prism(0.32, 0.32, 0.04, 10, Palette.WINDOW_DARK, xf * rw)
 
-	roof(mb, xf, L, D, P + H, dims.rise, dims.over, dims.gover, st.roof, st.form, wc, wd)
+	var floors := int(dims.get("floors", 1))
+	var H2 := H * 0.92
+	var top := P + H
+	if floors > 1:
+		top = _upper_floor(mb, glow, xf, st, L, D, bw, P, H, H2, core, front_z, veranda, wc, wd)
+	roof(mb, xf, L, D, top, dims.rise, dims.over, dims.gover, st.roof, st.form, wc, wd)
 
 	var door_x := -L * 0.5 + bw * ((bays >> 1) + 0.5)
 	return {
 		"kind": "home", "bays": bays, "bay": bw, "depth": D, "veranda": veranda,
 		"height": H, "plinth": P, "wall": st.wall, "front": st.front, "roof": st.roof,
+		"floors": floors, "height2": H2, "slab": SLAB,
 		"door": xf * _t(door_x, P + 1.05, front_z + 0.14),
 		"door_x": door_x,
 	}
+
+
+## Tầng 2: sàn bê tông (đua ra thành ban công trên hiên), tường, cửa sổ chớp, lan can con tiện.
+## Trả về độ cao đỉnh tường tầng 2 (chân mái).
+static func _upper_floor(mb: MeshBuilder, glow: MeshBuilder, xf: Transform3D, st: Dictionary, L: float,
+		D: float, bw: float, P: float, H: float, H2: float, core: float, front_z: float, veranda: float,
+		wc: Color, wd: Color) -> float:
+	var y1 := P + H
+	var y2 := y1 + SLAB
+	var trim := Palette.WALL_WHITE if st.wall != "lime_white" else Palette.WALL_WHITE.darkened(0.1)
+	# Sàn: phủ cả hiên (ban công), mép sàn sơn trắng
+	mb.add_box(Vector3(L + 0.3, SLAB, D + 0.1), trim, xf * _t(0.0, y1, 0.0))
+	mb.add_box(Vector3(L, H2, core), wc, xf * _t(0.0, y2, -D * 0.5 + core * 0.5))
+	mb.add_box(Vector3(L + 0.04, 0.2, core + 0.04), wd, xf * _t(0.0, y2, -D * 0.5 + core * 0.5))
+	if st.wall == "brick":
+		var y := y2 + 0.45
+		while y < y2 + H2 - 0.1:
+			mb.add_box(Vector3(L + 0.02, 0.03, core + 0.02), wd, xf * _t(0.0, y, -D * 0.5 + core * 0.5))
+			y += 0.42
+	# Cửa sổ chớp mỗi gian ở mặt trước (gian giữa là cửa đi ra ban công)
+	var mid := int(st.bays) >> 1
+	for i in int(st.bays):
+		var cx := -L * 0.5 + bw * (i + 0.5)
+		if i == mid and veranda > 0.0:
+			mb.add_box(Vector3(1.3, 2.05, 0.1), Palette.WOOD, xf * _t(cx, y2, front_z))
+			glow.add_box(Vector3(1.1, 1.9, 0.04), Palette.WINDOW_DARK, xf * _t(cx, y2 + 0.05, front_z + 0.07))
+			continue
+		mb.add_box(Vector3(1.2, 1.1, 0.1), Palette.WOOD, xf * _t(cx, y2 + 0.8, front_z))
+		glow.add_box(Vector3(1.0, 0.9, 0.04), Palette.WINDOW_DARK, xf * _t(cx, y2 + 0.9, front_z + 0.07))
+		for s in [-1.0, 1.0]:
+			# Cánh chớp xanh mở ra hai bên
+			mb.add_box(Vector3(0.5, 1.0, 0.05), Palette.SHUTTER, xf * _t(cx + s * 0.86, y2 + 0.85, front_z + 0.09))
+		mb.add_box(Vector3(1.4, 0.08, 0.2), trim, xf * _t(cx, y2 + 1.95, front_z + 0.06))
+	# Cửa sổ nhỏ mặt sau
+	for i in int(st.bays):
+		var cx := -L * 0.5 + bw * (i + 0.5)
+		glow.add_box(Vector3(0.8, 0.7, 0.04), Palette.WINDOW_DARK, xf * _t(cx, y2 + 1.0, -D * 0.5 - 0.03))
+	# Lan can ban công (con tiện) trên hiên
+	if veranda > 0.0:
+		var rz := D * 0.5 - 0.1
+		mb.add_box(Vector3(L + 0.3, 0.12, 0.16), trim, xf * _t(0.0, y2, rz))
+		mb.add_box(Vector3(L + 0.3, 0.08, 0.2), trim, xf * _t(0.0, y2 + 0.85, rz))
+		var n := int(L / 0.22)
+		for k in n + 1:
+			var x := -L * 0.5 - 0.1 + (L + 0.2) * k / n
+			mb.add_prism(0.045, 0.045, 0.73, 5, trim, xf * _t(x, y2 + 0.12, rz))
+		for s in [-1.0, 1.0]:
+			mb.add_box(Vector3(0.16, 0.85, veranda), trim, xf * _t(s * (L * 0.5 + 0.07), y2, D * 0.5 - veranda * 0.5))
+	# Gờ chỉ trắng dưới chân mái
+	mb.add_box(Vector3(L + 0.12, 0.14, core + 0.12), trim, xf * _t(0.0, y2 + H2 - 0.14, -D * 0.5 + core * 0.5))
+	return y2 + H2
 
 
 ## Mô tả ngắn cho gợi ý khi rê chuột, ví dụ "Nhà 3 gian · mái rạ · tường đất".
 static func describe(st: Dictionary) -> String:
 	var roofs := {"tile_red": "mái ngói đỏ", "tile_brown": "mái ngói nâu", "thatch": "mái rạ"}
 	var walls := {"lime_yellow": "tường vôi vàng", "lime_white": "tường vôi trắng", "brick": "tường gạch", "mud": "vách đất"}
-	return "Nhà %d gian · %s · %s" % [st.bays, roofs.get(st.roof, ""), walls.get(st.wall, "")]
+	var two := "Nhà 2 tầng %d gian" % st.bays if floors_of(st) > 1 else "Nhà %d gian" % st.bays
+	return "%s · %s · %s" % [two, roofs.get(st.roof, ""), walls.get(st.wall, "")]
 
 
 ## Nhà phụ (nhà ngang, bếp): tường, cửa tối, mái hai mái cùng loại.
@@ -329,9 +397,9 @@ static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, 
 		xf: Transform3D, width: float, depth: float, st: Dictionary,
 		rng: RandomNumberGenerator) -> Dictionary:
 	var dims := {
-		"bay": rng.randf_range(2.75, 3.3),
-		"depth": rng.randf_range(4.8, 6.2),
-		"height": rng.randf_range(2.3, 2.85),
+		"bay": rng.randf_range(3.1, 3.75),
+		"depth": rng.randf_range(5.8, 7.2),
+		"height": rng.randf_range(2.6, 3.0),
 		"plinth": rng.randf_range(0.2, 0.55),
 		"rise": rng.randf_range(1.7, 2.5),
 		"over": rng.randf_range(0.45, 0.8),
@@ -341,6 +409,9 @@ static func build_plot(mb: MeshBuilder, glow: MeshBuilder, leaves: MeshBuilder, 
 	if st.roof == "thatch":
 		dims.rise = rng.randf_range(2.2, 2.8)
 		dims.over = rng.randf_range(0.7, 1.0)
+	dims["floors"] = floors_of(st)
+	if dims.floors > 1:
+		dims.depth = maxf(dims.depth, 6.6)   # đủ chỗ cho cầu thang chạy dọc tường hồi
 	var L: float = st.bays * dims.bay
 	# Co gian cho vừa lô
 	if L > width - 2.2:
