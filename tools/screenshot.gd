@@ -6,6 +6,7 @@ extends SceneTree
 ##        [--npc=N|farmer|kid|buffalo…] (chọn NPC, đặt camera vào họ)
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
+##        [--notebook=0..4] (mở sổ tay ở trang đó, kèm dữ liệu mẫu)
 ##        [--enter=house_0 --fp --fp-in=stair|up|x,y,z] (đứng ở chân cầu thang / trên gác nhà 2 tầng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus;
 ##        cùng --enter=khoá thì đi bộ bên trong toà nhà đó)
@@ -525,6 +526,32 @@ func _run() -> void:
 				var target := house.find_child("ClickTarget", true, false) as Node3D
 				door = target.global_position
 			root.warp_mouse(rig.camera.unproject_position(door))
+	# --notebook=N: mở sổ tay ở trang N (0 kỷ lục, 1 câu cá, 2 người quen, 3 quà & việc, 4 làng hôm nay), kèm dữ liệu mẫu
+	if args.has("notebook"):
+		var nb := scene.get_node("Notebook") as Notebook
+		var sgm := scene.get_node("SaveGame") as SaveGame
+		var r := sgm.records
+		r.rope_best = 42; r.rope_games = 9; r.khang_best = 68; r.khang_turns = 7
+		r.race_best_team = 48.6; r.race_best_solo = 63.2; r.race_wins = 2; r.races = 5
+		r.kite_best = 87.4; r.kites = 4; r.oaq_wins = 3; r.oaq_losses = 2; r.oaq_draws = 1
+		r.hs_games = 3; r.hs_found = 10; r.hs_all_found = 2; r.goals = 6; r.play_seconds = 4380.0
+		var fsh := scene.get_node("Fishing") as Fishing
+		fsh._log = {"Cá chép": {"count": 4, "best": 2.14}, "Cá diếc": {"count": 6, "best": 0.42}, "Cá trắm cỏ": {"count": 1, "best": 3.8}, "Cá mè trắng": {"count": 2, "best": 1.35}}
+		fsh._total = 13
+		fsh.basket.clear()
+		fsh.basket.append({"name": "Cá chép", "kg": 1.62})
+		fsh.basket.append({"name": "Cá diếc", "kg": 0.31})
+		var qsn := scene.get_node("Quests") as Quests
+		qsn.gifts.assign(["chục trứng gà", "gói chè Thái", "mấy cái bánh đa", "gói chè Thái", "con quay gỗ", "nải chuối"])
+		qsn.done_count = 6
+		var dlgn := scene.get_node("Dialogue") as Dialogue
+		var vsn := scene.get_node("World/Villagers") as Villagers
+		for k in 9:
+			dlgn._met[vsn.people[k * 7]] = 9 - k
+		nb.show_notebook()
+		nb.set_page(int(args["notebook"]))
+		await process_frame
+		await process_frame
 	if args.has("flash") and weather != null:
 		weather.flash_now()
 		weather.process_mode = Node.PROCESS_MODE_DISABLED   # giữ nguyên tia chớp cho khung chụp

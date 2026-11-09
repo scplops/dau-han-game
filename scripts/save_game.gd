@@ -40,6 +40,7 @@ var records: Dictionary = {
 	"oaq_wins": 0, "oaq_losses": 0, "oaq_draws": 0,
 	"hs_games": 0, "hs_found": 0, "hs_all_found": 0,
 	"goals": 0,
+	"play_seconds": 0.0,
 }
 var last_saved: String = ""
 var _timer: float = 0.0
@@ -106,6 +107,7 @@ func _connect_games() -> void:
 
 
 func _process(delta: float) -> void:
+	records.play_seconds = float(records.play_seconds) + delta
 	if _toast_t > 0.0:
 		_toast_t -= delta
 		_toast.modulate.a = clampf(_toast_t / 0.6, 0.0, 1.0)
@@ -157,6 +159,7 @@ func snapshot() -> Dictionary:
 		d["basket"] = fishing.basket.duplicate(true)
 	if quests != null:
 		d["gifts"] = quests.gifts.duplicate()
+		d["quests_done"] = quests.done_count
 	if dialogue != null:
 		var met := {}
 		for v: Variant in dialogue._met:
@@ -198,6 +201,7 @@ func apply(d: Dictionary) -> void:
 		quests.gifts.clear()
 		for g: Variant in d.get("gifts", []):
 			quests.gifts.append(str(g))
+		quests.done_count = int(d.get("quests_done", quests.gifts.size()))
 	if dialogue != null and villagers != null:
 		var met: Dictionary = d.get("met", {})
 		dialogue._met.clear()

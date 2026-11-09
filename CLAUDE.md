@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -146,7 +146,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
-   `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N),
+   `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -201,6 +201,7 @@ scripts/
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
+  notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
   farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
@@ -1153,4 +1154,23 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - Phím N (`toggle_sound`): tắt / bật cả bus Master. `played` đếm số lần phát từng tiếng (cho bài thử).
 - `tools/sound_test.gd`: thời gian tổng hợp, độ dài / đỉnh / RMS từng tiếng (không tiếng nào câm), âm lượng nền
   14:00 nắng / 21:00 nắng / 21:00 giông / trong nhà, các tiếng theo sự kiện; lưu `screenshots/sounds/*.wav` để nghe thử.
+
+## 39. Sổ tay người chơi (giai đoạn 7c)
+
+- `scripts/notebook.gd` (`Notebook`, `CanvasLayer` con cuối của `Main`, `layer` 18). Phím B (`toggle_notebook`) mở /
+  gấp; A / D hoặc bấm mục để lật trang; Esc gấp. Cuốn sổ giấy giữa màn hình (`PAPER`, gáy nâu, chữ mực `INK`, tiêu đề
+  đỏ `ACCENT`), nội dung là `RichTextLabel` BBCode, trang đang mở tự làm mới 2 lần / s.
+- **5 trang** (`PAGES`, `page_text(i)`): **Kỷ lục** (`SaveGame.records`: nhảy dây, đánh khăng, đua thuyền rồng / đơn,
+  thả diều, ô ăn quan thắng / thua / hoà, trốn tìm, bàn thắng); **Câu cá** (mọi loài trong `Fishing.SPECIES` — đã câu:
+  số con + to nhất, chưa câu: "chưa câu được"; x / 6 loài; cá trong giỏ + tổng cân); **Người quen** (`Dialogue._met`,
+  xếp theo số lần trò chuyện: tên, vai, quan hệ trong nhà, nhà nào; x / số dân); **Quà & việc** (`Quests.done_count`,
+  việc đang làm `active[].title`, quà gộp theo món); **Làng hôm nay** (ngày dương / âm, lễ, giờ, thời tiết, mùa vụ,
+  số hộ / người / con vật, thời gian đã chơi `records.play_seconds`, lần lưu cuối).
+- Lưu thêm `records.play_seconds` (đếm cả khi không lưu file) và `quests_done` (`Quests.done_count`).
+- **Mở khi:** không đang trò chuyện; nhập vai thì chỉ khi không đang chơi trò gì (`FirstPerson._suspended` rỗng) →
+  `_suspend("notebook")` (đứng lại, hiện chuột), gấp sổ thì `_resume()`. Ngắm cảnh thì tạm tắt `CameraRig.active`
+  (camera đọc phím trực tiếp nên chặn sự kiện không đủ). Khi sổ mở, mọi phím khác bị chặn (`set_input_as_handled`).
+- Chụp ảnh: `--notebook=0..4` (mở trang đó, kèm dữ liệu mẫu). `tools/notebook_test.gd`: mở / gấp ở ngắm cảnh và nhập
+  vai, lật trang, W không làm camera chạy, số liệu thật hiện trên các trang, không mở khi đang trò chuyện. Bài thử gửi
+  phím bằng `Input.parse_input_event` phải chờ `process_frame` (khi nhập vai, sự kiện vào trễ một khung).
 
