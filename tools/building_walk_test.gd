@@ -67,7 +67,7 @@ func _run() -> void:
 	var hud := scene.get_node("HUD") as Hud
 	var it := he.interior
 	var keys: Array[String] = ["main", "dinh", "pagoda", "school"]
-	for i in 41:
+	for i in (scene.get_node("World/Village") as Village).house_count:
 		keys.append("house_%d" % i)
 	var problems: Array[String] = []
 	var ok_count := 0

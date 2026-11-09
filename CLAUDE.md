@@ -1042,6 +1042,9 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   lần lượt — không ai trùng tên.
 - **Hội thoại** "Nhà … ở đâu?" kể thêm người trong nhà theo quan hệ với người nói (`Dialogue._family_text`,
   `_relation_word`): "Nhà có bốn người: vợ Duyên, bà cụ Mơ, cu Mít với bác."
+- **Trong nhà ban đêm:** nhà chỉ có 1–3 chỗ ngủ, người không có giường / phản vẫn hiện, ngồi thức ở chỗ khác
+  (`IndoorFolk._pick_seat`: đêm mà chỗ không có tag `night` chỉ trừ 4 điểm; ngày mà chỗ ngủ thì trừ 10).
+- `tools/building_walk_test.gd` thử mọi nhà theo `Village.house_count` (64 toà).
 - **Hiệu năng:** Villagers._process ~1,5–2 ms / khung lúc ~200 người ngoài đường (đo headless), ~12 MeshInstance mỗi
   người (chỉ bộ đồ đang mặc hiện). Ban đêm hầu hết ẩn trong nhà.
 

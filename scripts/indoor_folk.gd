@@ -190,7 +190,9 @@ func _pick_seat(v: Villager) -> int:
 		var st: Dictionary = interior.seats[i]
 		var tags: Array = st.tags
 		var score := _rng.randf()
-		if night != tags.has("night"):
+		if night and not tags.has("night"):
+			score -= 4.0                  # hết giường / phản: vẫn ngồi thức (nhà đông người)
+		elif not night and tags.has("night"):
 			score -= 10.0
 		if tags.has("kid"):
 			score += 3.0 if v.role in ["kid", "herder"] else -4.0
