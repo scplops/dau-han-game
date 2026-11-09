@@ -153,7 +153,7 @@ fov = 40.0
 near = 0.1
 far = 300.0
 
-[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "school", "football", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig", "calendar", "school_day", "hide_seek", "jump_rope", "tip_cat", "farming")]
+[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "school", "football", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig", "calendar", "school_day", "hide_seek", "jump_rope", "tip_cat", "farming", "o_an_quan", "kite")]
 script = ExtResource("18_villagers")
 village = NodePath("../Village")
 river = NodePath("../River")
@@ -171,6 +171,8 @@ hide_seek = NodePath("../../HideSeek")
 jump_rope = NodePath("../../JumpRope")
 tip_cat = NodePath("../../TipCat")
 farming = NodePath("../../Farming")
+o_an_quan = NodePath("../../OAnQuan")
+kite = NodePath("../../KiteFlying")
 
 [node name="Football" type="Node3D" parent="World" node_paths=PackedStringArray("village", "villagers", "first_person")]
 script = ExtResource("22_football")
@@ -277,7 +279,7 @@ jump_rope = NodePath("../JumpRope")
 tip_cat = NodePath("../TipCat")
 farming = NodePath("../Farming")
 
-[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue", "hide_seek", "jump_rope", "tip_cat")]
+[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue", "hide_seek", "jump_rope", "tip_cat", "o_an_quan", "kite")]
 script = ExtResource("23_fp")
 outdoor_rig = NodePath("../CameraRig")
 house_entry = NodePath("../HouseEntry")
@@ -290,6 +292,8 @@ dialogue = NodePath("../Dialogue")
 hide_seek = NodePath("../HideSeek")
 jump_rope = NodePath("../JumpRope")
 tip_cat = NodePath("../TipCat")
+o_an_quan = NodePath("../OAnQuan")
+kite = NodePath("../KiteFlying")
 
 [node name="BoatRide" type="Node3D" parent="." node_paths=PackedStringArray("river", "first_person", "outdoor_rig", "house_entry", "hud", "day_night")]
 script = ExtResource("28_boat")
@@ -316,13 +320,16 @@ house_entry = NodePath("../../HouseEntry")
 boat_ride = NodePath("../../BoatRide")
 school_day = NodePath("../../SchoolDay")
 
-[node name="OAnQuan" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "dialogue", "hud")]
+[node name="OAnQuan" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "dialogue", "hud", "village", "weather", "day_night")]
 script = ExtResource("31_oaq")
 first_person = NodePath("../FirstPerson")
 dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
+village = NodePath("../World/Village")
+weather = NodePath("../Weather")
+day_night = NodePath("../DayNight")
 
-[node name="HideSeek" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "villagers", "dialogue", "hud", "day_night", "weather")]
+[node name="HideSeek" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "villagers", "dialogue", "hud", "day_night", "weather", "village")]
 script = ExtResource("32_hs")
 first_person = NodePath("../FirstPerson")
 villagers = NodePath("../World/Villagers")
@@ -330,8 +337,9 @@ dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
+village = NodePath("../World/Village")
 
-[node name="BoatRace" type="Node3D" parent="." node_paths=PackedStringArray("river", "first_person", "outdoor_rig", "house_entry", "hud", "dialogue")]
+[node name="BoatRace" type="Node3D" parent="." node_paths=PackedStringArray("river", "first_person", "outdoor_rig", "house_entry", "hud", "dialogue", "day_night", "weather")]
 script = ExtResource("33_race")
 river = NodePath("../World/River")
 first_person = NodePath("../FirstPerson")
@@ -339,14 +347,17 @@ outdoor_rig = NodePath("../CameraRig")
 house_entry = NodePath("../HouseEntry")
 hud = NodePath("../HUD")
 dialogue = NodePath("../Dialogue")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
 
-[node name="KiteFlying" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "dialogue", "hud", "day_night", "weather")]
+[node name="KiteFlying" type="Node3D" parent="." node_paths=PackedStringArray("first_person", "dialogue", "hud", "day_night", "weather", "terrain")]
 script = ExtResource("34_kite")
 first_person = NodePath("../FirstPerson")
 dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
+terrain = NodePath("../World/Terrain")
 
 [node name="JumpRope" type="Node3D" parent="." node_paths=PackedStringArray("villagers", "first_person", "dialogue", "hud", "day_night", "weather", "village")]
 script = ExtResource("35_rope")

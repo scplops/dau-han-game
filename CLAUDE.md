@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35) — chưa có túi đồ đầy đủ,
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36) — chưa có túi đồ đầy đủ,
 > chưa lưu game.
 
 ---
@@ -1071,4 +1071,39 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
 - `tools/stairs_test.gd [-- --only=house_0]`: mỗi nhà 2 tầng: đi lên thang (tới đúng sàn gác), sang gian bên, đẩy vào
   lỗ thang từ bên hông (lan can chặn), ra ban công (không rơi), đi xuống tới nền; ban đêm người nhà lên gác ngủ.
   Chụp ảnh: `--enter=house_0 --fp --fp-in=stair|up|x,y,z --fp-yaw=… --fp-pitch=…`.
+
+## 36. Dân làng tự chơi trò dân gian; người chơi vào thì chơi lại từ đầu (giai đoạn 6d)
+
+- **Không có người chơi, làng vẫn chơi** cả sáu trò; người chơi vào trò đang diễn ra thì trò đó **bắt đầu lại từ đầu**:
+  - **Nhảy dây / đánh khăng** (đã tự chơi từ mục 31, 32): `JumpRope._start_player` — đứa đang nhảy ra cuối hàng, dây
+    quay chậm lại, đếm lại 0, xoá kỷ lục, người chơi nhảy trước; `TipCat._start_player` — điểm về 0, vòng 1, người
+    chơi đánh trước (`turn_i = -1` → `_next_turn`). Bọn trẻ reo "Chơi lại từ đầu…".
+  - **Ô ăn quan** (`OAnQuan.ambient`, `sites`: gốc đa đầu làng, sân chùa): việc `oaq` của Villagers (cụ già, trẻ con,
+    trẻ chăn trâu; 7:00–18:18, không mưa) → `on_arrive`: đủ 2 người thì ngồi xổm hai bên bàn kẻ phấn (`_chalk` dùng
+    chung với bàn của người chơi), máy đi cho cả hai bên mỗi `ambient_move_time` giây (đủ luật: `play`, `refill`,
+    `collect`; người già / nửa số người lớn chơi khó), sỏi vẽ bằng một MultiMesh mỗi bàn (`_ambient_draw`), hết ván
+    thì người thắng reo rồi ván mới (đổi người đi trước); tan sau `ambient_seconds`. Nhập vai nhìn người đang chơi
+    "E: Xin chơi ô ăn quan (ván mới)" → `join_ambient` → `start(v)` (bàn dân làng tan, người kia đi việc khác, ván mới 0–0).
+  - **Trốn tìm** (`HideSeek.ambient`): việc `hs_play` (trẻ con, trừ trưa, không mưa) → tụ ở cột (`ambient_bases`: giữa
+    đường trục chỗ ngõ 2 và ngõ 4 rẽ); đủ 3 đứa: một đứa đứng chắp tay đếm, những đứa khác chạy (theo đồ thị đường)
+    tới chỗ trốn `_amb_spots` (nấp sau rào ngay cạnh cổng các nhà, sau gốc đa, cạnh giếng — KHÔNG dò bằng tia va chạm
+    vì va chạm chỉ có sau khi bật nhập vai), ngồi thụp; người đi tìm đi lần lượt các chỗ (chỗ thật + vài chỗ trống,
+    gần trước), tới nơi thì bắt; đi xa cột > 14 m thì đứa đang trốn có thể lén về đập cột (`ambient_escape_rate`);
+    hết vòng thì đứa bị bắt đầu tiên đi tìm vòng sau. Nhập vai nhìn một đứa "E: Xin chơi trốn tìm (chơi lại từ đầu)" →
+    nhóm tan, cả nhóm (dù đang nấp xa) thành người trốn trong ván mới, người chơi đi tìm (`start`).
+  - **Thả diều** (`KiteFlying.ambient`, `sites`: trên hai đường đất giữa đồng, z 26 / 64): việc `kite` (trẻ con, trẻ
+    chăn trâu; nắng / nhiều mây) → mỗi chỗ tối đa `ambient_per_site` đứa, diều nhẹ (mesh diều + dây + đuôi
+    ImmediateMesh, dưới node `AmbientKites` ở `Main` — node `KiteFlying` ẩn khi người chơi không thả), lên dần trong
+    ~10 s rồi chao lượn xuôi gió, chỉ vẽ trong 260 m. "E: Mượn diều thả" → đứa trẻ thu diều đưa người chơi thả lại từ đầu
+    (`start` bỏ diều của đứa đó, meta `kite_lent`; trả diều thì đứa trẻ đi việc khác).
+  - **Đua thuyền** (`BoatRace.ambient`, `begin_ambient`): ban ngày (`ambient_hours`), không mưa / sương, cứ
+    `ambient_interval` giây bốn thuyền rồng bốn xóm đua với nhau (thuyền Đỏ cũng do máy chèo, không chướng ngại, không
+    camera / giao diện), về đích hết thì nghỉ 10 s rồi về lại vạch xuất phát. Người chơi bấm bến đua giữa chừng →
+    `_end_ambient` (các thuyền về vạch xuất phát) → bảng chọn như cũ.
+- Meta của người đang tự chơi: `oaq_ambient`, `hs_amb` (+ `hs_hidden`, `hs_back`), `kite_amb`; Dialogue chỉ nói câu ngắn
+  (bark) với họ, FirstPerson hiện gợi ý vào chơi. Villagers gọi đi (tối, mưa, đi học…) thì tự rời trò.
+- `tools/folk_ambient_test.gd`: Chủ nhật 14:30 để làng tự chạy 160 s (tua ×4): ô ăn quan ~8 ván, trốn tìm ~6 vòng (bắt,
+  đập cột), 5–7 diều cùng bay, một cuộc đua thuyền đủ 4 thuyền về đích, nhảy dây, đánh khăng; rồi người chơi vào từng trò →
+  ô ăn quan ván mới 0–0, trốn tìm ván mới (người chơi đếm), mượn diều thả lại từ dây 9 m, đua thuyền về vạch xuất phát,
+  nhảy dây đếm lại 0, đánh khăng điểm về 0.
 

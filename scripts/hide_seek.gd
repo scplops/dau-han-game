@@ -20,6 +20,16 @@ signal finished(found: int, escaped: int, total: int)
 @export var hud: Hud
 @export var day_night: DayNight
 @export var weather: Weather
+## Bọn trẻ tự chơi trốn tìm trong ngõ khi không có người chơi (mục 36).
+@export var village: Village
+@export_group("Bọn trẻ tự chơi")
+## Chơi bao lâu thì tan (giây thật).
+@export var ambient_seconds: Vector2 = Vector2(200.0, 360.0)
+## Chỗ trốn cách cột trong khoảng này (m).
+@export var ambient_spot_range: Vector2 = Vector2(8.0, 32.0)
+## Mỗi giây, đứa đang trốn có khả năng lén về đập cột khi người đi tìm ở xa cột.
+@export var ambient_escape_rate: float = 0.03
+@export_group("")
 @export_range(1, 8) var hider_count: int = 4
 @export var count_seconds: float = 10.0
 @export var seek_seconds: float = 150.0
@@ -55,6 +65,12 @@ var _status: Label
 var _sub: Label
 var _hint_text: String = ""
 var _hint_timer: float = 0.0
+## Các ván bọn trẻ tự chơi: {base, members, seeker, hiders, spots {Villager: Vector3}, phase (gather / count /
+## seek / back), t, t_left, visits (chỗ người đi tìm sẽ tới), found, escaped, next_seeker}.
+var ambient: Array[Dictionary] = []
+## Chỗ làm cột (giữa đường trục, chỗ ngõ rẽ) và chỗ trốn quanh làng (cạnh cổng các nhà, gốc đa, giếng).
+var ambient_bases: Array[Vector3] = []
+var _amb_spots: Array[Vector3] = []
 
 const TEMP_NAMES := ["Cái Hến", "Thằng Cún", "Cu Bi", "Cái Mận", "Thằng Tũn", "Cái Bống", "Cu Tủn"]
 const COUNT_WORDS := ["Một", "Hai", "Ba", "Bốn", "Năm", "Sáu", "Bảy", "Tám", "Chín", "Mười"]
@@ -87,12 +103,21 @@ func refusal(v: Villager) -> String:
 func start(v: Villager) -> void:
 	if phase != Phase.OFF or first_person == null:
 		return
+	var ag := _ambient_of(v)
+	var former: Array = []
+	if not ag.is_empty():
+		former = (ag.members as Array).duplicate()
+		_end_ambient(ag)          # bọn trẻ đang chơi dở: tan ván đó, chơi lại từ đầu với người chơi
 	base = first_person.global_position
 	found.clear()
 	escaped.clear()
 	hiders.clear()
 	# Gọi thêm trẻ con quanh đây (đang rảnh), thiếu thì trẻ nhà bên chạy sang
 	hiders.append(v)
+	# Cả nhóm đang chơi dở vào chơi tiếp với người chơi (dù đang nấp ở xa)
+	for p in former:
+		if hiders.size() < hider_count and p != v and is_instance_valid(p) and refusal(p) == "":
+			hiders.append(p)
 	if villagers != null:
 		var near: Array[Villager] = []
 		for p in villagers.people:
@@ -103,7 +128,8 @@ func start(v: Villager) -> void:
 		for p in near:
 			if hiders.size() >= hider_count:
 				break
-			hiders.append(p)
+			if not hiders.has(p):
+				hiders.append(p)
 	var k := 0
 	while hiders.size() < hider_count:
 		hiders.append(_make_temp(k))
@@ -232,6 +258,7 @@ func _find_spots(b: Vector3, n: int) -> Array[Vector3]:
 # --- Diễn biến ---------------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_process_ambient(delta)
 	if phase == Phase.OFF:
 		return
 	for t in _temps:
@@ -543,3 +570,338 @@ func _say(v: Villager, text: String) -> void:
 
 func _pick(arr: Array) -> String:
 	return str(arr[_rng.randi_range(0, arr.size() - 1)])
+
+# --- Bọn trẻ tự chơi (không có người chơi) --------------------------------------------------------
+
+func ambient_ok(h: float) -> bool:
+	if village == null or h < 7.0 or h >= 18.0 or (h >= 11.3 and h < 13.3):
+		return false
+	return weather == null or not weather.kind in ["drizzle", "storm"]
+
+
+func _ensure_ambient_sites() -> void:
+	if not ambient_bases.is_empty() or village == null:
+		return
+	for k in [1, 3]:
+		var z: float = village.alley_z[mini(k, village.alley_z.size() - 1)]
+		ambient_bases.append(Vector3(village.lane_x(z), 0.05, z))
+	# Chỗ trốn: nấp sau rào ngay cạnh cổng các nhà (đi qua cổng rồi rẽ sang), sau gốc đa, cạnh giếng
+	for hm in village.homes:
+		var fwd: Vector3 = hm.forward
+		fwd.y = 0.0
+		fwd = fwd.normalized()
+		var side := fwd.cross(Vector3.UP)
+		var gate: Vector3 = hm.gate
+		for sg in [-1.0, 1.0]:
+			_amb_spots.append(Vector3(gate.x, 0.05, gate.z) - fwd * 1.5 + side * sg * 1.5)
+	_amb_spots.append(village.banyan_position + Vector3(0, 0.05, -2.2))
+	_amb_spots.append(village.well_position + Vector3(-1.6, 0.05, -1.2))
+
+
+func site_target(v: Villager) -> Vector3:
+	_ensure_ambient_sites()
+	var best := 0
+	for i in ambient_bases.size():
+		if v.global_position.distance_to(ambient_bases[i]) < v.global_position.distance_to(ambient_bases[best]):
+			best = i
+	var a := _rng.randf() * TAU
+	return ambient_bases[best] + Vector3(cos(a), 0, sin(a)) * 1.2
+
+
+func _ambient_of(v: Villager) -> Dictionary:
+	for g in ambient:
+		if (g.members as Array).has(v):
+			return g
+	return {}
+
+
+func is_ambient_member(v: Villager) -> bool:
+	return v.has_meta("hs_amb")
+
+
+## Villagers gọi khi một đứa (việc `hs_play`) đi tới nơi: tới cột để vào chơi, tới chỗ trốn, về cột,
+## hoặc người đi tìm tới một chỗ nghi có người trốn.
+func ambient_arrive(v: Villager) -> void:
+	var g := _ambient_of(v)
+	if g.is_empty():
+		_ensure_ambient_sites()
+		var best := 0
+		for i in ambient_bases.size():
+			if v.global_position.distance_to(ambient_bases[i]) < v.global_position.distance_to(ambient_bases[best]):
+				best = i
+		for og in ambient:
+			if (og.base as Vector3).distance_to(ambient_bases[best]) < 1.0:
+				g = og
+		if g.is_empty():
+			g = {"base": ambient_bases[best], "members": [], "seeker": null, "hiders": [], "spots": {},
+					"phase": "gather", "t": 6.0, "t_left": _rng.randf_range(ambient_seconds.x, ambient_seconds.y),
+					"visits": [], "found": [], "escaped": [], "next_seeker": null, "wait": 0.0}
+			ambient.append(g)
+		if (g.members as Array).size() >= 6:
+			v.dwell = 0.0
+			return
+		(g.members as Array).append(v)
+		v.set_meta("hs_amb", true)
+		v.dwell = 1.0e6
+		_amb_idle(g, v, "play")
+		return
+	v.dwell = 1.0e6
+	match str(g.phase):
+		"count", "seek", "back":
+			if v == g.seeker:
+				_amb_seeker_arrived(g)
+			elif v.has_meta("hs_back"):
+				_amb_home(g, v)
+			elif (g.hiders as Array).has(v):
+				_amb_hide(g, v)
+		_:
+			_amb_idle(g, v, "play")
+
+
+## Đứng chơi quanh cột (đứng yên: Villagers chỉ diễn hoạt).
+func _amb_idle(g: Dictionary, v: Villager, anim: String) -> void:
+	v.set_meta("talking", true)
+	v.state = Villager.State.IDLE
+	v.work_anim = anim
+	v.speed_mul = 1.0
+	v.activity_text = "đang chơi trốn tìm"
+	var d := (g.base as Vector3) - v.global_position
+	if d.length() > 0.3:
+		v.rotation.y = atan2(d.x, d.z)
+
+
+func _amb_run(v: Villager, to: Vector3, text: String) -> void:
+	v.remove_meta("talking")
+	v.state = Villager.State.IDLE
+	var p := PackedVector3Array()
+	if villagers != null and v.global_position.distance_to(to) > 6.0:
+		p = villagers.find_path(v.global_position, to)
+	p.append(to)
+	v.activity = "hs_play"
+	v.dwell = 1.0e6
+	v.walk_path(p)
+	v.speed_mul = 1.8
+	v.work_anim = "idle"
+	v.activity_text = text
+
+
+func _amb_hide(g: Dictionary, v: Villager) -> void:
+	v.set_meta("talking", true)
+	v.set_meta("hs_hidden", true)
+	v.state = Villager.State.IDLE
+	v.work_anim = "squat"
+	v.speed_mul = 1.0
+	v.activity_text = "đang trốn"
+	var d := v.global_position - (g.base as Vector3)
+	v.rotation.y = atan2(d.x, d.z)
+
+
+func _amb_home(g: Dictionary, v: Villager) -> void:
+	v.remove_meta("hs_back")
+	_amb_idle(g, v, "play")
+	_check_ambient_round(g)
+
+
+func _process_ambient(delta: float) -> void:
+	var h := day_night.time_of_day if day_night != null else 15.0
+	for g in ambient.duplicate():
+		var members: Array = g.members
+		# Ai bị Villagers gọi đi (tối, mưa, đi học…) thì rời cuộc chơi
+		for v: Villager in members.duplicate():
+			if not is_instance_valid(v) or v.activity != "hs_play":
+				_amb_drop(g, v)
+		g.t_left = float(g.t_left) - delta
+		if not ambient_ok(h) or (float(g.t_left) <= 0.0 and str(g.phase) == "gather"):
+			_end_ambient(g)
+			continue
+		match str(g.phase):
+			"gather":
+				g.t = float(g.t) - delta
+				if members.size() < 3:
+					g.wait = float(g.wait) + delta
+					if float(g.wait) > 50.0:
+						_end_ambient(g)
+				elif float(g.t) <= 0.0:
+					_amb_round(g)
+			"count":
+				g.t = float(g.t) - delta
+				if float(g.t) <= 0.0:
+					_amb_begin_seek(g)
+			"seek":
+				g.t = float(g.t) - delta
+				var seeker: Villager = g.seeker
+				var far := seeker.global_position.distance_to(g.base) > 14.0
+				for v: Villager in g.hiders:
+					if v.has_meta("hs_hidden") and far and _rng.randf() < ambient_escape_rate * delta:
+						v.remove_meta("hs_hidden")
+						v.set_meta("hs_back", true)
+						(g.escaped as Array).append(v)
+						_say(v, _pick(["Đập cột! Hì hì!", "Về cột rồi nhé!"]))
+						_amb_run(v, (g.base as Vector3) + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(-1.2, 1.2)), "đang chạy về đập cột")
+				if float(g.t) <= 0.0:
+					_amb_give_up(g)
+			"back":
+				_check_ambient_round(g)
+
+
+## Bắt đầu một vòng: một đứa bịt mắt đếm ở cột, những đứa khác chạy đi trốn.
+func _amb_round(g: Dictionary) -> void:
+	var members: Array = g.members
+	var seeker: Villager = g.next_seeker if g.next_seeker != null and members.has(g.next_seeker) else members[_rng.randi_range(0, members.size() - 1)]
+	g.seeker = seeker
+	g.next_seeker = null
+	g.hiders = []
+	g.spots = {}
+	g.found = []
+	g.escaped = []
+	var base: Vector3 = g.base
+	var cand: Array[Vector3] = []
+	for p in _amb_spots:
+		var d := Vector2(p.x - base.x, p.z - base.z).length()
+		if d >= ambient_spot_range.x and d <= ambient_spot_range.y:
+			cand.append(p)
+	cand.shuffle()
+	for v: Villager in members:
+		if v == seeker:
+			continue
+		(g.hiders as Array).append(v)
+		var spot: Vector3 = cand.pop_back() if not cand.is_empty() else base + Vector3(_rng.randf_range(-15, 15), 0, _rng.randf_range(-15, 15))
+		g.spots[v] = spot
+		v.remove_meta("hs_hidden")
+		_amb_run(v, spot, "đang chạy đi trốn")
+	g.visits = cand.slice(0, 2)            # vài chỗ không có ai, đi tìm nhầm
+	_amb_idle(g, seeker, "pray")             # bịt mắt đếm
+	seeker.activity_text = "đang bịt mắt đếm"
+	seeker.rotation.y = _rng.randf() * TAU
+	_say(seeker, _pick(["Một… hai… ba… Trốn đi!", "Đếm đến mười nhé! Một… hai…"]))
+	g.phase = "count"
+	g.t = count_seconds
+
+
+func _amb_begin_seek(g: Dictionary) -> void:
+	for v: Villager in g.hiders:
+		if not v.has_meta("hs_hidden"):
+			v.global_position = g.spots[v]
+			v.path = PackedVector3Array()
+			_amb_hide(g, v)
+	# Lộ trình đi tìm: chỗ trốn thật + vài chỗ trống, chỗ nào gần đi trước
+	var todo: Array = (g.visits as Array).duplicate()
+	for v: Villager in g.hiders:
+		todo.append(g.spots[v])
+	var route: Array = []
+	var at: Vector3 = g.base
+	while not todo.is_empty():
+		var bi := 0
+		for i in todo.size():
+			if at.distance_to(todo[i]) < at.distance_to(todo[bi]):
+				bi = i
+		at = todo[bi]
+		route.append(at)
+		todo.remove_at(bi)
+	g.visits = route
+	g.phase = "seek"
+	g.t = 150.0
+	var seeker: Villager = g.seeker
+	_say(seeker, "Trốn kỹ chưa? Tìm đây!")
+	_amb_next_visit(g)
+
+
+func _amb_next_visit(g: Dictionary) -> void:
+	var seeker: Villager = g.seeker
+	var visits: Array = g.visits
+	var left := 0
+	for v: Villager in g.hiders:
+		if v.has_meta("hs_hidden"):
+			left += 1
+	if visits.is_empty() or left == 0:
+		g.phase = "back"
+		_amb_run(seeker, (g.base as Vector3) + Vector3(0.8, 0, 0.8), "đang về cột")
+		return
+	var to: Vector3 = visits.pop_front()
+	_amb_run(seeker, to, "đang đi tìm")
+	seeker.speed_mul = 1.3
+
+
+## Người đi tìm tới một chỗ: ai trốn ở đó thì bị bắt, chạy về cột.
+func _amb_seeker_arrived(g: Dictionary) -> void:
+	var seeker: Villager = g.seeker
+	if str(g.phase) == "back":
+		_amb_idle(g, seeker, "play")
+		_check_ambient_round(g)
+		return
+	var caught := false
+	for v: Villager in g.hiders:
+		if v.has_meta("hs_hidden") and v.global_position.distance_to(seeker.global_position) < 2.0:
+			v.remove_meta("hs_hidden")
+			v.set_meta("hs_back", true)
+			(g.found as Array).append(v)
+			if g.next_seeker == null:
+				g.next_seeker = v          # đứa bị bắt đầu tiên đi tìm vòng sau
+			caught = true
+			_say(v, _pick(["Ối, bị bắt rồi!", "Sao tìm ra hay thế!", "Hừ, lần sau trốn kỹ hơn!"]))
+			_amb_run(v, (g.base as Vector3) + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(-1.2, 1.2)), "đang về cột")
+	if caught:
+		_say(seeker, _pick(["Thấy rồi nhé!", "Bắt được rồi!"]))
+	_amb_next_visit(g)
+
+
+## Hết giờ tìm: những đứa còn trốn tự ra.
+func _amb_give_up(g: Dictionary) -> void:
+	_say(g.seeker, "Thôi chịu, ra đi!")
+	for v: Villager in g.hiders:
+		if v.has_meta("hs_hidden"):
+			v.remove_meta("hs_hidden")
+			v.set_meta("hs_back", true)
+			_say(v, "Em ở đây này!")
+			_amb_run(v, (g.base as Vector3) + Vector3(_rng.randf_range(-1.2, 1.2), 0, _rng.randf_range(-1.2, 1.2)), "đang về cột")
+	g.visits = []
+	_amb_next_visit(g)
+
+
+## Vòng xong khi mọi đứa đã về cột → nghỉ một chút rồi vòng mới (hết giờ chơi thì tan).
+func _check_ambient_round(g: Dictionary) -> void:
+	if str(g.phase) != "back" and str(g.phase) != "seek":
+		return
+	var seeker: Villager = g.seeker
+	if seeker.state == Villager.State.WALK or seeker.global_position.distance_to(g.base) > 3.0:
+		return
+	for v: Villager in g.hiders:
+		if v.has_meta("hs_hidden") or v.has_meta("hs_back"):
+			return
+	g.phase = "gather"
+	g.t = 5.0
+	g.wait = 0.0
+
+
+func _amb_drop(g: Dictionary, v: Villager) -> void:
+	(g.members as Array).erase(v)
+	(g.hiders as Array).erase(v)
+	if is_instance_valid(v):
+		for m in ["hs_amb", "hs_hidden", "hs_back"]:
+			v.remove_meta(m)
+		v.speed_mul = 1.0
+	if g.seeker == v:
+		g.seeker = null
+		_end_ambient(g)
+
+
+func _end_ambient(g: Dictionary) -> void:
+	for v: Villager in g.members:
+		if not is_instance_valid(v):
+			continue
+		for m in ["hs_amb", "hs_hidden", "hs_back", "talking"]:
+			v.remove_meta(m)
+		v.speed_mul = 1.0
+		v.work_anim = "idle"
+		v.state = Villager.State.IDLE
+		v.path = PackedVector3Array()
+		v.dwell = 0.0
+	ambient.erase(g)
+
+
+## Nhập vai nhìn một đứa đang chơi: "E: Xin chơi trốn tìm" → tan ván dở, chơi lại từ đầu, người chơi đi tìm.
+func join_ambient(v: Villager) -> void:
+	if phase != Phase.OFF or refusal(v) != "":
+		return
+	start(v)
+

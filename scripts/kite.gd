@@ -18,6 +18,16 @@ signal finished(max_height: float, seconds: float, reason: String)
 @export var hud: Hud
 @export var day_night: DayNight
 @export var weather: Weather
+## Bọn trẻ tự thả diều ngoài bờ ruộng khi không có người chơi (mục 36).
+@export var terrain: Terrain
+@export_group("Bọn trẻ tự thả")
+## Mỗi chỗ thả tối đa mấy đứa.
+@export var ambient_per_site: int = 2
+## Thả bao lâu thì về (giây thật).
+@export var ambient_seconds: Vector2 = Vector2(150.0, 300.0)
+## Dây diều của bọn trẻ dài bao nhiêu (m).
+@export var ambient_line: Vector2 = Vector2(25.0, 48.0)
+@export_group("")
 ## Hướng gió thổi tới (độ, 0 = thổi về −z / phía bắc): gió nồm đông nam.
 @export var wind_dir_deg: float = 145.0
 @export var wind_base: float = 5.0
@@ -63,6 +73,14 @@ var _cheered: Dictionary = {}
 var _lost_vel: Vector3
 var _kite_pos: Vector3
 var _tail: Array[Vector3] = []
+
+## Diều bọn trẻ đang thả: {kid, site, node, line (ImmediateMesh), tail (ImmediateMesh), len, t, t_left, ph, color}.
+var ambient: Array[Dictionary] = []
+## Chỗ thả diều: trên đường đất giữa các ô ruộng (thoáng, không vướng cây, mái nhà).
+var sites: Array[Vector3] = []
+var _amb_root: Node3D
+var _line_mat: StandardMaterial3D
+var _tail_mat: StandardMaterial3D
 
 var _kite: Node3D
 var _line_mesh: ImmediateMesh
@@ -115,6 +133,16 @@ func _ready() -> void:
 	add_child(tm)
 	_build_ui()
 	visible = false
+	_line_mat = mat
+	_tail_mat = tmat
+	# Diều của bọn trẻ nằm ngoài node này (node này ẩn khi người chơi không thả)
+	_amb_root = Node3D.new()
+	_amb_root.name = "AmbientKites"
+	get_parent().add_child.call_deferred(_amb_root)
+	if terrain != null:
+		for r in terrain.roads:
+			for z in [26.0, 64.0]:
+				sites.append(_road_point(r, z))
 
 
 ## Con diều hình thoi: giấy dán hai màu, khung tre chữ thập, sáo diều ở giữa.
@@ -241,6 +269,14 @@ func _down_dir() -> Vector3:
 func start(v: Villager) -> void:
 	if phase != Phase.OFF or first_person == null:
 		return
+	# Đứa trẻ đang thả diều của nó: thu diều về đưa cho người chơi thả lại từ đầu
+	var was_ambient := false
+	for f in ambient.duplicate():
+		if f.kid == v:
+			_end_ambient(f, true)
+			was_ambient = true
+	if was_ambient:
+		v.set_meta("kite_lent", true)
 	kid = v
 	kid.set_meta("talking", true)
 	first_person._suspend("kite")
@@ -299,6 +335,9 @@ func stop() -> void:
 	if is_instance_valid(kid):
 		kid.remove_meta("talking")
 		kid.work_anim = ""
+		if kid.has_meta("kite_lent"):
+			kid.remove_meta("kite_lent")
+			kid.dwell = 0.0          # trả diều rồi thì đi chơi việc khác
 	kid = null
 	first_person._resume()
 
@@ -350,6 +389,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # --- Mỗi khung hình --------------------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	_process_ambient(delta)
 	if phase == Phase.OFF:
 		return
 	if phase == Phase.FLY:
@@ -636,3 +676,200 @@ func _update_ui() -> void:
 	_tension_bar.color = Palette.LILY if tension < 0.75 else (Palette.FLOWER_YELLOW if tension < 1.0 else Palette.FLAG_RED)
 	var ws := "lặng" if wind_now < 3.5 else ("nhẹ" if wind_now < 5.5 else ("vừa" if wind_now < 7.5 else "mạnh"))
 	_wind_label.text = "Gió: %s (%.1f m/s)%s" % [ws, wind_now, "  — giật!" if _gust > 0.2 else ""]
+
+# --- Bọn trẻ tự thả diều (không có người chơi) ---------------------------------------------------
+
+## Điểm trên đường đất `r` (polyline x, z) ở độ sâu z.
+static func _road_point(r: PackedVector2Array, z: float) -> Vector3:
+	for i in r.size() - 1:
+		var a := r[i]
+		var b := r[i + 1]
+		if (z - a.y) * (z - b.y) <= 0.0 and a.y != b.y:
+			return Vector3(lerpf(a.x, b.x, (z - a.y) / (b.y - a.y)), 0.05, z)
+	return Vector3(r[r.size() - 1].x, 0.05, r[r.size() - 1].y)
+
+
+func ambient_ok(h: float) -> bool:
+	if sites.is_empty() or h < 7.0 or h >= 17.8:
+		return false
+	return weather == null or weather.kind in ["clear", "cloudy"]
+
+
+func site_target(v: Villager) -> Vector3:
+	var best := -1
+	for i in sites.size():
+		var n := 0
+		for f in ambient:
+			if int(f.site) == i:
+				n += 1
+		if n >= ambient_per_site:
+			continue
+		if best < 0 or v.global_position.distance_to(sites[i]) < v.global_position.distance_to(sites[best]):
+			best = i
+	if best < 0:
+		best = _rng.randi_range(0, sites.size() - 1)
+	return sites[best] + Vector3(0, 0, _rng.randf_range(-4.0, 4.0))
+
+
+func is_ambient_member(v: Villager) -> bool:
+	return v.has_meta("kite_amb")
+
+
+## Villagers gọi khi một đứa (việc `kite`) ra tới bờ ruộng: thả diều lên.
+func ambient_arrive(v: Villager) -> void:
+	var best := 0
+	for i in sites.size():
+		if v.global_position.distance_to(sites[i]) < v.global_position.distance_to(sites[best]):
+			best = i
+	var n := 0
+	for f in ambient:
+		if int(f.site) == best:
+			n += 1
+	if n >= ambient_per_site or v.global_position.distance_to(sites[best]) > 12.0:
+		v.dwell = 0.0
+		return
+	v.set_meta("kite_amb", true)
+	v.set_meta("talking", true)
+	v.state = Villager.State.IDLE
+	v.dwell = 1.0e6
+	v.work_anim = "idle"
+	if v.prop_node != null:
+		v.prop_node.visible = false
+	v.activity_text = "đang thả diều"
+	var color := _rng.randi_range(0, KITE_COLORS.size() - 1)
+	var node := _make_ambient_kite(color)
+	var line := ImmediateMesh.new()
+	var lm := MeshInstance3D.new()
+	lm.mesh = line
+	lm.material_override = _line_mat
+	lm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	node.add_child(lm)
+	lm.top_level = true
+	var tail := ImmediateMesh.new()
+	var tmi := MeshInstance3D.new()
+	tmi.mesh = tail
+	tmi.material_override = _tail_mat
+	tmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	node.add_child(tmi)
+	tmi.top_level = true
+	ambient.append({"kid": v, "site": best, "node": node, "line": line, "tail": tail, "color": color,
+			"len": _rng.randf_range(ambient_line.x, ambient_line.y), "t": 0.0, "ph": _rng.randf() * TAU,
+			"t_left": _rng.randf_range(ambient_seconds.x, ambient_seconds.y), "pos": v.global_position + Vector3(0, 2, 0)})
+
+
+func _make_ambient_kite(variant: int) -> Node3D:
+	var root := Node3D.new()
+	root.name = "KidKite"
+	_amb_root.add_child(root)
+	var a := KITE_COLORS[variant % KITE_COLORS.size()]
+	var b := KITE_COLORS[(variant + 2) % KITE_COLORS.size()]
+	var mb := MeshBuilder.new(41 + variant, 0.03)
+	var top := Vector3(0, 0.75, 0)
+	var bottom := Vector3(0, -1.0, 0)
+	var left := Vector3(-0.62, 0.15, 0)
+	var right := Vector3(0.62, 0.15, 0)
+	var c := Vector3(0, 0.15, 0)
+	for side: float in [1.0, -1.0]:
+		var inside := Vector3(0, 0, -0.1 * side)
+		mb.add_triangle(top, left, c, a, inside)
+		mb.add_triangle(top, right, c, b, inside)
+		mb.add_triangle(bottom, left, c, b, inside)
+		mb.add_triangle(bottom, right, c, a, inside)
+	mb.add_limb(bottom + Vector3(0, 0, 0.02), top + Vector3(0, 0, 0.02), 0.015, 0.012, 4, Palette.BAMBOO_STEM)
+	mb.add_limb(left + Vector3(0, 0, 0.02), right + Vector3(0, 0, 0.02), 0.013, 0.013, 4, Palette.BAMBOO_STEM)
+	var mi := mb.commit_instance("KiteMesh")
+	var m := MeshBuilder.material()
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.mesh.surface_set_material(0, m)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.top_level = true
+	mi.name = "Body"
+	root.add_child(mi)
+	return root
+
+
+func _end_ambient(f: Dictionary, keep_kid: bool = false) -> void:
+	var v: Villager = f.kid
+	if is_instance_valid(v):
+		v.remove_meta("kite_amb")
+		v.remove_meta("talking")
+		if v.prop_node != null:
+			v.prop_node.visible = true
+		if not keep_kid:
+			v.dwell = 0.0
+	(f.node as Node).queue_free()
+	ambient.erase(f)
+
+
+func _process_ambient(delta: float) -> void:
+	if ambient.is_empty():
+		return
+	var h := day_night.time_of_day if day_night != null else 15.0
+	var cam := get_viewport().get_camera_3d()
+	var cam_pos := cam.global_position if cam != null else Vector3.ZERO
+	var down := _down_dir()
+	var side := down.cross(Vector3.UP).normalized()
+	var w := weather.wind if weather != null else 1.0
+	for f in ambient.duplicate():
+		var v: Villager = f.kid
+		f.t_left = float(f.t_left) - delta
+		if not is_instance_valid(v) or v.activity != "kite" or float(f.t_left) <= 0.0 or not ambient_ok(h):
+			_end_ambient(f)
+			continue
+		f.t = float(f.t) + delta
+		var t := float(f.t)
+		var ph := float(f.ph)
+		# Diều lên dần (dây thả ra trong ~10 s), rồi chao lượn theo gió
+		var ln := float(f.len) * clampf(0.15 + t / 10.0, 0.15, 1.0)
+		var el := 0.95 + 0.08 * sin(t * 0.4 + ph) - 0.1 * (1.0 - clampf(w, 0.3, 1.5))
+		var az := 0.25 * sin(t * 0.23 + ph) + 0.08 * sin(t * 1.1 + ph * 2.0)
+		var hand := v.global_position + Vector3(0, 1.0, 0) + down * 0.3
+		var want := hand + ((down * cos(az) + side * sin(az)) * cos(el) + Vector3(0, sin(el), 0)) * ln
+		var pos: Vector3 = (f.pos as Vector3).lerp(want, 1.0 - exp(-2.0 * delta))
+		f.pos = pos
+		v.look_at(Vector3(pos.x, v.global_position.y, pos.z), Vector3.UP, true)
+		var node := f.node as Node3D
+		var body := node.get_node("Body") as Node3D
+		var to_hand := (hand - pos).normalized()
+		var bs := Basis.looking_at(-to_hand, Vector3.UP).rotated(to_hand, 0.15 * sin(t * 2.7 + ph))
+		body.global_transform = Transform3D(bs.scaled(Vector3.ONE * kite_scale), pos)
+		var near := cam_pos.distance_to(pos) < 260.0
+		node.visible = near
+		if near:
+			_draw_amb_line(f.line, hand, pos, cam_pos)
+			_draw_amb_tail(f.tail, pos + bs * Vector3(0, -1.0 * kite_scale, 0), down, t + ph, cam_pos, int(f.color))
+
+
+func _draw_amb_line(im: ImmediateMesh, a: Vector3, b: Vector3, cam: Vector3) -> void:
+	im.clear_surfaces()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 10
+	var prev := a
+	var sag := 0.06 * a.distance_to(b)
+	for i in range(1, n + 1):
+		var t := float(i) / n
+		var p := a.lerp(b, t) - Vector3(0, sag * 4.0 * t * (1.0 - t), 0)
+		var dir := (p - prev).normalized()
+		var wd := 0.012 + 0.001 * prev.distance_to(cam)
+		var sd := dir.cross((cam - prev).normalized()).normalized() * wd
+		for q in [prev - sd, prev + sd, p + sd, prev - sd, p + sd, p - sd]:
+			im.surface_add_vertex(q)
+		prev = p
+	im.surface_end()
+
+
+func _draw_amb_tail(im: ImmediateMesh, root: Vector3, down: Vector3, t: float, cam: Vector3, color: int) -> void:
+	im.clear_surfaces()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var side := down.cross(Vector3.UP).normalized()
+	var prev := root
+	for i in range(1, 8):
+		var p := root + (down * 0.75 + Vector3(0, -0.65, 0)) * TAIL_SEG * i + side * 0.18 * sin(t * 5.0 - i * 0.8)
+		var wd := 0.12 * (1.0 - 0.07 * i)
+		var sd := (p - prev).normalized().cross((cam - prev).normalized()).normalized() * wd
+		var col := KITE_COLORS[(color + i) % KITE_COLORS.size()] if i % 2 == 0 else Color("#f4efe2")
+		for q in [prev - sd, prev + sd, p + sd, prev - sd, p + sd, p - sd]:
+			im.surface_set_color(col)
+			im.surface_add_vertex(q)
+		prev = p
+	im.surface_end()

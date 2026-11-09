@@ -240,7 +240,6 @@ func join_at(v: Villager) -> void:
 		var members: Array = (g.turners as Array) + (g.queue as Array)
 		if members.has(v) or g.jumper == v:
 			_start_player(g)
-			_bark(v, "Vào đây! %s nhảy sau đứa này nhé!" % "{You}")
 			return
 
 
@@ -284,9 +283,25 @@ func _start_player(g: Dictionary) -> void:
 	player_game = g
 	g.ambient = false
 	g.t_left = 1.0e9
+	# Người chơi vào thì chơi lại từ đầu: đứa đang nhảy ra cuối hàng, dây quay chậm lại, đếm lại, xoá kỷ lục
+	if g.jumper is Villager:
+		var j := g.jumper as Villager
+		j.global_position.y = (g.center as Vector3).y
+		(g.queue as Array).append(j)
+	g.jumper = null
+	g.air = -1.0
+	g.count = 0
+	g.phi = 0.0
+	g.rev = start_rev * 0.6
+	g.best = {}
+	g.pass_count = 0
 	(g.queue as Array).push_front("player")
-	if not (g.jumper is Villager):
-		g.wait = 1.2
+	g.wait = 1.2
+	var all_kids: Array = (g.turners as Array) + (g.queue as Array)
+	for k in all_kids:
+		if k is Villager:
+			_bark(k as Villager, "Chơi lại từ đầu nhé! {You} nhảy trước!")
+			break
 	first_person._suspend("rope")
 	if _avatar == null:
 		_avatar = _make_avatar()

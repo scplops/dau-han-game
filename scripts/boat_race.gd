@@ -26,6 +26,16 @@ signal finished(place: int, time: float)
 @export var house_entry: HouseEntry
 @export var hud: Hud
 @export var dialogue: Dialogue
+## Dân làng tự đua (không có người chơi) vào ban ngày, trời không mưa (mục 36).
+@export var day_night: DayNight
+@export var weather: Weather
+@export_group("Dân làng tự đua")
+@export var ambient_races: bool = true
+## Nghỉ giữa hai cuộc đua của dân làng (giây thật).
+@export var ambient_interval: Vector2 = Vector2(60.0, 150.0)
+## Giờ trong ngày có đua.
+@export var ambient_hours: Vector2 = Vector2(7.5, 17.3)
+@export_group("")
 ## Bến sông đặt bến đua (chỉ số trong River.landings).
 @export var station_landing: int = 2
 @export var course_length: float = 300.0
@@ -70,6 +80,9 @@ const RANKS: Array[String] = ["Nhất", "Nhì", "Ba", "Tư", "Năm", "Sáu", "B�
 const OBSTACLE_NAMES := {"log": "khúc gỗ trôi", "weed": "đám bèo", "stakes": "cọc đăng"}
 
 var phase: Phase = Phase.IDLE
+## Đang là cuộc đua dân làng tự đua (không camera, không giao diện; thuyền Đỏ cũng do máy chèo).
+var ambient: bool = false
+var _amb_wait: float = 20.0
 var boats: Array[Dictionary] = []    # thuyền đang dùng (thuyền rồng hoặc thuyền đơn), [0] = người chơi
 var team_boats: Array[Dictionary] = []
 var solo_boats: Array[Dictionary] = []
@@ -605,6 +618,8 @@ func _in_weed(b: Dictionary) -> bool:
 
 ## Bấm vào bến đua: mở bảng chọn kiểu đua (thuyền rồng / thuyền đơn, số thuyền, chướng ngại).
 func start() -> void:
+	if ambient:
+		_end_ambient()           # dân làng đang đua: dừng lại, người chơi vào thì đua lại từ đầu
 	if phase != Phase.IDLE or boats.is_empty():
 		return
 	_from_fp = first_person != null and first_person.active
@@ -752,9 +767,16 @@ func press_beat() -> void:
 func _process(delta: float) -> void:
 	if boats.is_empty():
 		return
+	if ambient:
+		_process_ambient(delta)
+		return
 	if phase == Phase.IDLE:
 		for b in boats:
 			_place(b, Time.get_ticks_msec() / 1000.0)
+		if ambient_ok():
+			_amb_wait -= delta
+			if _amb_wait <= 0.0:
+				begin_ambient()
 		return
 	match phase:
 		Phase.SETUP:
@@ -797,7 +819,7 @@ func step(delta: float, rowing: bool, steer: float) -> void:
 			continue
 		var target: float
 		var sc := float(b.scale)
-		if i == 0:
+		if i == 0 and not ambient:
 			var tired := float(b.stamina) < 0.12
 			target = ((tired_speed if tired else row_speed) if rowing else 0.0) * sc
 			b.stamina = clampf(float(b.stamina) + (-stamina_drain if rowing else stamina_regen) * delta, 0.0, 1.0)
@@ -862,7 +884,7 @@ func step(delta: float, rowing: bool, steer: float) -> void:
 				if a == 0:
 					_feedback = "Va thuyền!"
 					_feedback_t = 0.6
-	if boats[0].done and phase == Phase.RACE:
+	if boats[0].done and phase == Phase.RACE and not ambient:
 		_finish()
 
 
@@ -1100,3 +1122,67 @@ func _update_ui() -> void:
 	_stamina_bar.size.x = 300.0 * float(b.stamina)
 	_stamina_bar.color = Palette.LILY if float(b.stamina) > 0.25 else Palette.FLAG_RED
 	_beat_dot.position.x = 300.0 * fmod(_beat_t, beat_period) / beat_period - 5.0
+
+# --- Dân làng tự đua ---------------------------------------------------------------------------------
+
+func ambient_ok() -> bool:
+	if not ambient_races or day_night == null:
+		return false
+	var h := day_night.time_of_day
+	if h < ambient_hours.x or h >= ambient_hours.y:
+		return false
+	return weather == null or not weather.kind in ["drizzle", "storm", "fog"]
+
+
+## Bốn thuyền rồng của bốn xóm đua với nhau (không chướng ngại), xong thì về lại vạch xuất phát.
+func begin_ambient() -> void:
+	if phase != Phase.IDLE or boats.is_empty():
+		return
+	ambient = true
+	obstacles_on = false
+	_use_mode("team", solo_count)
+	_build_obstacles()
+	_course.visible = true
+	order.clear()
+	phase = Phase.COUNTDOWN
+	_t = 3.6
+	_clock = 0.0
+	_beat_t = 0.0
+
+
+func _process_ambient(delta: float) -> void:
+	match phase:
+		Phase.COUNTDOWN:
+			_t -= delta
+			if _t <= 0.0:
+				phase = Phase.RACE
+		Phase.RACE:
+			step(delta, false, 0.0)
+			if order.size() >= boats.size():
+				phase = Phase.RESULT
+				_t = 10.0
+		Phase.RESULT:
+			_clock += delta
+			_t -= delta
+			for b in boats:
+				b.speed = move_toward(float(b.speed), 0.0, drag * delta)
+			if _t <= 0.0:
+				_end_ambient()
+				return
+	if not ambient_ok() and phase == Phase.COUNTDOWN:
+		_end_ambient()
+		return
+	for b in boats:
+		_place(b, _clock)
+		_animate_paddles(b, delta)
+
+
+func _end_ambient() -> void:
+	ambient = false
+	phase = Phase.IDLE
+	_course.visible = false
+	obstacles_on = true
+	order.clear()
+	_use_mode("team", solo_count)    # về lại vạch xuất phát
+	_amb_wait = _rng.randf_range(ambient_interval.x, ambient_interval.y)
+

@@ -16,6 +16,16 @@ signal finished(player_score: int, npc_score: int)
 @export var first_person: FirstPerson
 @export var dialogue: Dialogue
 @export var hud: Hud
+## Dân làng tự chơi (không có người chơi): hai người ngồi xổm hai bên bàn kẻ phấn dưới gốc đa / sân chùa.
+@export var village: Village
+@export var weather: Weather
+@export var day_night: DayNight
+@export_group("Dân làng tự chơi")
+## Mỗi nước đi của dân làng cách nhau bao lâu (giây thật).
+@export var ambient_move_time: float = 2.4
+## Ngồi chơi bao lâu thì tan (giây thật).
+@export var ambient_seconds: Vector2 = Vector2(180.0, 320.0)
+@export_group("Luật")
 @export var quan_value: int = 10
 @export var stones_per_square: int = 5
 ## Luật "quan non": ô quan còn viên quan mà có ít hơn chừng này sỏi dân thì chưa được ăn (0 = bỏ luật).
@@ -58,6 +68,14 @@ var _mesh_dan: ArrayMesh
 var _mesh_quan: ArrayMesh
 var _mat: StandardMaterial3D
 # Giao diện
+## Các ván dân làng tự chơi: {site, axis, players [Villager, Villager], st, turn, hard [bool, bool],
+## t (tới nước sau), t_left, wait (chờ người thứ hai), over_t, root, mm (MultiMesh sỏi)}.
+var ambient: Array[Dictionary] = []
+## Chỗ dân làng ngồi chơi (có sau _ready nếu có `village`).
+var sites: Array[Vector3] = []
+var site_axes: Array[Vector3] = []
+var _chalk: ArrayMesh
+
 var _ui: CanvasLayer
 var _title: Label
 var _score_label: Label
@@ -73,6 +91,12 @@ func _ready() -> void:
 	_rng.seed = random_seed
 	_build_meshes()
 	_build_ui()
+	if village != null:
+		# Dưới gốc đa đầu làng (phía đông nam gốc) và sân chùa
+		sites.append(village.banyan_position + Vector3(3.5, 0.0, 3.0))
+		site_axes.append(Vector3(1, 0, 0))
+		sites.append(village.pagoda_spot + Vector3(-3.0, 0.0, 2.0))
+		site_axes.append(Vector3(0, 0, 1))
 
 
 # --- Bắt đầu / kết thúc -----------------------------------------------------------------------
@@ -92,6 +116,9 @@ static func refusal(v: Villager) -> String:
 func start(v: Villager) -> void:
 	if active or v == null:
 		return
+	var ag := _ambient_of(v)
+	if not ag.is_empty():
+		_end_ambient(ag, v)          # đang ngồi chơi với người khác: bỏ ván đó, chơi lại từ đầu với người chơi
 	npc = v
 	hard = v.role == "elder" or (v.role in ["farmer", "carrier"] and _rng.randf() < 0.5)
 	active = true
@@ -399,6 +426,7 @@ func _show_result() -> void:
 
 
 func _process(delta: float) -> void:
+	_process_ambient(delta)
 	if not active:
 		return
 	if is_instance_valid(npc):
@@ -614,7 +642,11 @@ func _build_meshes() -> void:
 			var mid := (p0 + p1) * 0.5
 			var seg := p1 - p0
 			mb.add_box(Vector3(seg.length() + 0.004, 0.004, w), chalk, Transform3D(Basis(Vector3.UP, -atan2(seg.z, seg.x)), mid))
-	_board.add_child(mb.commit_instance("Chalk"))
+	_chalk = mb.commit()
+	var chalk_node := MeshInstance3D.new()
+	chalk_node.name = "Chalk"
+	chalk_node.mesh = _chalk
+	_board.add_child(chalk_node)
 	# Số sỏi mỗi ô + đánh dấu ô đang chọn
 	for i in 12:
 		var l := Label3D.new()
@@ -833,3 +865,259 @@ func _say(text: String) -> void:
 
 func _rng_pick(arr: Array) -> String:
 	return str(arr[_rng.randi_range(0, arr.size() - 1)])
+
+# --- Dân làng tự chơi ------------------------------------------------------------------------------
+
+## Giờ dân làng hay ngồi chơi (không mưa).
+func ambient_ok(h: float) -> bool:
+	if sites.is_empty() or h < 7.0 or h >= 18.3:
+		return false
+	return weather == null or not weather.kind in ["drizzle", "storm"]
+
+
+## Chỗ chơi gần nhất còn thiếu người (hết chỗ thì chỗ gần nhất).
+func site_target(v: Villager) -> Vector3:
+	var best := -1
+	for i in sites.size():
+		var g := _ambient_at(i)
+		var full := not g.is_empty() and (g.players as Array).size() >= 2
+		if full:
+			continue
+		if best < 0 or v.global_position.distance_to(sites[i]) < v.global_position.distance_to(sites[best]):
+			best = i
+	if best < 0:
+		best = 0
+	return sites[best] + site_axes[best].cross(Vector3.UP) * 1.4
+
+
+func _ambient_at(i: int) -> Dictionary:
+	for g in ambient:
+		if int(g.site) == i:
+			return g
+	return {}
+
+
+func _ambient_of(v: Villager) -> Dictionary:
+	for g in ambient:
+		if (g.players as Array).has(v):
+			return g
+	return {}
+
+
+func is_ambient_member(v: Villager) -> bool:
+	return v.has_meta("oaq_ambient")
+
+
+## Villagers gọi khi một người tới chỗ chơi.
+func on_arrive(v: Villager) -> void:
+	var best := 0
+	for i in sites.size():
+		if v.global_position.distance_to(sites[i]) < v.global_position.distance_to(sites[best]):
+			best = i
+	var g := _ambient_at(best)
+	if g.is_empty():
+		g = _new_ambient(best)
+	if (g.players as Array).size() >= 2 or active and npc == v:
+		v.dwell = 0.0                # đủ người rồi: đi việc khác
+		return
+	(g.players as Array).append(v)
+	v.set_meta("oaq_ambient", true)
+	v.set_meta("talking", true)
+	v.state = Villager.State.IDLE
+	v.dwell = 1.0e6
+	if v.prop_node != null:
+		v.prop_node.visible = false
+	v.activity_text = "đang ngồi chơi ô ăn quan"
+	(g.hard as Array).append(v.role == "elder" or (v.role in ["farmer", "carrier"] and _rng.randf() < 0.5))
+	_seat_player(g, (g.players as Array).size() - 1)
+	if (g.players as Array).size() == 2:
+		_ambient_new_game(g)
+
+
+func _new_ambient(i: int) -> Dictionary:
+	var root := Node3D.new()
+	root.name = "AmbientBoard%d" % i
+	root.top_level = true
+	add_child(root)
+	var z := site_axes[i]
+	var x := Vector3.UP.cross(z).normalized()
+	root.global_transform = Transform3D(Basis(x, Vector3.UP, z), sites[i] + Vector3(0, 0.02, 0))
+	var chalk := MeshInstance3D.new()
+	chalk.mesh = _chalk
+	root.add_child(chalk)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = _mesh_dan
+	mm.instance_count = 140
+	mm.visible_instance_count = 0
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.material_override = _mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mmi)
+	var g := {"site": i, "players": [], "hard": [], "st": {}, "turn": 0, "t": 1.5, "wait": 0.0,
+			"t_left": _rng.randf_range(ambient_seconds.x, ambient_seconds.y), "over_t": -1.0,
+			"root": root, "mm": mm, "games": 0}
+	ambient.append(g)
+	return g
+
+
+## Người thứ k ngồi xổm ở bên mình của bàn (0 = phía +z, 1 = phía −z), quay mặt vào bàn.
+func _seat_player(g: Dictionary, k: int) -> void:
+	var v: Villager = g.players[k]
+	var root := g.root as Node3D
+	var z := root.global_transform.basis.z
+	var side := 1.0 if k == 0 else -1.0
+	v.global_position = root.global_position + z * side * 0.72
+	v.global_position.y = root.global_position.y - 0.02
+	v.rotation.y = atan2(-z.x * side, -z.z * side)
+	v.work_anim = "squat"
+	v.visible = true
+
+
+func _ambient_new_game(g: Dictionary) -> void:
+	var cnt: Array = []
+	for i in 12:
+		cnt.append(0 if _is_quan(i) else stones_per_square)
+	g.st = {"cnt": cnt, "big": [true, true], "score": [0, 0], "stock": [0, 0]}
+	g.turn = int(g.games) % 2       # ván sau đổi người đi trước
+	g.games = int(g.games) + 1
+	g.t = ambient_move_time
+	g.over_t = -1.0
+	_ambient_draw(g)
+
+
+## Tan ván: trả người về Villagers (trừ `keep` — người chơi rủ đúng người đó), xoá bàn.
+func _end_ambient(g: Dictionary, keep: Villager = null) -> void:
+	for v: Villager in g.players:
+		if not is_instance_valid(v):
+			continue
+		v.remove_meta("oaq_ambient")
+		v.remove_meta("talking")
+		v.work_anim = "idle"
+		v.global_position.y = (g.root as Node3D).global_position.y
+		if v.prop_node != null:
+			v.prop_node.visible = true
+		if v != keep:
+			v.dwell = 0.0
+	(g.root as Node).queue_free()
+	ambient.erase(g)
+
+
+## Nhập vai nhìn một người đang ngồi chơi: "E: Xin chơi ô ăn quan" → ván mới từ đầu với người đó.
+func join_ambient(v: Villager) -> void:
+	if active:
+		return
+	var no := refusal(v)
+	if no != "":
+		return
+	start(v)
+
+
+func _process_ambient(delta: float) -> void:
+	var h := day_night.time_of_day if day_night != null else 15.0
+	for g in ambient.duplicate():
+		var players: Array = g.players
+		for v: Villager in players:
+			if is_instance_valid(v):
+				_seat_player(g, players.find(v))
+		g.t_left = float(g.t_left) - delta
+		if not ambient_ok(h) or float(g.t_left) <= 0.0 or players.any(func(v: Variant) -> bool: return not is_instance_valid(v)):
+			_end_ambient(g)
+			continue
+		if players.size() < 2:
+			g.wait = float(g.wait) + delta
+			if float(g.wait) > 45.0:
+				_end_ambient(g)      # chờ mãi không có ai
+			continue
+		if float(g.over_t) >= 0.0:
+			g.over_t = float(g.over_t) - delta
+			if float(g.over_t) < 0.0:
+				_ambient_new_game(g)
+			continue
+		g.t = float(g.t) - delta
+		if float(g.t) > 0.0:
+			continue
+		g.t = ambient_move_time
+		_ambient_move(g)
+		_ambient_draw(g)
+
+
+## Một nước của dân làng (đủ luật: hết quan thì thu quân, hết sỏi thì rải lại / thua).
+func _ambient_move(g: Dictionary) -> void:
+	var s: Dictionary = g.st
+	var who := int(g.turn)
+	var players: Array = g.players
+	if is_over(s):
+		collect(s)
+		_ambient_result(g)
+		return
+	var r := refill(s, who)
+	if not bool(r[0]):
+		collect(s)
+		_ambient_result(g)
+		return
+	var saved_hard := hard
+	hard = bool(g.hard[who])
+	var m := ai_move(s, who)
+	hard = saved_hard
+	if m.x < 0:
+		collect(s)
+		_ambient_result(g)
+		return
+	var before_big: Array = (s.big as Array).duplicate()
+	play(s, m.x, m.y, who, quan_value, quan_non)
+	var mover: Villager = players[who]
+	mover.work_anim = "squat"
+	if (before_big[0] and not s.big[0]) or (before_big[1] and not s.big[1]):
+		_say_to(mover, _rng_pick(["Ăn quan rồi nhé!", "Quan này của {self}!", "Hì hì, mất quan rồi!"]))
+	g.turn = 1 - who
+
+
+func _ambient_result(g: Dictionary) -> void:
+	var s: Dictionary = g.st
+	var players: Array = g.players
+	var a := int(s.score[0])
+	var b := int(s.score[1])
+	if a != b:
+		var win: Villager = players[0] if a > b else players[1]
+		_say_to(win, _rng_pick(["Thắng rồi! %d – %d" % [maxi(a, b), mini(a, b)], "Ván nữa không? {Self} thắng rồi!"]))
+	else:
+		_say_to(players[0], "Hoà! Ván nữa nào.")
+	g.over_t = 5.0
+
+
+## Vẽ sỏi trên bàn của ván dân làng (một MultiMesh: sỏi dân trong ô, viên quan to, đống sỏi đã ăn).
+func _ambient_draw(g: Dictionary) -> void:
+	var mm := g.mm as MultiMesh
+	var s: Dictionary = g.st
+	if s.is_empty():
+		mm.visible_instance_count = 0
+		return
+	var n := 0
+	var cols: Array[Color] = [Palette.FLOWER_WHITE, Palette.ROCK, Palette.ROCK_DARK, Palette.EARTH.lightened(0.2)]
+	for i in 12:
+		if _is_quan(i) and bool(s.big[0 if i == 0 else 1]) and n < mm.instance_count:
+			mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(2.0, 2.0, 2.0)), _slot(i, 0)))
+			mm.set_instance_color(n, Palette.ROCK_DARK.darkened(0.3))
+			n += 1
+		for k in mini(int((s.cnt as Array)[i]), 24):
+			if n >= mm.instance_count:
+				break
+			mm.set_instance_transform(n, Transform3D(Basis(Vector3.UP, k * 1.7), _slot(i, k + 1)))
+			mm.set_instance_color(n, cols[(i * 7 + k) % cols.size()])
+			n += 1
+	for who in 2:
+		for k in mini(int(s.score[who]), 30):
+			if n >= mm.instance_count:
+				break
+			mm.set_instance_transform(n, Transform3D(Basis(), _pile_slot(who, k, false)))
+			mm.set_instance_color(n, cols[k % cols.size()])
+			n += 1
+	mm.visible_instance_count = n
+
+
+func _say_to(v: Villager, text: String) -> void:
+	if dialogue != null and is_instance_valid(v):
+		dialogue.bark(v, dialogue.fill_for(v, text))

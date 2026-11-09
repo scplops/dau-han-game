@@ -30,6 +30,8 @@ const NIGHT_END := 5.2
 @export var jump_rope: JumpRope
 @export var tip_cat: TipCat
 @export var farming: Farming
+@export var o_an_quan: OAnQuan
+@export var kite: KiteFlying
 
 @export_group("Đi lễ đình (mùng 1, rằm)")
 ## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
@@ -113,6 +115,9 @@ const ACTIVITY_TEXT := {
 	"hideseek": ["đang chạy đi trốn", "đang chơi trốn tìm"],
 	"jumprope": ["đang ra chỗ chơi nhảy dây", "đang chơi nhảy dây"],
 	"khang": ["đang ra bãi đánh khăng", "đang chơi đánh khăng"],
+	"oaq": ["đang ra chỗ chơi ô ăn quan", "đang ngồi chơi ô ăn quan"],
+	"hs_play": ["đang ra chỗ chơi trốn tìm", "đang chơi trốn tìm"],
+	"kite": ["đang mang diều ra đồng", "đang thả diều"],
 }
 
 
@@ -477,6 +482,15 @@ func _choices(v: Villager, h: float) -> Dictionary:
 	# Đánh khăng (mục 32): con trai chơi nhiều hơn
 	if tip_cat != null and v.role in ["kid", "herder"] and tip_cat.ambient_ok(h):
 		c["khang"] = 1.0 if v.get_meta("female", false) else (3.0 if v.role == "kid" else 1.0)
+	# Ô ăn quan (mục 27, 36): cụ già, trẻ con ngồi chơi dưới gốc đa / sân chùa
+	if o_an_quan != null and o_an_quan.ambient_ok(h) and v.role in ["elder", "kid", "herder"]:
+		c["oaq"] = 1.6 if v.role == "elder" else (0.0 if noon and v.role != "elder" else 1.0)
+	# Trốn tìm (mục 28, 36): trẻ con rủ nhau chơi trong ngõ
+	if hide_seek != null and v.role == "kid" and hide_seek.ambient_ok(h):
+		c["hs_play"] = 1.8
+	# Thả diều (mục 30, 36): trẻ con mang diều ra bờ ruộng khi trời có gió
+	if kite != null and v.role in ["kid", "herder"] and kite.ambient_ok(h):
+		c["kite"] = 1.5
 	# Trẻ con đi học theo thời khoá biểu (nghỉ Chủ nhật, nghỉ Tết — mục 25)
 	if school_day != null and v.role == "kid" and school_day.wants_pupils(h):
 		c = {"school": 8.0, "inside": 0.5}
@@ -581,6 +595,12 @@ func _target(v: Villager, act: String) -> Vector3:
 			return jump_rope.site_target(v)
 		"khang":
 			return tip_cat.site_target(v)
+		"oaq":
+			return o_an_quan.site_target(v)
+		"hs_play":
+			return hide_seek.site_target(v)
+		"kite":
+			return kite.site_target(v)
 		"school":
 			return school.yard_spots[_rng.randi_range(0, school.yard_spots.size() - 1)] + Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1))
 		"river", "swim", "fishing":
@@ -730,6 +750,15 @@ func _arrive(v: Villager) -> void:
 	v.dwell = _rng.randf_range(45.0, 100.0) if act in ["field", "graze", "fishing", "river"] else _rng.randf_range(20.0, 50.0)
 	if act == "khang" and tip_cat != null:
 		tip_cat.on_arrive(v)          # đánh khăng (mục 32): TipCat giữ tới khi tan cuộc
+		return
+	if act == "oaq" and o_an_quan != null:
+		o_an_quan.on_arrive(v)        # ô ăn quan (mục 36): ngồi xổm chơi tới khi tan ván
+		return
+	if act == "hs_play" and hide_seek != null:
+		hide_seek.ambient_arrive(v)   # trốn tìm của bọn trẻ (mục 36)
+		return
+	if act == "kite" and kite != null:
+		kite.ambient_arrive(v)        # thả diều (mục 36)
 		return
 	if act == "jumprope" and jump_rope != null:
 		jump_rope.on_arrive(v)        # nhảy dây (mục 31): JumpRope giữ tới khi tan cuộc

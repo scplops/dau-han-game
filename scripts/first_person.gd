@@ -22,6 +22,8 @@ const SOLID_LAYER := 4
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tip_cat: TipCat
+@export var o_an_quan: OAnQuan
+@export var kite: KiteFlying
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -388,6 +390,12 @@ func _update_look() -> void:
 				hint = "E: Xin nhảy dây cùng  ·  " + tv.display_name
 			elif tv.has_meta("khang") and tip_cat != null:
 				hint = "E: Xin đánh khăng cùng  ·  " + tv.display_name
+			elif tv.has_meta("oaq_ambient") and o_an_quan != null:
+				hint = "E: Xin chơi ô ăn quan (ván mới)  ·  " + tv.display_name
+			elif tv.has_meta("hs_amb") and hide_seek != null:
+				hint = "E: Xin chơi trốn tìm (chơi lại từ đầu)  ·  " + tv.display_name
+			elif tv.has_meta("kite_amb") and kite != null:
+				hint = "E: Mượn diều thả  ·  " + tv.display_name
 		elif col != null and col.has_meta("hint"):
 			target = col
 			hint = "E: " + str(col.get_meta("hint")).split("  ·  ")[0]
@@ -427,6 +435,27 @@ func _act() -> void:
 			return
 		if v.has_meta("khang") and tip_cat != null:
 			tip_cat.join_at(v)
+			return
+		if v.has_meta("oaq_ambient") and o_an_quan != null:
+			var no := OAnQuan.refusal(v)
+			if no == "":
+				o_an_quan.join_ambient(v)
+			elif dialogue != null:
+				dialogue.bark(v, dialogue.fill_for(v, no))
+			return
+		if v.has_meta("hs_amb") and hide_seek != null:
+			var no2 := hide_seek.refusal(v)
+			if no2 == "":
+				hide_seek.join_ambient(v)
+			elif dialogue != null:
+				dialogue.bark(v, dialogue.fill_for(v, no2))
+			return
+		if v.has_meta("kite_amb") and kite != null:
+			var no3 := kite.refusal(v, global_position)
+			if no3 == "":
+				kite.start(v)
+			elif dialogue != null:
+				dialogue.bark(v, dialogue.fill_for(v, no3))
 			return
 		if dialogue != null and dialogue.start(v, self):
 			_suspend("talk")

@@ -90,6 +90,15 @@ func start(v: Villager, player: Node3D) -> bool:
 	if tip_cat != null and tip_cat.is_member(v):
 		bark(v, ["Đang đánh, đứng xa ra kẻo khăng vào mặt!", "Vào chơi với bọn em đi!", "Bắt này!"][_rng.randi_range(0, 2)])
 		return false
+	if v.has_meta("oaq_ambient"):
+		bark(v, fill_for(v, ["Đang dở ván, {you} ngồi xem đi!", "Suỵt, để {self} tính nước này đã…", "Chơi không? Ván sau {you} vào nhé!"][_rng.randi_range(0, 2)]))
+		return false
+	if v.has_meta("hs_amb"):
+		bark(v, ["Đang chơi trốn tìm, đừng chỉ chỗ bọn em nhé!", "Suỵt! Đang trốn mà!", "Vào chơi với bọn em đi!"][_rng.randi_range(0, 2)])
+		return false
+	if v.has_meta("kite_amb"):
+		bark(v, ["Diều em lên cao chưa?", "Gió to thích quá!", "Mượn diều thả không? Nhìn vào em rồi bấm E!"][_rng.randi_range(0, 2)])
+		return false
 	if jump_rope != null and jump_rope.is_member(v):
 		bark(v, ["Vào nhảy với bọn em đi!", "Đang nhảy, chờ tí!", "Một, hai, ba…"][_rng.randi_range(0, 2)])
 		return false

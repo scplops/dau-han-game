@@ -273,7 +273,6 @@ func join_at(v: Villager) -> void:
 	for g in games:
 		if (g.members as Array).has(v):
 			_start_player(g)
-			_bark(v, "Vào đi {you}! Đến lượt thì {you} đánh nhé!")
 			return
 
 
@@ -316,13 +315,21 @@ func _start_player(g: Dictionary) -> void:
 	_avatar.visible = true
 	_avatar.global_position = (g.hole as Vector3) - (g.dir as Vector3) * 1.5
 	_add_member(g, "player")
-	# Lượt người chơi đánh trước (sau đứa đang đánh dở, nếu có)
+	# Người chơi vào thì chơi lại từ đầu: xoá điểm, vòng 1, người chơi đánh trước
 	(g.order as Array).erase("player")
-	var at := int(g.turn_i) + 1 if g.striker != null else 0
-	(g.order as Array).insert(clampi(at, 0, (g.order as Array).size()), "player")
+	(g.order as Array).push_front("player")
 	for nm in (g.score as Dictionary).keys():
 		g.score[nm] = 0
 	g.turns = 0
+	g.turn_i = -1
+	g.done = false
+	g.thrower = null
+	(g.tried as Array).clear()
+	_next_turn(g)
+	for k in g.members:
+		if k is Villager:
+			_bark(k as Villager, "Chơi lại từ đầu! {You} đánh trước đi!")
+			break
 	first_person._suspend("khang")
 	if hud != null:
 		hud.visible = false
