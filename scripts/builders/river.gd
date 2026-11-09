@@ -1,5 +1,7 @@
 class_name River
 extends Node3D
+## Mặt nước gợn (cá nhảy, mái chèo, phao câu…) — Soundscape phát tiếng nước té.
+signal rippled(pos: Vector3)
 ## Sông hình móng ngựa ôm ba mặt làng (tây, bắc, đông), hai đầu chảy xa ra đồng.
 ## - Bờ: mái đất dốc xuống nước + đê đắp cao phủ cỏ + mái thoải xuống ruộng.
 ## - Mặt nước: shader nước (sóng nhẹ, viền sáng sát bờ), hơi trong để thấy cá.
@@ -1184,6 +1186,7 @@ func splash(pos: Vector3) -> void:
 
 
 func _spawn_ripple(pos: Vector3) -> void:
+	rippled.emit(pos)
 	for i in _ripples.size():
 		if _ripple_age[i] < 0.0:
 			_ripples[i].position = pos

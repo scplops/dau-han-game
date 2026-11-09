@@ -11,6 +11,8 @@ extends Node
 ## AUTO_WEIGHTS; mỗi lần chạy mỗi khác. Phím R: đổi ngay sang một kiểu ngẫu nhiên khác.
 
 signal weather_changed(kind: String)
+## Chớp loé (Soundscape phát tiếng sấm sau đó một lúc).
+signal lightning
 
 const ORDER: Array[String] = ["clear", "cloudy", "drizzle", "storm", "fog"]
 const NAMES := {"clear": "Nắng", "cloudy": "Nhiều mây", "drizzle": "Mưa phùn", "storm": "Mưa giông", "fog": "Sương mù"}
@@ -337,6 +339,8 @@ func _update_lightning(delta: float) -> void:
 	for i in range(_flash_queue.size() - 1, -1, -1):
 		_flash_queue[i] -= delta
 		if _flash_queue[i] <= 0.0:
+			if _flash < 0.3:
+				lightning.emit()
 			_flash = 1.0
 			_flash_queue.remove_at(i)
 	_flash = move_toward(_flash, 0.0, delta * 6.0)

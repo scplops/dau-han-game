@@ -34,6 +34,7 @@
 [ext_resource type="Script" path="res://scripts/tip_cat.gd" id="36_khang"]
 [ext_resource type="Script" path="res://scripts/farming.gd" id="37_farm"]
 [ext_resource type="Script" path="res://scripts/save_game.gd" id="38_save"]
+[ext_resource type="Script" path="res://scripts/soundscape.gd" id="39_sound"]
 [ext_resource type="Script" path="res://scripts/lunar_calendar.gd" id="29_calendar"]
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
 [ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
@@ -397,3 +398,18 @@ boat_race = NodePath("../BoatRace")
 kite = NodePath("../KiteFlying")
 o_an_quan = NodePath("../OAnQuan")
 hide_seek = NodePath("../HideSeek")
+
+[node name="Soundscape" type="Node" parent="." node_paths=PackedStringArray("day_night", "weather", "river", "village", "school", "school_day", "villagers", "house_entry", "first_person", "football", "boat_race", "calendar")]
+script = ExtResource("39_sound")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+river = NodePath("../World/River")
+village = NodePath("../World/Village")
+school = NodePath("../World/School")
+school_day = NodePath("../SchoolDay")
+villagers = NodePath("../World/Villagers")
+house_entry = NodePath("../HouseEntry")
+first_person = NodePath("../FirstPerson")
+football = NodePath("../World/Football")
+boat_race = NodePath("../BoatRace")
+calendar = NodePath("../Calendar")

@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -146,7 +146,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
-   `save_game` (F5), `new_game` (Ctrl+F5),
+   `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -200,6 +200,7 @@ scripts/
   kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
+  soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
   farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
@@ -261,7 +262,7 @@ screenshots/           # ảnh chụp, không commit
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), âm thanh và nhạc nền (đang làm theo lộ trình mục 37),
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), nhạc nền (tiếng động đã có — mục 38),
 thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -1129,4 +1130,27 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   thử không bị file lưu của người chơi làm lệch.
 - `tools/save_test.gd`: đặt trạng thái (kỷ lục qua tín hiệu thật) → lưu file tạm → xáo trộn → nạp lại: 12/12 mục đúng;
   file hỏng thì bỏ qua.
+
+## 38. Âm thanh (giai đoạn 7b)
+
+- `scripts/soundscape.gd` (`Soundscape`, node con của `Main`). **Mọi tiếng tổng hợp bằng code** lúc mở game (giống mesh
+  procedural, không file âm thanh ngoài): mảng mẫu −1…1 → `AudioStreamWAV` 16 bit mono `SAMPLE_RATE` 16 kHz (`_wav`);
+  tiếng lặp trộn đuôi vào đầu cho liền (`_seamless`). Mỗi khung chỉ tạo một tiếng (17 tiếng ~18 khung, khung lâu nhất
+  ~110 ms lúc mở game). Kỹ thuật: ồn trắng qua lọc thấp / cao một cực (gió, mưa, sông, bước chân, sấm = ồn nâu),
+  sóng sin trượt tần (chim, bọt nước), hoạ âm có trọng số (gà gáy "ò ó o o" — bốn nốt trượt, rung), sin tụt giọng +
+  tiếng gõ (trống), hoạ âm lệch ngân dài (chuông đồng), xung điều biên (dế "ri ri", ếch "ộp", gà cục tác), nhiều giọng
+  răng cưa lọc (reo hò).
+- **Nền lặp** (`_loops`, bus `Ambient`): gió theo `Weather.wind` (`wind_db`), mưa theo `Weather.rain` (`rain_db`), dế +
+  ếch nhái ban đêm 18:48–5:00 (mưa thì dế im, ếch to hơn), âm lượng chuyển dần 30 dB/s. Tiếng sông: `AudioStreamPlayer3D`
+  đặt ở điểm tim sông gần camera nhất (`River.nearest_s` / `sample`).
+- **Tiếng lẻ định vị** (bể 14 `AudioStreamPlayer3D`, bus `Effects`, `play_at`): chim hót ban ngày quanh người nghe,
+  gà gáy 4:18–7:12 ở một nhà ngẫu nhiên, chó sủa / gà cục tác khi có con gần (`Villagers.animals`), trống trường khi
+  `SchoolDay.phase` đổi (3 tiếng, tan học 5 tiếng, ở cột cờ), chuông chùa 3 tiếng lúc 5:00 và 18:00, trống đua thuyền
+  theo nhịp `beat_period` (cả khi dân làng tự đua), nước té khi mặt sông gợn (tín hiệu mới `River.rippled`, tối đa
+  4 lần / s), sấm 0,6–3,2 s sau chớp (tín hiệu mới `Weather.lightning`), reo hò khi có bàn thắng / về nhất đua thuyền,
+  bước chân khi nhập vai (nhịp theo tốc độ).
+- **Trong nhà:** bus `Ambient` bật `AudioEffectLowPassFilter` (900 Hz) và bớt 8 dB — nghe như cách tường; chỉ tiếng nền.
+- Phím N (`toggle_sound`): tắt / bật cả bus Master. `played` đếm số lần phát từng tiếng (cho bài thử).
+- `tools/sound_test.gd`: thời gian tổng hợp, độ dài / đỉnh / RMS từng tiếng (không tiếng nào câm), âm lượng nền
+  14:00 nắng / 21:00 nắng / 21:00 giông / trong nhà, các tiếng theo sự kiện; lưu `screenshots/sounds/*.wav` để nghe thử.
 
