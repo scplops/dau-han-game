@@ -62,6 +62,8 @@ const NIGHT_END := 5.2
 @export_group("Hiệu năng")
 @export var animate_distance: float = 90.0
 
+## Mùa hiện tại (Seasons đặt): "spring" / "summer" / "autumn" / "winter".
+var season: String = ""
 var people: Array[Villager] = []
 var animals: Array[Villager] = []
 var selected: Villager
@@ -523,7 +525,9 @@ func _choices(v: Villager, h: float) -> Dictionary:
 		match v.role:
 			"carrier": c["river"] = 2.5
 			"farmer": c["river"] = 0.8
-			"kid": c["swim"] = 2.0
+			"kid":
+				if season != "winter":          # mùa đông rét, không tắm sông
+					c["swim"] = 3.2 if season == "summer" else 2.0
 			"elder": c["fishing"] = 2.0
 	# Chiều tan học, tan đồng: trẻ con và thanh niên ra sân bóng, người già ra xem
 	if football != null and h >= 16.3 and h < 18.6:

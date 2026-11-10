@@ -263,6 +263,8 @@ func _village_text() -> String:
 		t += _row("Trời", weather.display_name())
 	if farming != null:
 		t += _row("Đồng", farming.stage_text().trim_prefix("Đồng: "))
+	if weather != null and Seasons.NAMES.has(weather.season):
+		t += _row("Mùa", str(Seasons.NAMES[weather.season]))
 	if market != null:
 		t += _row("Chợ", market.status_text())
 	if festival != null and festival.mode != "":

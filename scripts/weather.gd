@@ -34,6 +34,9 @@ const AUTO_WEIGHTS := {"clear": 4.0, "cloudy": 3.0, "drizzle": 2.0, "storm": 1.0
 @export var house_entry: HouseEntry
 
 @export var kind: String = "clear"
+## Mùa hiện tại (Seasons đặt): "spring" / "summer" / "autumn" / "winter" và hệ số thời tiết theo mùa.
+var season: String = ""
+var season_weights: Dictionary = {}
 @export var auto_change: bool = true
 ## Thời gian (giây thật) giữa hai lần tự đổi thời tiết.
 @export var auto_interval: Vector2 = Vector2(70.0, 140.0)
@@ -151,17 +154,22 @@ func _pick_next() -> String:
 	return _pick_weighted(kind)
 
 
+## Trọng số một kiểu thời tiết: AUTO_WEIGHTS × hệ số theo mùa (Seasons đặt `season_weights`).
+func weight_of(k: String) -> float:
+	return float(AUTO_WEIGHTS[k]) * float(season_weights.get(k, 1.0))
+
+
 ## Chọn kiểu theo AUTO_WEIGHTS, bỏ qua `exclude`.
 func _pick_weighted(exclude: String) -> String:
 	var total := 0.0
 	for k in AUTO_WEIGHTS:
 		if k != exclude:
-			total += AUTO_WEIGHTS[k]
+			total += weight_of(k)
 	var r := _rng.randf() * total
 	for k in AUTO_WEIGHTS:
 		if k == exclude:
 			continue
-		r -= AUTO_WEIGHTS[k]
+		r -= weight_of(k)
 		if r <= 0.0:
 			return k
 	return "clear"

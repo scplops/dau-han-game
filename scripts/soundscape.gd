@@ -27,6 +27,9 @@ const SAMPLE_RATE := 16000
 @export var calendar: LunarCalendar
 @export var market: Market
 @export_group("Âm lượng (dB)")
+## Mức ve kêu (0…1, Seasons đặt: chỉ mùa hạ).
+var cicada_level: float = 0.0
+@export var cicada_db: float = -20.0
 @export var master_db: float = 0.0
 @export var wind_db: Vector2 = Vector2(-34.0, -14.0)      # gió nhẹ … gió mạnh
 @export var rain_db: Vector2 = Vector2(-40.0, -8.0)
@@ -69,7 +72,7 @@ func _ready() -> void:
 	else:
 		_rng.randomize()
 	_setup_buses()
-	_queue.assign(["wind", "rain", "river", "crickets", "frogs", "bird0", "bird1", "bird2", "rooster", "drum", "bell",
+	_queue.assign(["wind", "rain", "river", "crickets", "frogs", "cicada", "bird0", "bird1", "bird2", "rooster", "drum", "bell",
 			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur", "pop"])
 	for i in 14:
 		var p := AudioStreamPlayer3D.new()
@@ -132,7 +135,7 @@ func _process(delta: float) -> void:
 	if not _queue.is_empty():
 		var nm: String = _queue.pop_front()
 		sounds[nm] = _make(nm)
-		if nm in ["wind", "rain", "crickets", "frogs"]:
+		if nm in ["wind", "rain", "crickets", "frogs", "cicada"]:
 			var p := AudioStreamPlayer.new()
 			p.stream = sounds[nm]
 			p.bus = "Ambient"
@@ -166,6 +169,10 @@ func _process(delta: float) -> void:
 	var night_k := clampf((h - 18.6) / 0.6, 0.0, 1.0) if h >= 12.0 else clampf((5.2 - h) / 0.6, 0.0, 1.0)
 	_fade("crickets", (night_db if night_k > 0.0 and rain < 0.5 else -80.0) + room + (1.0 - night_k) * -20.0, delta)
 	_fade("frogs", (night_db - 3.0 + rain * 6.0 if night_k > 0.0 else -80.0) + room + (1.0 - night_k) * -20.0, delta)
+	# Ve kêu ngày hè (8:00–18:00, tạnh ráo), râm ran nhất buổi trưa
+	var day_k := clampf((h - 7.5) / 1.5, 0.0, 1.0) * clampf((18.2 - h) / 1.2, 0.0, 1.0)
+	var cic := cicada_level * day_k * (1.0 if rain < 0.2 else 0.0)
+	_fade("cicada", (cicada_db + (1.0 - cic) * -18.0 if cic > 0.02 else -80.0) + room, delta)
 	# Tiếng sông: nguồn 3D ở điểm sông gần người nghe nhất
 	if river != null and _river_player.stream != null:
 		var s := river.nearest_s(Vector2(listen.x, listen.z))
@@ -337,6 +344,7 @@ func _make(nm: String) -> AudioStreamWAV:
 		"river": return _wav(_river(5.0), true)
 		"crickets": return _wav(_crickets(4.0), true)
 		"frogs": return _wav(_frogs(6.0), true)
+		"cicada": return _wav(_cicada(6.0), true)
 		"bird0": return _wav(_bird(0.9, 0), false)
 		"bird1": return _wav(_bird(1.2, 1), false)
 		"bird2": return _wav(_bird(0.7, 2), false)
@@ -465,6 +473,25 @@ func _crickets(sec: float) -> PackedFloat32Array:
 				var pulse := sin(PI * fmod(u, 0.04) / 0.04)    # 3 tiếng "ri" liền
 				x[i] += sin(TAU * f * t) * pulse * amp
 	return _norm(x, 0.6)
+
+
+## Ve sầu: vài con, mỗi con một tiếng rít cao rung nhanh, to dần rồi lịm đi theo từng đợt.
+func _cicada(sec: float) -> PackedFloat32Array:
+	var n := int(sec * SAMPLE_RATE)
+	var x := PackedFloat32Array()
+	x.resize(n)
+	for c in 5:
+		var f := _rng.randf_range(3400.0, 4600.0)
+		var buzz := _rng.randf_range(70.0, 115.0)
+		var swell := sec / float(_rng.randi_range(1, 3))      # chu kỳ đợt chia hết đoạn lặp
+		var off := _rng.randf() * swell
+		var amp := _rng.randf_range(0.5, 1.0)
+		for i in n:
+			var t := float(i) / SAMPLE_RATE
+			var env := 0.5 - 0.5 * cos(TAU * (t + off) / swell)
+			var am := 0.55 + 0.45 * signf(sin(TAU * buzz * t))
+			x[i] += (sin(TAU * f * t) + 0.5 * sin(TAU * f * 1.51 * t)) * am * env * env * amp
+	return _norm(x, 0.5)
 
 
 func _frogs(sec: float) -> PackedFloat32Array:

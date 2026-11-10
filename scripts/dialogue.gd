@@ -573,12 +573,15 @@ func _ans_match() -> String:
 
 func _ans_weather() -> String:
 	var k := weather.kind if weather != null else "clear"
+	var more := ""
+	if weather != null and Seasons.TALK.has(weather.season):
+		more = " " + str(Seasons.TALK[weather.season])
 	match k:
-		"cloudy": return "Mây kéo đen kịt thế kia, chắc chiều nay mưa đấy."
-		"drizzle": return "Mưa phùn lất phất thế này thì đi đâu cũng phải đội nón."
-		"fog": return "Sương dày quá, đi đường cẩn thận kẻo lạc sang làng bên đấy."
+		"cloudy": return "Mây kéo đen kịt thế kia, chắc chiều nay mưa đấy." + more
+		"drizzle": return "Mưa phùn lất phất thế này thì đi đâu cũng phải đội nón." + more
+		"fog": return "Sương dày quá, đi đường cẩn thận kẻo lạc sang làng bên đấy." + more
 		"storm": return "Giông to thế này, về nhà mau lên!"
-	return "Nắng ráo thế này thì còn lâu mới mưa. Phơi thóc được đấy."
+	return "Nắng ráo thế này thì còn lâu mới mưa. Phơi thóc được đấy." + more
 
 
 func _ans_hs() -> String:

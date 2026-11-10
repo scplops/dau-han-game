@@ -66,7 +66,9 @@ func build() -> void:
 	var g := ground.commit_instance("SchoolYard")
 	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(g)
-	add_child(leaves.commit_instance("SchoolTrees", MeshBuilder.wind_material(0.1, 2.0, 6.0, 0.9)))
+	var tree_mat := MeshBuilder.wind_material(0.1, 2.0, 6.0, 0.9)
+	tree_mat.set_shader_parameter("flower_season", 1.0)     # hoa phượng chỉ đỏ mùa hạ (Seasons)
+	add_child(leaves.commit_instance("SchoolTrees", tree_mat))
 	_glow_mat = StandardMaterial3D.new()
 	_glow_mat.vertex_color_use_as_albedo = true
 	_glow_mat.vertex_color_is_srgb = true

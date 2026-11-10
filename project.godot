@@ -187,3 +187,15 @@ weather_rain={
 "type": "float",
 "value": 0.0
 }
+season_leaf={
+"type": "vec3",
+"value": Vector3(0.45, 0.62, 0.3)
+}
+season_mix={
+"type": "float",
+"value": 0.0
+}
+season_bloom={
+"type": "float",
+"value": 1.0
+}

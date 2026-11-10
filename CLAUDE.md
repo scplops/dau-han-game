@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -204,6 +204,7 @@ scripts/
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
+  seasons.gd           # bốn mùa: màu lá, hoa phượng, thời tiết theo mùa, lá rụng, ve kêu (mục 42)
   save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
   farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
@@ -1231,4 +1232,27 @@ thay mesh procedural bằng model Blender.
   Tết người lớn (+2…5 nghìn, một lần) và trẻ con (−1 nghìn) → rằm tháng Giêng (cờ, không nêu) → rằm tháng Tám 18:36 (75 đứa
   đi rước, 65 đèn sáng, đi suốt z −41…−149) → 21:00 cất đèn. Chụp ảnh: `--date=2027-02-06 --hour=9 --focus=0,-44 --yaw=180`
   (Tết), `--date=2027-09-15 --hour=19.2 --settle=45 --focus=0,-75` (rước đèn).
+
+## 42. Bốn mùa trong năm (giai đoạn 7f)
+
+- `scripts/seasons.gd` (`Seasons`, node con của `Main`). Mùa tính theo ngày dương lịch của `Calendar`: xuân (tháng 2–4),
+  hạ (5–7), thu (8–10), đông (11–1) — `CENTERS` là ngày giữa mùa; `weights_at(ngày trong năm, blend_days)` cho trọng số
+  bốn mùa (tổng 1), quanh ngày giáp ranh chuyển tuyến tính trong `blend_days` (30) nên cảnh không đổi màu đột ngột.
+  Chỉ tính lại khi sang ngày khác (`refresh`), rồi ĐẨY giá trị sang các phần khác (các phần đó không cần biết Seasons).
+- **Màu lá:** biến toàn cục shader `season_leaf` (màu ngả tới) + `season_mix` (mức ngả) trong `[shader_globals]`;
+  `wind_sway.gdshader` chỉ đổi những mặt "xanh lá" (g trội hơn r, b), giữ độ sáng từng mặt — cờ, hoa, mái lá không đổi.
+  Xuân xanh non, hạ giữ màu gốc, thu ngả vàng, đông úa xám. Vật liệu có `season_scale = 0` thì không đổi (lúa — màu do mùa
+  vụ quyết định). **Hoa phượng** (`flower_season = 1` trên `SchoolTrees`): mặt đỏ chỉ đỏ khi `season_bloom` > 0 (mùa hạ),
+  ngoài mùa thành lá xanh. Nền cỏ nhà mình + đồng (`Terrain/Ground`, `FlatGround`) dùng vật liệu riêng nhân màu `GROUND`.
+- **Thời tiết theo mùa:** `Weather.season_weights` nhân vào `AUTO_WEIGHTS` (`weight_of`): xuân mưa phùn ~37 %, hạ giông ~22 %
+  (gần như không sương mù), thu nắng ~51 %, đông nhiều mây + sương mù + mưa phùn, hầu như không giông.
+- **Hạt bay** (`SeasonDrift`, CPUParticles3D quanh tâm camera, tắt khi mưa / trong nhà): cánh hoa hồng mùa xuân, lá vàng mùa
+  thu (dày nhất), lá nâu mùa đông. CPUParticles3D không có `amount_ratio` — đổi `amount` (chỉ khi sang ngày khác).
+- **Ve kêu** mùa hạ (`Soundscape.cicada_level`, tiếng lặp mới `cicada`: 5 con, sóng cao điều biên nhanh, từng đợt to dần rồi
+  lịm; 8:00–18:00, tạnh ráo). **Dân làng:** `Villagers.season` — mùa đông trẻ con không tắm sông, mùa hạ tắm nhiều hơn.
+- HUD: tên mùa cuối dòng ngày (`Hud.season_text`); sổ tay "Làng hôm nay" có dòng "Mùa"; hỏi chuyện thời tiết thì người làng
+  nói thêm một câu về mùa (`Seasons.TALK`, đọc `Weather.season`).
+- `tools/seasons_test.gd`: 6 ngày (giữa mùa + giáp ranh): mùa, mức ngả màu lá, hoa phượng, số hạt bay, mức ve, phân bố thời
+  tiết qua 2000 lần chọn, số trẻ muốn tắm sông (đông = 0). Chụp ảnh: `--date=2027-06-20 --hour=10 --focus=-66,-22
+  --distance=30 --pitch=-28 --yaw=200` (sân trường, phượng nở), đổi ngày để so bốn mùa.
 

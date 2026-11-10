@@ -94,7 +94,9 @@ func build() -> void:
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "RiceClumps"
 	mmi.multimesh = mm
-	mmi.material_override = MeshBuilder.wind_material(wind_strength, 0.0, clump_height, wind_speed)
+	var rice_mat := MeshBuilder.wind_material(wind_strength, 0.0, clump_height, wind_speed)
+	rice_mat.set_shader_parameter("season_scale", 0.0)      # màu lúa theo mùa vụ, không theo mùa trong năm
+	mmi.material_override = rice_mat
 	if not cast_shadows:
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mmi)
@@ -111,7 +113,9 @@ func build() -> void:
 	var emi := MultiMeshInstance3D.new()
 	emi.name = "RiceEars"
 	emi.multimesh = ears_mm
-	emi.material_override = MeshBuilder.wind_material(wind_strength * 1.6, -0.1, 0.25, wind_speed)
+	var ear_mat := MeshBuilder.wind_material(wind_strength * 1.6, -0.1, 0.25, wind_speed)
+	ear_mat.set_shader_parameter("season_scale", 0.0)
+	emi.material_override = ear_mat
 	emi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(emi)
 

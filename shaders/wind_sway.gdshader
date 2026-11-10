@@ -12,6 +12,12 @@ uniform float base_height = 0.0;      // dưới độ cao này (toạ độ c�
 uniform float sway_height = 1.0;      // khoảng cao để biên độ tăng từ 0 lên tối đa
 uniform float gust_scale = 0.08;      // độ rộng của "làn gió" chạy qua cảnh
 global uniform float weather_wind;    // hệ số gió theo thời tiết (Weather đặt), 1 = bình thường
+// Mùa (Seasons đặt): lá xanh ngả dần sang `season_leaf` theo `season_mix`; hoa theo mùa nở theo `season_bloom`.
+global uniform vec3 season_leaf;
+global uniform float season_mix;
+global uniform float season_bloom;
+uniform float season_scale = 1.0;     // 0 = không đổi màu theo mùa (lúa — màu do mùa vụ quyết định)
+uniform float flower_season = 0.0;    // 1 = mesh có hoa đỏ chỉ nở mùa hạ (phượng); ngoài mùa hoa thành lá
 
 vec3 srgb_to_linear(vec3 c) {
 	return mix(pow((c + vec3(0.055)) / vec3(1.055), vec3(2.4)), c / vec3(12.92),
@@ -37,7 +43,16 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = srgb_to_linear(COLOR.rgb);
+	vec3 c = COLOR.rgb;
+	// Hoa phượng: ngoài mùa hạ thì chỗ hoa đỏ là lá xanh
+	float red = clamp((c.r - max(c.g, c.b)) * 5.0, 0.0, 1.0) * flower_season * (1.0 - season_bloom);
+	c = mix(c, vec3(0.36, 0.56, 0.25) * (0.8 + 0.4 * c.r), red);
+	// Lá xanh ngả màu theo mùa, giữ độ sáng tối của từng mặt
+	float green = clamp((c.g - max(c.r, c.b)) * 7.0, 0.0, 1.0);
+	float lum = dot(c, vec3(0.3, 0.55, 0.15));
+	vec3 target = season_leaf * (lum / max(dot(season_leaf, vec3(0.3, 0.55, 0.15)), 0.05));
+	c = mix(c, target, green * season_mix * season_scale);
+	ALBEDO = srgb_to_linear(c);
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 }

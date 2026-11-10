@@ -38,6 +38,7 @@
 [ext_resource type="Script" path="res://scripts/notebook.gd" id="40_notebook"]
 [ext_resource type="Script" path="res://scripts/builders/market.gd" id="41_market"]
 [ext_resource type="Script" path="res://scripts/festival.gd" id="42_festival"]
+[ext_resource type="Script" path="res://scripts/seasons.gd" id="43_seasons"]
 [ext_resource type="Script" path="res://scripts/lunar_calendar.gd" id="29_calendar"]
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
 [ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
@@ -461,3 +462,14 @@ villagers = NodePath("../World/Villagers")
 market = NodePath("../World/Market")
 soundscape = NodePath("../Soundscape")
 
+[node name="Seasons" type="Node3D" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "terrain", "outdoor_rig", "house_entry", "soundscape", "hud", "villagers")]
+script = ExtResource("43_seasons")
+calendar = NodePath("../Calendar")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+terrain = NodePath("../World/Terrain")
+outdoor_rig = NodePath("../CameraRig")
+house_entry = NodePath("../HouseEntry")
+soundscape = NodePath("../Soundscape")
+hud = NodePath("../HUD")
+villagers = NodePath("../World/Villagers")
