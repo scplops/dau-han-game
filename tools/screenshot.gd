@@ -402,6 +402,10 @@ func _run() -> void:
 		if rig != null:
 			rig.set_focus(site)
 			rig.global_position = site
+	# Chất lượng đồ hoạ: --quality=0|1|2 (mục 47)
+	var gfx := scene.get_node_or_null("Graphics") as Graphics
+	if gfx != null and args.has("quality"):
+		gfx.set_quality(int(args["quality"]))
 	# Trò dân gian nhỏ: --folk=da_cau|ban_bi|chuyen|bit_mat|rong_ran [--folk-time=giây]; cùng --fp: bạn vào chơi
 	var fgs := scene.get_node_or_null("FolkGames") as FolkGames
 	if fgs != null and args.has("folk") and FolkGames.KINDS.has(str(args["folk"])):

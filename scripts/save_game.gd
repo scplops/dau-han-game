@@ -32,6 +32,7 @@ signal loaded(path: String)
 @export var hide_seek: HideSeek
 @export var market: Market
 @export var festival: Festival
+@export var graphics: Graphics
 
 const VERSION := 1
 
@@ -188,6 +189,8 @@ func snapshot() -> Dictionary:
 	if festival != null:
 		d["lixi"] = festival.lixi.duplicate()
 		d["lixi_year"] = festival.lixi_year
+	if graphics != null:
+		d["quality"] = graphics.quality
 	d["records"] = records.duplicate()
 	return d
 
@@ -240,6 +243,8 @@ func apply(d: Dictionary) -> void:
 		for nm: Variant in d.get("lixi", []):
 			festival.lixi.append(str(nm))
 		festival.lixi_year = int(d.get("lixi_year", 0))
+	if graphics != null and d.has("quality"):
+		graphics.set_quality(int(d.quality))
 	var rec: Dictionary = d.get("records", {})
 	for k: String in rec:
 		if records.has(k):

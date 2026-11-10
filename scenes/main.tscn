@@ -41,6 +41,7 @@
 [ext_resource type="Script" path="res://scripts/seasons.gd" id="43_seasons"]
 [ext_resource type="Script" path="res://scripts/tug_war.gd" id="44_tug"]
 [ext_resource type="Script" path="res://scripts/folk_games.gd" id="45_folk"]
+[ext_resource type="Script" path="res://scripts/graphics.gd" id="46_gfx"]
 [ext_resource type="Script" path="res://scripts/lunar_calendar.gd" id="29_calendar"]
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
 [ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
@@ -407,8 +408,9 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 village = NodePath("../World/Village")
 
-[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games")]
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics")]
 script = ExtResource("38_save")
+graphics = NodePath("../Graphics")
 folk_games = NodePath("../FolkGames")
 tug_war = NodePath("../TugOfWar")
 calendar = NodePath("../Calendar")
@@ -503,3 +505,10 @@ dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
+
+[node name="Graphics" type="Node" parent="." node_paths=PackedStringArray("world_environment", "sun", "day_night", "terrain")]
+script = ExtResource("46_gfx")
+world_environment = NodePath("../WorldEnvironment")
+sun = NodePath("../Sun")
+day_night = NodePath("../DayNight")
+terrain = NodePath("../World/Terrain")

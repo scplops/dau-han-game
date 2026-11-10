@@ -146,7 +146,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_first_person` (V), `fp_run` (Shift), `fp_jump` (Space), `dialog_1`…`dialog_4` (phím 1–4),
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
-   `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B),
+   `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B), `cycle_quality` (G — mức đồ hoạ),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -203,6 +203,7 @@ scripts/
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
   tug_war.gd           # trò chơi dân gian kéo co: dân làng tự kéo, người chơi vào kéo theo nhịp hò (mục 43)
   folk_games.gd        # năm trò dân gian nhỏ: đá cầu, bắn bi, chơi chuyền, bịt mắt bắt dê, rồng rắn lên mây (mục 44)
+  graphics.gd          # chất lượng đồ hoạ: trời, SSAO, glow, sương thể tích, vân bề mặt; 3 mức, phím G (mục 47)
   game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
@@ -214,6 +215,7 @@ scripts/
 shaders/
   wind_sway.gdshader
   water.gdshader       # nước low-poly, viền sáng bằng màu đỉnh (không cần depth texture)
+  sky.gdshader         # bầu trời: dải màu theo giờ, quầng + đĩa mặt trời / trăng, sao, mây ti (mục 47)
   fish.gdshader        # cá MultiMesh: đuôi ngoe nguẩy, mỗi con một nhịp (INSTANCE_ID)
 assets/
   fonts/
@@ -1378,4 +1380,30 @@ thay mesh procedural bằng model Blender.
 - Đã chạy lại: `jump_rope_test`, `tip_cat_test`, `tug_test`, `folk_test`, `school_calendar_test`, `perf_test` (script ~1,8 ms / khung).
 - Đổi file script có `class_name` mới thì phải `--import` trước khi chạy công cụ `-s` khác (đã gặp: ảnh chụp chạy song song
   lúc đang thêm `GameKit` báo "Identifier not declared").
+
+## 47. Đồ hoạ chân thật hơn (giai đoạn 8b)
+
+- Người dùng muốn cảnh "chân thật hơn": GIỮ hình khối low-poly và bảng màu, nâng phần ánh sáng / khí quyển / bề mặt. Vì thế
+  các quy tắc ở mục 3 được nới: có glow NHẸ, có một lớp vân bề mặt (texture nhiễu tạo bằng code), nước không còn phẳng từng mặt.
+- `scripts/graphics.gd` (`Graphics`, node con của `Main`): ba mức `quality` — **0 Nhẹ** (như trước, cho máy yếu / Compatibility),
+  **1 Vừa**, **2 Cao** (mặc định). Phím **G** (`cycle_quality`) đổi mức, hiện chữ báo; mức được lưu cùng game (`quality`).
+  `apply()` bật / tắt theo mức; renderer Compatibility thì bỏ SSAO / SSIL / sương thể tích.
+  - **Vừa:** đổ bóng tiếp xúc SSAO (`ssao_radius` 1,4, `ssao_intensity` 1,7 — gầm hiên, chân tường, kẽ nhà tối lại), glow nhẹ
+    kiểu softlight (`glow_intensity` 0,42 — đèn lồng, cửa sổ đêm, mặt nước loé nắng), mây ti trên trời, vân bề mặt.
+  - **Cao:** thêm ánh sáng dội SSIL, sương thể tích (`volumetric_density` 0,0035 → `volumetric_mist_density` 0,02 khi sương mù;
+    tia nắng, quầng quanh đèn ban đêm), bóng mặt trời mềm dần khi xa vật (`sun_angular_distance` 0,55°).
+- **Bầu trời** `shaders/sky.gdshader` (thay `ProceduralSkyMaterial`, dùng ở mọi mức): dải màu chân trời → đỉnh trời, quầng sáng rộng
+  quanh mặt trời + vệt sáng sát chân trời, đĩa mặt trời / mặt trăng (cùng một đèn — ban đêm đèn là trăng), sao đêm (ẩn khi mây
+  phủ), mây ti mỏng (fbm). KHÔNG dùng `TIME` trong shader trời (bản đồ phản chiếu sẽ phải vẽ lại mỗi khung) — mây trôi bằng
+  `cloud_shift` do Graphics đẩy 2 lần / s. `DayNight._apply` đặt `horizon_color`, `top_color`, `ground_color`, `night`, `cover`
+  (vẫn đặt được cho `ProceduralSkyMaterial` nếu ai đổi lại).
+- **Mặt nước** `shaders/water.gdshader`: pháp tuyến pha giữa mặt phẳng từng tam giác và gợn sóng nhỏ mịn (`smoothness` 0,75,
+  `ripple_strength`; gió to / mưa thì gợn mạnh), Fresnel — nhìn xiên thì ngả màu trời, đục và bóng hơn (phản chiếu trời + loé
+  nắng), nhìn thẳng xuống thì trong. Vẫn không dùng depth texture.
+- **Vân bề mặt** (`grain_strength` 0,16, `grain_scale`): `NoiseTexture2D` tạo bằng code, phủ ba chiều theo toạ độ thế giới
+  (`uv1_world_triplanar`) lên vật liệu dùng chung `MeshBuilder.material()` và nền cỏ của Seasons → đất, tường, mái, đá hết phẳng
+  lì; màu đỉnh × vân nên bảng màu chỉ sẫm đi vài phần trăm. Lá / lúa (shader gió) không đổi.
+- Chụp ảnh: `--quality=0|1|2`. So sánh nhanh: `--hour=16 --focus=-10,-4 --distance=13 --pitch=-22 --yaw=20` (sân nhà: vân + bóng
+  hiên), `--hour=17.6 --pitch=-12 --distance=24 --focus=6,2 --yaw=20` (trời + ao), `--hour=21 --pitch=-14` (sao).
+- Chưa đo FPS thật (máy cloud vẽ bằng phần mềm). SSIL và sương thể tích là hai thứ nặng nhất — máy yếu bấm G về "Vừa".
 

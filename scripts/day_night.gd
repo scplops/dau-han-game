@@ -157,6 +157,14 @@ func _apply() -> void:
 			sky_mat.sky_top_color = _overcast(k[3], cover)
 			sky_mat.ground_horizon_color = horizon
 			sky_mat.ground_bottom_color = horizon.darkened(0.3)
+		# Trời vẽ bằng shader riêng (Graphics, mục 47): cùng bộ màu + mức đêm, độ phủ mây
+		var sky_sh := env.sky.sky_material as ShaderMaterial
+		if sky_sh != null:
+			sky_sh.set_shader_parameter("horizon_color", horizon)
+			sky_sh.set_shader_parameter("top_color", _overcast(k[3], cover))
+			sky_sh.set_shader_parameter("ground_color", horizon.darkened(0.3))
+			sky_sh.set_shader_parameter("night", night_factor)
+			sky_sh.set_shader_parameter("cover", clampf(cover + weather_mist * 0.6, 0.0, 1.0))
 		env.ambient_light_color = _overcast(k[4], cover * 0.8)
 		# Trời âm u: ánh sáng môi trường gánh phần lớn (bóng mờ đi), nhưng tổng thể tối hơn
 		env.ambient_light_energy = lerpf(k[5], maxf(k[5], night_ambient_min), night_factor) * (1.0 + 0.3 * cover - 0.35 * smoothstep(0.7, 1.0, cover))
