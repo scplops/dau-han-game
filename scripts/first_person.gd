@@ -22,6 +22,7 @@ const SOLID_LAYER := 4
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
+@export var folk_games: FolkGames
 @export var tip_cat: TipCat
 @export var o_an_quan: OAnQuan
 @export var kite: KiteFlying
@@ -387,6 +388,8 @@ func _update_look() -> void:
 			hint = ("E: trò chuyện  ·  " if not tv.role in ["dog", "buffalo", "chicken", "duck"] else "E: gọi  ·  ") + tv.display_name
 			if tv.has_meta("hiding"):
 				hint = "E: Thấy rồi!  ·  " + tv.display_name
+			elif tv.has_meta("folk") and folk_games != null:
+				hint = "E: Xin chơi %s cùng (chơi lại từ đầu)  ·  " % folk_games.kind_name(tv) + tv.display_name
 			elif tv.has_meta("tug") and tug_war != null:
 				hint = "E: Xin kéo co cùng (chơi lại từ đầu)  ·  " + tv.display_name
 			elif tv.has_meta("jumprope") and jump_rope != null:
@@ -434,6 +437,9 @@ func _act() -> void:
 		var v := _look_target as Villager
 		if v.has_meta("hiding") and hide_seek != null:
 			hide_seek.spot(v)
+			return
+		if v.has_meta("folk") and folk_games != null:
+			folk_games.join_at(v)
 			return
 		if v.has_meta("tug") and tug_war != null:
 			tug_war.join_at(v)

@@ -402,6 +402,31 @@ func _run() -> void:
 		if rig != null:
 			rig.set_focus(site)
 			rig.global_position = site
+	# Trò dân gian nhỏ: --folk=da_cau|ban_bi|chuyen|bit_mat|rong_ran [--folk-time=giây]; cùng --fp: bạn vào chơi
+	var fgs := scene.get_node_or_null("FolkGames") as FolkGames
+	if fgs != null and args.has("folk") and FolkGames.KINDS.has(str(args["folk"])):
+		var fk := str(args["folk"])
+		var vsf := scene.get_node("World/Villagers") as Villagers
+		var nf := 0
+		var first_f: Villager = null
+		for v in vsf.people:
+			if nf < int(FolkGames.KINDS[fk].max) and v.role == "kid" and not v.has_meta("talking") \
+					and (fk != "chuyen" or v.get_meta("female", false)):
+				v.visible = true
+				v.set_meta("folk_kind", fk)
+				v.global_position = (fgs.sites[fk] as Vector3) + Vector3(1.0 + nf * 0.4, 0, 1.0)
+				fgs.on_arrive(v)
+				if first_f == null:
+					first_f = v
+				nf += 1
+		if fp != null and fp.active and first_f != null:
+			fgs.join_at(first_f)
+		var gf: Dictionary = fgs.groups[0]
+		for i in int(60 * float(args.get("folk-time", "14"))):
+			fgs.step(gf, 1.0 / 60.0)
+		if rig != null and fgs.pg.is_empty():
+			rig.set_focus(fgs.sites[fk] as Vector3)
+			rig.global_position = fgs.sites[fk] as Vector3
 	# Kéo co: --tug[=giây] 8 người kéo ở bãi (camera nhìn vào bãi); cùng --fp: bạn vào kéo cùng
 	var tgs := scene.get_node_or_null("TugOfWar") as TugOfWar
 	if tgs != null and args.has("tug"):

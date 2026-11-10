@@ -23,6 +23,7 @@ signal finished
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
+@export var folk_games: FolkGames
 @export var tip_cat: TipCat
 @export var farming: Farming
 @export var market: Market
@@ -101,6 +102,9 @@ func start(v: Villager, player: Node3D) -> bool:
 		return false
 	if v.has_meta("kite_amb"):
 		bark(v, ["Diều em lên cao chưa?", "Gió to thích quá!", "Mượn diều thả không? Nhìn vào em rồi bấm E!"][_rng.randi_range(0, 2)])
+		return false
+	if folk_games != null and folk_games.is_member(v):
+		bark(v, ["Vào chơi %s với bọn em đi! Nhìn vào em rồi bấm E!" % folk_games.kind_name(v), "Đang chơi dở, chờ tí!", "Chơi vui lắm!"][_rng.randi_range(0, 2)])
 		return false
 	if tug_war != null and tug_war.is_member(v):
 		bark(v, ["Hò dô ta!", "Vào kéo với bọn này đi! Nhìn vào rồi bấm E!", "Kéo đi! Kéo đi!"][_rng.randi_range(0, 2)])
@@ -301,6 +305,8 @@ func game_options(v: Villager) -> Array[Dictionary]:
 		out.append({"key": "khang", "text": "Chơi đánh khăng không em?", "answer": _ans_khang, "next": _khang_next})
 	if hide_seek != null and kid:
 		out.append({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
+	if folk_games != null and kid:
+		out.append({"key": "folk", "text": "Chơi trò khác (đá cầu, bắn bi, chuyền, bắt dê, rồng rắn)…", "answer": _ans_folk, "next": _folk_next})
 	if tug_war != null and v.role in ["kid", "herder", "farmer"]:
 		out.append({"key": "tug", "text": "{Npc} chơi kéo co với {me} không{a}?", "answer": _ans_tug, "next": _tug_next})
 	if o_an_quan != null and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
@@ -636,6 +642,26 @@ func _look_dir() -> Vector3:
 	var f := -_player.global_transform.basis.z
 	f.y = 0.0
 	return f.normalized()
+
+
+func _ans_folk() -> String:
+	var no := folk_games.refusal(npc)
+	if no != "":
+		return no
+	return _pick(["Chơi! {You} thích trò nào?", "Trò nào {self} cũng biết chơi hết. {You} chọn đi!"])
+
+
+func _folk_next() -> Array[Dictionary]:
+	if folk_games.refusal(npc) != "":
+		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
+	var v := npc
+	var out: Array[Dictionary] = []
+	for kind: String in FolkGames.ORDER:
+		var k := kind
+		out.append({"key": "folk_" + k, "text": "(Chơi %s)" % str(FolkGames.KINDS[k].name), "end": true,
+				"then": func() -> void: folk_games.start_with(v, k)})
+	out.append({"text": "Thôi, để lúc khác.", "end": true})
+	return out
 
 
 func _ans_tug() -> String:

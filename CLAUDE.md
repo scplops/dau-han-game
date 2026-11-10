@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -202,6 +202,7 @@ scripts/
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
   tug_war.gd           # trò chơi dân gian kéo co: dân làng tự kéo, người chơi vào kéo theo nhịp hò (mục 43)
+  folk_games.gd        # năm trò dân gian nhỏ: đá cầu, bắn bi, chơi chuyền, bịt mắt bắt dê, rồng rắn lên mây (mục 44)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
@@ -1287,4 +1288,45 @@ thay mesh procedural bằng model Blender.
   xin vào cuộc ở bãi (0–0, hiệp 1), Esc; từ chối cụ già / trời giông. Bài thử phải chạy với `timeout` (lỗi script trong
   bài thử thì SceneTree không tự thoát). Chụp ảnh: `--date=2027-06-20 --hour=16 --tug=12 --distance=13 --pitch=-24 --yaw=75`
   (dân làng kéo), thêm `--fp --focus=-30,-9` (bạn vào kéo).
+
+## 44. Năm trò dân gian nhỏ: đá cầu, bắn bi, chơi chuyền, bịt mắt bắt dê, rồng rắn lên mây (giai đoạn 7h)
+
+- `scripts/folk_games.gd` (`FolkGames`, node con CUỐI của `Main`) — MỘT script cho cả năm trò (`KINDS`: tên, số người
+  `min` / `max`, trọng số; `ORDER`). Mỗi nhóm đang chơi là một từ điển trong `groups`: `kind`, `center`, `members`
+  (Villager; người chơi là hình nhân `_avatar`, chỉ số `pi`), `st` (trạng thái riêng từng trò), `root` (đạo cụ),
+  `site` (nhóm ở bãi của làng), `player`. `step(g, dt)` tách riêng; `_restart(g)` bắt đầu lại từ đầu; `stats` đếm sự kiện.
+- **Trẻ con tự chơi:** việc `folk` của Villagers (trẻ con 3,0; trẻ chăn trâu 1,2; 7:00–17:36 trừ trưa, không mưa) →
+  `site_target(v)` chọn trò (ưu tiên nhóm đang thiếu người; chơi chuyền chủ yếu con gái, bắn bi chủ yếu con trai), ghi meta
+  `folk_kind` → tới bãi `sites[kind]` → `on_arrive`: meta `folk` (= tên trò) + `talking`. Đủ `min` người thì chơi; tan sau
+  `game_seconds`, hết giờ chơi, mưa. Bãi (cỏ trống, chọn theo ảnh chụp từ trên xuống): đá cầu (−6; −21,5) và bắn bi
+  (−12,5; −22,5) giữa hai đường đất ngoài cổng làng, chơi chuyền (−36; −26,5) cạnh tường trường, bịt mắt bắt dê (0,5; −2)
+  trước sân nhà mình, rồng rắn (21; −9) bãi cỏ phía đông cây đa.
+- **Đá cầu:** đứng vòng tròn `cau_radius`, quả cầu lông gà bay cung parabol từ người này sang người khác (`cau_flight`
+  giây); máy đá hụt `cau_miss`; đếm số chạm liên tiếp. Người chơi: Space / chuột trái đúng lúc cầu rơi tới chân
+  (±`cau_window`), thanh vàng đầy = tới nơi.
+- **Bắn bi:** vòng phấn `bi_ring` có 5 viên, lần lượt ngồi ở vạch `bi_line` bắn viên bi cái; vật lý 2D tự viết (ma sát
+  `bi_friction`, va chạm đàn hồi cùng khối lượng, 4 bước con mỗi khung); bi ra khỏi vòng là ăn; hết bi là xong ván. Người
+  chơi: A / D ngắm (vạch vàng), giữ Space lấy lực (thanh chạy lên xuống), thả để bắn; lượt người chơi thì chờ không giới hạn.
+- **Chơi chuyền:** ngồi xổm quanh 10 que; tung quả chuyền (`chuyen_flight` giây), trong lúc quả trên không phải nhặt đủ số
+  que của bàn (bàn k nhặt k que một lần, đủ 10 que là xong bàn, tới `chuyen_max_ban` 5 là thắng); hỏng thì mất lượt, nhặt
+  lại từ đầu bàn đó. Người chơi: Space tung, rồi bấm Space ĐÚNG số lần cần nhặt trước khi quả rơi.
+- **Bịt mắt bắt dê:** vòng phấn `goat_ring`; người bịt mắt (dải vải đỏ `Blindfold` trên đầu, hai tay quờ quạng) lần theo
+  tiếng "Be… be…" (`heard` — chỗ nghe thấy gần nhất, có sai lệch), dê né khi bị tới gần 2 m, bị dồn ra mép thì chạy men
+  vòng; bắt được thì đổi người (người bắt mới đứng 3 s cho dê chạy ra — không thì bắt lại ngay đứa vừa bắt mình, đã gặp:
+  39 lần bắt trong 90 s). Người chơi: màn hình tối, chữ "Be… be…!" loé lên đúng hướng mỗi lần dê kêu, W A S D để đi,
+  `blind_seconds` 60; điểm = số giây còn dư.
+- **Rồng rắn lên mây:** một đứa làm thầy thuốc, cả hàng bám vai nhau (`dragon_gap`) đi vòng quanh hát bốn câu (`CHANT`),
+  rồi "Xin khúc đuôi!" → thầy thuốc đuổi chạm đứa cuối hàng trong `chase_seconds`; đầu rồng dang tay chắn — xoay cả hàng
+  quanh tâm hàng để luôn ở giữa thầy thuốc và đuôi (đầu chỉ lùi theo thầy thuốc thì hàng không xoay, chạy vòng là bắt
+  được ngay); bắt được thì đứa đuôi làm thầy thuốc. Người chơi là thầy thuốc: W A S D chạy (`player_speed`), không chạy
+  xuyên qua đầu rồng; điểm = số giây còn dư.
+- **Người chơi vào:** nhìn một đứa đang chơi "E: Xin chơi … cùng (chơi lại từ đầu)" (`join_at`; nhóm đủ người thì một đứa
+  nhường chỗ) hoặc hội thoại → "Chơi gì không em?" → "Chơi trò khác (đá cầu, bắn bi, chuyền, bắt dê, rồng rắn)…" → chọn trò
+  (`start_with(v, kind)`: bày ngay trước mặt, gọi trẻ rảnh trong 30 m, thiếu thì trẻ nhà bên). Camera `FolkCam` đứng ở phía
+  người chơi vừa đứng (`_cam_dir`), W A S D tính theo hướng camera. Esc thôi (`finished(kind, score)` → kỷ lục `cau_best`,
+  `bi_best`, `chuyen_best`, `goat_best`, `dragon_best` trong sổ tay); nhóm ở bãi thì bọn trẻ chơi tiếp.
+- `tools/folk_test.gd` (chạy với `timeout`): 71 trẻ có thể ra chơi; mỗi trò tự chơi 90 s (đá cầu ~63 chạm / 8 lần rơi, bắn
+  bi ~25 phát ăn ~8 viên, chuyền ~43 lần nhặt được / 4 lần hỏng, bắt dê ~7 lần, rồng rắn ~5 lần bắt đuôi), tan sạch meta;
+  người chơi rủ từng trò, bot chơi (cầu 20–40 chạm, bi xong ván, chuyền hết 5 bàn, bắt dê, bắt đuôi) so với đứng yên (thua).
+  Chụp ảnh: `--folk=da_cau|ban_bi|chuyen|bit_mat|rong_ran [--folk-time=giây]` (+ `--fp --focus=x,z` để vào chơi).
 

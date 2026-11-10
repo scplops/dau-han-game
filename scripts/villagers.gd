@@ -29,6 +29,7 @@ const NIGHT_END := 5.2
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
+@export var folk_games: FolkGames
 @export var tip_cat: TipCat
 @export var farming: Farming
 @export var o_an_quan: OAnQuan
@@ -120,6 +121,7 @@ const ACTIVITY_TEXT := {
 	"hideseek": ["đang chạy đi trốn", "đang chơi trốn tìm"],
 	"jumprope": ["đang ra chỗ chơi nhảy dây", "đang chơi nhảy dây"],
 	"tug": ["đang ra bãi kéo co", "đang chơi kéo co"],
+	"folk": ["đang ra bãi chơi với bạn", "đang chơi với bạn"],
 	"khang": ["đang ra bãi đánh khăng", "đang chơi đánh khăng"],
 	"oaq": ["đang ra chỗ chơi ô ăn quan", "đang ngồi chơi ô ăn quan"],
 	"hs_play": ["đang ra chỗ chơi trốn tìm", "đang chơi trốn tìm"],
@@ -495,6 +497,9 @@ func _choices(v: Villager, h: float) -> Dictionary:
 	# Mùa vụ (mục 33): mùa cấy, mùa gặt ra đồng đông hơn
 	if farming != null and c.has("field"):
 		c["field"] = float(c["field"]) * farming.busy()
+	# Đá cầu, bắn bi, chơi chuyền, bịt mắt bắt dê, rồng rắn lên mây (mục 44)
+	if folk_games != null and v.role in ["kid", "herder"] and c.size() > 0 and folk_games.ambient_ok(h):
+		c["folk"] = 3.0 if v.role == "kid" else 1.2
 	# Kéo co (mục 43): chiều ra bãi ngoài cổng làng
 	if tug_war != null and tug_war.ambient_ok(h) and c.size() > 0 \
 			and (v.role in ["kid", "herder"] or (v.role == "farmer" and not v.get_meta("female", false))):
@@ -624,6 +629,8 @@ func _target(v: Villager, act: String) -> Vector3:
 			return jump_rope.site_target(v)
 		"tug":
 			return tug_war.site_target(v)
+		"folk":
+			return folk_games.site_target(v)
 		"khang":
 			return tip_cat.site_target(v)
 		"oaq":
@@ -804,6 +811,9 @@ func _arrive(v: Villager) -> void:
 		return
 	if act == "kite" and kite != null:
 		kite.ambient_arrive(v)        # thả diều (mục 36)
+		return
+	if act == "folk" and folk_games != null:
+		folk_games.on_arrive(v)       # trò dân gian nhỏ (mục 44)
 		return
 	if act == "tug" and tug_war != null:
 		tug_war.on_arrive(v)          # kéo co (mục 43): TugOfWar giữ tới khi tan cuộc

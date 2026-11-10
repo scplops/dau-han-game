@@ -24,6 +24,7 @@ signal loaded(path: String)
 @export var football: Football
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
+@export var folk_games: FolkGames
 @export var tip_cat: TipCat
 @export var boat_race: BoatRace
 @export var kite: KiteFlying
@@ -44,6 +45,7 @@ var records: Dictionary = {
 	"hs_games": 0, "hs_found": 0, "hs_all_found": 0,
 	"goals": 0,
 	"tug_wins": 0, "tug_games": 0,
+	"cau_best": 0, "bi_best": 0, "chuyen_best": 0, "goat_best": 0, "dragon_best": 0, "folk_games": 0,
 	"play_seconds": 0.0,
 }
 var last_saved: String = ""
@@ -69,6 +71,11 @@ func _connect_games() -> void:
 			if who == "Bạn":
 				records.rope_games = int(records.rope_games) + 1
 				records.rope_best = maxi(int(records.rope_best), count))
+	if folk_games != null:
+		folk_games.finished.connect(func(kind: String, score: int) -> void:
+			records.folk_games = int(records.folk_games) + 1
+			var key: String = {"da_cau": "cau_best", "ban_bi": "bi_best", "chuyen": "chuyen_best", "bit_mat": "goat_best", "rong_ran": "dragon_best"}[kind]
+			records[key] = maxi(int(records[key]), score))
 	if tug_war != null:
 		tug_war.finished.connect(func(won: bool, _a: int, _b: int) -> void:
 			records.tug_games = int(records.tug_games) + 1
