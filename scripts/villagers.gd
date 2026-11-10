@@ -66,6 +66,8 @@ const NIGHT_END := 5.2
 ## Hiệu năng (mục 45): người / con vật xa camera hơn `animate_distance` chỉ cập nhật mỗi `mid_tick_every` khung, xa hơn
 ## `far_distance` thì mỗi `far_tick_every` khung (delta nhân lên tương ứng, mỗi người lệch một nhịp để chia đều).
 @export var close_distance: float = 45.0
+## Người xa camera hơn chừng này không đổ bóng (mục 46).
+@export var shadow_distance: float = 42.0
 @export var far_distance: float = 170.0
 @export var mid_tick_every: int = 2
 @export var far_tick_every: int = 4
@@ -900,6 +902,7 @@ func _process(delta: float) -> void:
 		var rel := v.position - cam_pos
 		var d2 := rel.length_squared()
 		var near := d2 < animate_distance * animate_distance and rel.dot(cam_fwd) > -4.0
+		v.set_shadows(d2 < shadow_distance * shadow_distance)
 		var dt := delta
 		var every := 1
 		if v.state == Villager.State.INSIDE or d2 > far_distance * far_distance:

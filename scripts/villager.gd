@@ -10,6 +10,13 @@ enum State { IDLE, WALK, INSIDE }
 const CLICK_LAYER := 3            # lớp va chạm để bấm chọn NPC
 
 # --- Thông tin (hiện khi bấm chọn) ---
+## Mục 46: người xa camera hơn LOD_DISTANCE vẽ bằng hình đơn giản, xa hơn FAR_DISTANCE thì không vẽ.
+const LOD_DISTANCE := 75.0
+const LOD_MARGIN := 4.0
+const FAR_DISTANCE := 170.0
+var _lod: MeshInstance3D
+var _shadow_parts: Array[MeshInstance3D] = []
+var _shadows_on: bool = true
 var display_name: String = ""
 var role: String = "farmer"       # farmer, carrier, elder, kid, herder, buffalo, dog, chicken, duck
 var role_name: String = ""
@@ -72,11 +79,30 @@ func _part(parent: Node3D, mesh: ArrayMesh, pos: Vector3, shadows: bool = true) 
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.position = pos
-	mi.visibility_range_end = 70.0 if role in ["chicken", "duck"] else 150.0
+	# Người: các mảnh có khớp chỉ vẽ tới LOD_DISTANCE, xa hơn thay bằng MỘT hình đơn giản (`_build_lod`, mục 46)
+	if role in ["chicken", "duck"]:
+		mi.visibility_range_end = 70.0
+	elif role in ["buffalo", "dog"]:
+		mi.visibility_range_end = FAR_DISTANCE
+	else:
+		mi.visibility_range_end = LOD_DISTANCE
+		mi.visibility_range_end_margin = LOD_MARGIN
 	if not shadows:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	else:
+		_shadow_parts.append(mi)
 	parent.add_child(mi)
 	return mi
+
+
+## Bật / tắt đổ bóng của cả người (Villagers tắt bóng người ở xa — mỗi mảnh đổ bóng là thêm draw call cho từng tầng bóng).
+func set_shadows(on: bool) -> void:
+	if on == _shadows_on:
+		return
+	_shadows_on = on
+	var mode := GeometryInstance3D.SHADOW_CASTING_SETTING_ON if on else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for mi in _shadow_parts:
+		mi.cast_shadow = mode
 
 
 func _pivot(parent: Node3D, pos: Vector3) -> Node3D:
@@ -93,6 +119,8 @@ func build_person(look: Dictionary) -> void:
 	_look = look
 	_build_person_rig(look)
 	_outfits["casual"] = _snapshot()
+	_outfits["casual"]["look"] = look
+	_build_lod(look)
 	_add_click_body(Vector3(0.7, 1.75 * float(look.get("scale", 1.0)), 0.7))
 
 
@@ -137,6 +165,8 @@ func wear(name_s: String) -> void:
 	elbows.assign(o.get("elbows", []))
 	outfit = name_s
 	in_uniform = name_s == "uniform"
+	if _lod != null and o.has("look"):
+		_lod.mesh = _lod_mesh(o.look)
 
 
 ## true = mặc đồng phục, false = áo thường.
@@ -152,7 +182,42 @@ func _add_outfit(name_s: String, look: Dictionary) -> void:
 	elbows = []
 	_build_person_rig(look)
 	_outfits[name_s] = _snapshot()
+	_outfits[name_s]["look"] = look
 	wear(outfit)
+
+
+## Hình đơn giản khi ở xa (mục 46): một mesh ~60 tam giác (quần, áo, đầu, nón / tóc) thay cho ~12 mảnh có khớp
+## (~2.100 tam giác). Chuyển đổi tự động theo khoảng cách tới camera bằng visibility range, không đổ bóng.
+func _build_lod(look: Dictionary) -> void:
+	_lod = MeshInstance3D.new()
+	_lod.name = "Lod"
+	_lod.mesh = _lod_mesh(look)
+	_lod.visibility_range_begin = LOD_DISTANCE
+	_lod.visibility_range_begin_margin = LOD_MARGIN
+	_lod.visibility_range_end = FAR_DISTANCE
+	_lod.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_lod)
+
+
+static func _lod_mesh(look: Dictionary) -> ArrayMesh:
+	var s: float = look.get("scale", 1.0)
+	var shirt: Color = look.get("shirt", Palette.FARMER_SHIRT)
+	var pants: Color = look.get("pants", Palette.FARMER_PANTS)
+	var skin: Color = look.get("skin", Palette.FARMER_SKIN)
+	var hat := str(look.get("hat", "none"))
+	var key := "lod_%s_%s_%s_%s_%.2f" % [shirt.to_html(), pants.to_html(), skin.to_html(), hat, s]
+	return _cached(key, func(mb: MeshBuilder) -> void:
+		mb.add_prism(0.13 * s, 0.15 * s, 0.8 * s, 5, pants)
+		mb.add_prism(0.17 * s, 0.19 * s, 0.6 * s, 5, shirt, _t(0, 0.8 * s, 0))
+		mb.add_prism(0.11 * s, 0.1 * s, 0.24 * s, 5, skin, _t(0, 1.4 * s, 0))
+		match hat:
+			"non":
+				mb.add_pyramid(0.32 * s, 0.2 * s, 6, Palette.HAT, _t(0, 1.58 * s, 0))
+			"khan":
+				mb.add_prism(0.12 * s, 0.11 * s, 0.1 * s, 5, Palette.WINDOW_DARK.lightened(0.25), _t(0, 1.58 * s, 0))
+			_:
+				mb.add_prism(0.115 * s, 0.09 * s, 0.07 * s, 5, Palette.WINDOW_DARK.lightened(0.05), _t(0, 1.62 * s, 0))
+	)
 
 
 func _snapshot() -> Dictionary:

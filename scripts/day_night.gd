@@ -10,6 +10,10 @@ signal time_changed(hour: float)
 signal day_rolled(days: int)
 
 @export var sun: DirectionalLight3D
+## Tầm bóng mặt trời: (gần nhất, xa nhất) và số mét thêm cho mỗi mét camera lên cao.
+@export var shadow_distance_range: Vector2 = Vector2(70.0, 140.0)
+@export var shadow_per_height: float = 2.2
+var _shadow_t: float = 0.0
 @export var world_environment: WorldEnvironment
 @export var house: House
 
@@ -100,6 +104,16 @@ func _process(delta: float) -> void:
 		step -= key_hours_per_second * delta
 	if step != 0.0:
 		time_of_day += step
+	# Tầm bóng đổ theo độ cao camera (mục 46): nhìn gần thì bóng chỉ cần phủ gần — ít vật phải vẽ vào bản đồ bóng
+	_shadow_t -= delta
+	if _shadow_t <= 0.0 and sun != null:
+		_shadow_t = 0.25
+		var cam := get_viewport().get_camera_3d()
+		if cam != null:
+			var want := clampf(cam.global_position.y * shadow_per_height + shadow_distance_range.x * 0.5,
+					shadow_distance_range.x, shadow_distance_range.y)
+			if absf(want - sun.directional_shadow_max_distance) > 4.0:
+				sun.directional_shadow_max_distance = want
 
 
 ## Áp lại ánh sáng theo giờ hiện tại (khi vừa thêm đèn / ô cửa mới vào cảnh).

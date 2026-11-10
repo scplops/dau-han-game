@@ -346,34 +346,12 @@ func _site_game(g: Dictionary) -> bool:
 
 
 func _make_avatar() -> Villager:
-	var female: bool = dialogue != null and dialogue.player_female
-	var a := Villager.new()
-	a.name = "RopePlayer"
-	a.role = "farmer"
-	a.display_name = "Bạn"
-	a.home = {"name": "", "key": ""}
-	a.set_meta("female", female)
-	add_child(a)
-	var look: Dictionary = villagers._look("farmer", female) if villagers != null else {}
-	look["hat"] = "none"
-	look["prop"] = "none"
-	look["scale"] = 0.86
-	a.build_person(look)
-	return a
+	return GameKit.make_avatar(self, villagers, dialogue, "RopePlayer", 0.86)
 
 
 func _make_temp(k: int, center: Vector3) -> Villager:
-	var female := _rng.randf() < 0.5
-	var t := Villager.new()
-	t.name = "RopeKid%d" % k
-	t.role = "kid"
-	t.role_name = "Trẻ con nhà bên"
-	t.display_name = TEMP_NAMES[(k + _rng.randi_range(0, 5)) % TEMP_NAMES.size()]
-	t.home = {"name": "Nhà bên", "key": ""}
-	t.set_meta("female", female)
-	add_child(t)
-	var look: Dictionary = villagers._look("kid", female) if villagers != null else {}
-	t.build_person(look)
+	var t := GameKit.make_person(self, villagers, "RopeKid%d" % k, "kid", TEMP_NAMES[(k + _rng.randi_range(0, 5)) % TEMP_NAMES.size()],
+			_rng.randf() < 0.5, {"role_name": "Trẻ con nhà bên", "home_name": "Nhà bên", "keep_hat": true})
 	var a := _rng.randf() * TAU
 	t.global_position = center + Vector3(cos(a), 0, sin(a)) * 7.0
 	_temps.append(t)
@@ -609,11 +587,7 @@ func _walk_to(v: Villager, to: Vector3, face: Vector3, dt: float) -> void:
 		var f := face - p
 		v.rotation.y = lerp_angle(v.rotation.y, atan2(f.x, f.z), minf(dt * 6.0, 1.0))
 		v._walk_amount = move_toward(v._walk_amount, 0.0, dt * 6.0)
-	if v.get_parent() == self and v != _avatar:
-		v.state = Villager.State.IDLE
-		v.tick(dt, true)       # trẻ tạm không thuộc Villagers: tự diễn hoạt
-	elif v == _avatar:
-		v._animate(dt)
+	GameKit.animate_owned(v, self, _avatar, dt)
 
 
 ## Dây: cung tròn quay quanh đường nối hai bàn tay, đáy chạm đất ở pha 0.
@@ -667,21 +641,7 @@ func _build_ui() -> void:
 	_ui.layer = 5
 	_ui.visible = false
 	add_child(_ui)
-	var top := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.HUD_BG
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
-	top.add_theme_stylebox_override("panel", sb)
-	top.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	top.offset_top = 16
-	_ui.add_child(top)
-	var box := VBoxContainer.new()
-	top.add_child(box)
+	var box := GameKit.top_panel(_ui)
 	_top = _label(true, 24, Palette.HUD_TEXT)
 	_sub = _label(false, 16, Palette.HUD_SUBTEXT)
 	box.add_child(_top)
@@ -703,24 +663,11 @@ func _build_ui() -> void:
 	bar.add_child(_beat_dot)
 	var hint := _label(false, 15, Palette.HUD_SUBTEXT, "Space / chuột trái: nhảy — nhảy khi dây sắp quét xuống đất (chấm đỏ gần vạch vàng)  ·  Esc: thôi chơi")
 	box.add_child(hint)
-	_big = _label(true, 110, Palette.HUD_TEXT)
-	_big.set_anchors_preset(Control.PRESET_CENTER)
-	_big.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_big.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_big.offset_top = -340
-	_big.add_theme_constant_override("outline_size", 14)
-	_big.add_theme_color_override("font_outline_color", Palette.WINDOW_DARK)
-	_ui.add_child(_big)
+	_big = GameKit.big_label(_ui, 110, -340, 14)
 
 
 func _label(bold: bool, size: int, col: Color, text: String = "") -> Label:
-	var l := Label.new()
-	l.text = text
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_override("font", Hud.font(bold))
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", col)
-	return l
+	return GameKit.label(bold, size, col, text)
 
 
 func _update_ui(g: Dictionary) -> void:

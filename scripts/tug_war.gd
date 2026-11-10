@@ -347,35 +347,12 @@ func stop_player() -> void:
 
 
 func _make_avatar() -> Villager:
-	var female: bool = dialogue != null and dialogue.player_female
-	var a := Villager.new()
-	a.name = "TugPlayer"
-	a.role = "farmer"
-	a.display_name = "Bạn"
-	a.home = {"name": "", "key": ""}
-	a.set_meta("female", female)
-	add_child(a)
-	var look: Dictionary = villagers._look("farmer", female) if villagers != null else {}
-	look["hat"] = "none"
-	look["prop"] = "none"
-	a.build_person(look)
-	return a
+	return GameKit.make_avatar(self, villagers, dialogue, "TugPlayer")
 
 
 func _make_temp(k: int, center: Vector3) -> Villager:
-	var kid := k % 2 == 1
-	var t := Villager.new()
-	t.name = "TugTemp%d" % k
-	t.role = "kid" if kid else "farmer"
-	t.role_name = "Người làng bên"
-	t.display_name = TEMP_NAMES[k % TEMP_NAMES.size()]
-	t.home = {"name": "Làng bên", "key": ""}
-	t.set_meta("female", false)
-	add_child(t)
-	var look: Dictionary = villagers._look(t.role, false) if villagers != null else {}
-	look["hat"] = "none"
-	look["prop"] = "none"
-	t.build_person(look)
+	var t := GameKit.make_person(self, villagers, "TugTemp%d" % k, "kid" if k % 2 == 1 else "farmer", TEMP_NAMES[k % TEMP_NAMES.size()],
+			false, {"role_name": "Người làng bên", "home_name": "Làng bên"})
 	var a := _rng.randf() * TAU
 	t.global_position = center + Vector3(cos(a), 0, sin(a)) * 8.0
 	_temps.append(t)
@@ -604,11 +581,7 @@ func _walk_to(v: Villager, to: Vector3, face: Vector3, dt: float) -> void:
 		var f := face - to
 		v.rotation.y = lerp_angle(v.rotation.y, atan2(f.x, f.z), minf(dt * 8.0, 1.0))
 		v._walk_amount = move_toward(v._walk_amount, 0.0, dt * 6.0)
-	if v == _avatar:
-		v._animate(dt)
-	elif v.get_parent() == self:
-		v.state = Villager.State.IDLE
-		v.tick(dt, true)
+	GameKit.animate_owned(v, self, _avatar, dt)
 
 
 ## Dây thừng: dải mỏng quay về camera nối hai người cuối, dải vải đỏ ở giữa.
@@ -658,21 +631,7 @@ func _build_ui() -> void:
 	_ui.layer = 5
 	_ui.visible = false
 	add_child(_ui)
-	var top := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.HUD_BG
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
-	top.add_theme_stylebox_override("panel", sb)
-	top.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	top.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	top.offset_top = 16
-	_ui.add_child(top)
-	var box := VBoxContainer.new()
-	top.add_child(box)
+	var box := GameKit.top_panel(_ui)
 	_top = _label(true, 24, Palette.HUD_TEXT)
 	_sub = _label(false, 16, Palette.HUD_SUBTEXT)
 	box.add_child(_top)
@@ -701,14 +660,7 @@ func _build_ui() -> void:
 	pw.add_child(_power_bar)
 	box.add_child(_label(false, 15, Palette.HUD_SUBTEXT,
 			"Space / chuột trái: dồn sức ĐÚNG NHỊP (chấm trắng vào vùng vàng)  ·  thanh vàng: sức đội bạn  ·  Esc: thôi chơi"))
-	_big = _label(true, 64, Palette.HUD_TEXT)
-	_big.set_anchors_preset(Control.PRESET_CENTER)
-	_big.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_big.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_big.offset_top = -300
-	_big.add_theme_constant_override("outline_size", 12)
-	_big.add_theme_color_override("font_outline_color", Palette.WINDOW_DARK)
-	_ui.add_child(_big)
+	_big = GameKit.big_label(_ui, 64, -300, 12)
 
 
 func _bar(box: VBoxContainer, col: Color) -> ColorRect:
@@ -721,13 +673,7 @@ func _bar(box: VBoxContainer, col: Color) -> ColorRect:
 
 
 func _label(bold: bool, size: int, col: Color, text: String = "") -> Label:
-	var l := Label.new()
-	l.text = text
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_override("font", Hud.font(bold))
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", col)
-	return l
+	return GameKit.label(bold, size, col, text)
 
 
 func _update_ui() -> void:

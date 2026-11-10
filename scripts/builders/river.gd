@@ -59,6 +59,9 @@ const BOAT_CABIN := Vector2(-0.6, 2.6)
 ## Camera cách tim sông xa hơn chừng này thì cá cập nhật thưa (mỗi `far_fish_every` khung).
 @export var fish_far_distance: float = 110.0
 @export var far_fish_every: int = 4
+## Cạnh ô (m) khi chia cây cỏ ven sông thành nhiều MultiMesh để cắt theo tầm nhìn.
+@export var veg_cell: float = 48.0
+var veg_nodes: int = 0
 var _fish_check: float = 0.0
 var _fish_far: bool = false
 var _fish_frame: int = 0
@@ -495,32 +498,52 @@ func _build_lotus() -> void:
 	var wind := MeshBuilder.wind_material(lotus_wind, -0.8, 1.4, 1.1)
 	_multimesh("LotusPads", _pad_mesh(), pads, pad_cols, MeshBuilder.material(), false)
 	_multimesh("LotusLeaves", _raised_leaf_mesh(), raised, [], wind, true)
-	_multimesh("LotusPink", _flower_mesh(Palette.LOTUS, Palette.LOTUS.lightened(0.35)), pink, [], wind, true)
-	_multimesh("LotusWhite", _flower_mesh(Palette.FLOWER_WHITE, Palette.LOTUS.lightened(0.55)), white, [], wind, true)
-	_multimesh("LotusBuds", _bud_mesh(), buds, [], wind, true)
+	_multimesh("LotusPink", _flower_mesh(Palette.LOTUS, Palette.LOTUS.lightened(0.35)), pink, [], wind, false, 120.0)
+	_multimesh("LotusWhite", _flower_mesh(Palette.FLOWER_WHITE, Palette.LOTUS.lightened(0.55)), white, [], wind, false, 120.0)
+	_multimesh("LotusBuds", _bud_mesh(), buds, [], wind, false, 120.0)
 
 
+## Rải một loại cây cỏ bằng MultiMesh, CHIA THEO Ô `veg_cell` mét (mục 46): mỗi ô một MultiMeshInstance đặt ở tâm ô,
+## nên ô ngoài khung hình / xa hơn `range_end` không bị vẽ. (Trước đây cả con sông 1 km là một MultiMesh ở gốc toạ
+## độ — luôn vẽ đủ ~2 triệu tam giác dù camera đang ở đâu.)
 func _multimesh(node_name: String, mesh: Mesh, xforms: Array[Transform3D], cols: Array,
-		mat: Material, shadows: bool) -> void:
+		mat: Material, shadows: bool, range_end: float = 150.0) -> void:
 	if xforms.is_empty():
 		return
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = not cols.is_empty()
-	mm.mesh = mesh
-	mm.instance_count = xforms.size()
+	var cells := {}
 	for i in xforms.size():
-		mm.set_instance_transform(i, xforms[i])
-		if mm.use_colors:
-			mm.set_instance_color(i, cols[i])
-	var mmi := MultiMeshInstance3D.new()
-	mmi.name = node_name
-	mmi.multimesh = mm
-	mmi.material_override = mat
-	mmi.visibility_range_end = 160.0
-	if not shadows:
-		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mmi)
+		var o := xforms[i].origin
+		var key := Vector2i(floori(o.x / veg_cell), floori(o.z / veg_cell))
+		if not cells.has(key):
+			cells[key] = []
+		(cells[key] as Array).append(i)
+	var holder := Node3D.new()
+	holder.name = node_name
+	add_child(holder)
+	for key: Vector2i in cells:
+		var idx: Array = cells[key]
+		var center := Vector3((key.x + 0.5) * veg_cell, 0.0, (key.y + 0.5) * veg_cell)
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = not cols.is_empty()
+		mm.mesh = mesh
+		mm.instance_count = idx.size()
+		for k in idx.size():
+			var xf := xforms[int(idx[k])]
+			xf.origin -= center
+			mm.set_instance_transform(k, xf)
+			if mm.use_colors:
+				mm.set_instance_color(k, cols[int(idx[k])])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.material_override = mat
+		mmi.position = center
+		mmi.visibility_range_end = range_end
+		mmi.visibility_range_end_margin = 8.0
+		if not shadows:
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		holder.add_child(mmi)
+	veg_nodes += cells.size()
 
 
 func _pad_mesh() -> ArrayMesh:
@@ -793,7 +816,7 @@ func _build_vegetation() -> void:
 		var sc := _rng.randf_range(0.75, 1.3)
 		(reeds[_rng.randi() % 3] as Array).append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3(sc, sc * _rng.randf_range(0.85, 1.2), sc)), Vector3(q.x, y - 0.05, q.y)))
 	for k in 3:
-		_multimesh("Reeds%d" % k, _reed_mesh(k), _typed(reeds[k]), [], wind, true)
+		_multimesh("Reeds%d" % k, _reed_mesh(k), _typed(reeds[k]), [], wind, false, 140.0)
 	# Bèo tây: cụm nổi trong nước gần bờ
 	var hy: Array[Transform3D] = []
 	var hyf: Array[Transform3D] = []
@@ -811,8 +834,8 @@ func _build_vegetation() -> void:
 			hy.append(xf)
 			if _rng.randf() < 0.22:
 				hyf.append(xf)
-	_multimesh("Hyacinth", _hyacinth_mesh(), hy, [], wind_low, false)
-	_multimesh("HyacinthFlowers", _hyacinth_flower_mesh(), hyf, [], wind_low, false)
+	_multimesh("Hyacinth", _hyacinth_mesh(), hy, [], wind_low, false, 120.0)
+	_multimesh("HyacinthFlowers", _hyacinth_flower_mesh(), hyf, [], wind_low, false, 90.0)
 	# Cỏ trên mái đê, mặt đê, chân đê
 	var grass: Array[Array] = [[], []]
 	var flowers: Array[Array] = [[], [], []]
@@ -830,11 +853,11 @@ func _build_vegetation() -> void:
 			continue
 		(flowers[_rng.randi() % 3] as Array).append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3.ONE * _rng.randf_range(0.8, 1.2)),
 				Vector3(q.x, bank_height(float(bp[2])) - 0.01, q.y)))
-	_multimesh("BankGrass0", _tuft_mesh(Palette.GRASS.darkened(0.12), 0), _typed(grass[0]), [], wind_low, false)
-	_multimesh("BankGrass1", _tuft_mesh(Palette.DIKE.lightened(0.08), 1), _typed(grass[1]), [], wind_low, false)
+	_multimesh("BankGrass0", _tuft_mesh(Palette.GRASS.darkened(0.12), 0), _typed(grass[0]), [], wind_low, false, 100.0)
+	_multimesh("BankGrass1", _tuft_mesh(Palette.DIKE.lightened(0.08), 1), _typed(grass[1]), [], wind_low, false, 100.0)
 	var fcols := [Palette.FLOWER_YELLOW, Palette.FLOWER_WHITE, Palette.FLOWER_PURPLE]
 	for k in 3:
-		_multimesh("BankFlowers%d" % k, _wildflower_mesh(fcols[k], k), _typed(flowers[k]), [], wind_low, false)
+		_multimesh("BankFlowers%d" % k, _wildflower_mesh(fcols[k], k), _typed(flowers[k]), [], wind_low, false, 90.0)
 	# Chuối và cây to ở chân đê phía ngoài (không trồng ở hai đuôi sông ngoài đồng)
 	var trunks := MeshBuilder.new(random_seed + 60, 0.05)
 	trunks.contact_shade_height = 0.6

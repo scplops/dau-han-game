@@ -714,6 +714,10 @@ func _process_ambient(delta: float) -> void:
 		if not ambient_ok(h) or (float(g.t_left) <= 0.0 and str(g.phase) == "gather"):
 			_end_ambient(g)
 			continue
+		# Người đi tìm vừa bị gọi đi giữa ván (tới giờ học, trời tối…): tan ván, bọn trẻ tụ lại sau
+		if str(g.phase) in ["count", "seek"] and not is_instance_valid(g.get("seeker")):
+			_end_ambient(g)
+			continue
 		match str(g.phase):
 			"gather":
 				g.t = float(g.t) - delta

@@ -203,6 +203,7 @@ scripts/
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
   tug_war.gd           # trò chơi dân gian kéo co: dân làng tự kéo, người chơi vào kéo theo nhịp hò (mục 43)
   folk_games.gd        # năm trò dân gian nhỏ: đá cầu, bắn bi, chơi chuyền, bịt mắt bắt dê, rồng rắn lên mây (mục 44)
+  game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
@@ -1348,4 +1349,33 @@ thay mesh procedural bằng model Blender.
 - **Cá sông** (`River._process`): camera cách tim sông hơn `fish_far_distance` 110 m thì 220 con cá chỉ bơi mỗi
   `far_fish_every` 4 khung (kiểm tra khoảng cách 2 lần / s).
 - Đã chạy lại `market_test`, `festival_test`, `folk_test`, `tug_test` sau khi đổi: kết quả như cũ.
+
+## 46. Tối ưu phần vẽ + dọn code trùng lặp (giai đoạn 8a)
+
+- `tools/render_stats.gd` (chạy dưới xvfb với `timeout 290`): số vật thể / tam giác / draw call mỗi khung ở 4 góc nhìn (nhà mình,
+  cổng làng, giữa làng, cả làng từ xa). `-- --breakdown` ẩn lần lượt từng nhóm dưới `World` để xem nhóm nào tốn (Villagers
+  bị tạm dừng cho số liệu khỏi nhiễu); `--detail=Village` liệt kê từng node con của một nhóm. Số tam giác tính cả các lượt
+  vẽ bóng. Lavapipe ~1 khung / giây nên chỉ đọc SỐ ĐẾM, không đọc ms.
+- **Kết quả** (trước → sau): nhà mình 1.777 → 737 draw call, 4,45 → 1,80 triệu tam giác; cổng làng 1.817 → 957 / 4,28 → 1,72;
+  giữa làng 1.286 → 636 / 4,20 → 1,67; cả làng từ xa 1.109 → 650 / 1,69 → 1,48.
+- **Cây cỏ ven sông chia ô** (`River._multimesh`, `veg_cell` 48 m): trước đây mỗi loại (lau, bèo, cỏ đê, hoa dại, sen…) là MỘT
+  MultiMesh cho cả con sông 1 km đặt ở gốc toạ độ → không bao giờ bị cắt, luôn vẽ ~2,2 triệu tam giác. Giờ mỗi ô một
+  MultiMeshInstance đặt ở TÂM Ô (transform từng cây trừ đi tâm) với `visibility_range_end` riêng (lau 140, bèo / sen 120, cỏ 100,
+  hoa 90 m) và không đổ bóng (chỉ chuối còn bóng). `veg_nodes` đếm số ô. **Bài học: visibility range tính từ gốc của node —
+  MultiMesh trải rộng phải chia nhỏ và đặt node ở giữa vùng nó phủ.**
+- **Người ở xa vẽ bằng hình đơn giản** (`Villager._build_lod`, `LOD_DISTANCE` 75 m ± `LOD_MARGIN`, `FAR_DISTANCE` 170 m): các
+  mảnh có khớp (~12 mesh, ~2.100 tam giác) chỉ vẽ tới 75 m; xa hơn là MỘT mesh ~60 tam giác (quần, áo, đầu, nón / khăn / tóc
+  theo màu của người đó, dùng chung qua bộ đệm mesh), không đổ bóng; đổi bộ đồ (`wear`) thì đổi màu theo. Trâu, chó giữ nguyên.
+- **Bóng người chỉ ở gần** (`Villagers.shadow_distance` 42 m → `Villager.set_shadows`): mỗi mảnh đổ bóng là thêm một draw call
+  cho từng tầng bóng.
+- **Tầm bóng mặt trời theo độ cao camera** (`DayNight.shadow_distance_range` 70…140 m, `shadow_per_height` 2,2; chỉnh 4 lần / s):
+  nhìn gần / nhập vai thì bóng chỉ phủ 70 m, zoom ra xa mới phủ 140 m (trước đây cố định 140 m).
+- **Code dùng chung** `scripts/game_kit.gd` (`GameKit`, hàm tĩnh): `label`, `top_panel`, `big_label`, `bar`, `make_person`,
+  `make_avatar`, `animate_owned`, `bark` — nhảy dây, đánh khăng, kéo co, năm trò nhỏ dùng chung thay cho bốn bản chép gần giống
+  nhau (bớt ~210 dòng). Trò mới nên dùng thẳng `GameKit`.
+- **Lỗi tìm ra khi chạy lại bài thử:** `HideSeek._process_ambient` — đứa đi tìm bị Villagers gọi đi giữa ván (tới giờ học) thì
+  `g.seeker` rỗng → lỗi mỗi khung; giờ tan ván êm.
+- Đã chạy lại: `jump_rope_test`, `tip_cat_test`, `tug_test`, `folk_test`, `school_calendar_test`, `perf_test` (script ~1,8 ms / khung).
+- Đổi file script có `class_name` mới thì phải `--import` trước khi chạy công cụ `-s` khác (đã gặp: ảnh chụp chạy song song
+  lúc đang thêm `GameKit` báo "Identifier not declared").
 
