@@ -1117,7 +1117,7 @@ thay mesh procedural bằng model Blender.
 
 ## 37. Lưu game (giai đoạn 7a) — lộ trình giai đoạn 7
 
-- **Lộ trình giai đoạn 7** (người dùng duyệt, làm lần lượt, mỗi bước dừng lại chờ xác nhận): 7a lưu game → 7b âm thanh
+- **Lộ trình giai đoạn 7 — ĐÃ XONG cả 9 bước** (7a…7i, mục 37–45): 7a lưu game → 7b âm thanh
   → 7c sổ tay người chơi → 7d chợ phiên → 7e lễ hội theo lịch âm (Tết, rằm tháng Giêng, Trung thu) → 7f các mùa trong
   năm → 7g kéo co → 7h trò dân gian khác (bịt mắt bắt dê, rồng rắn lên mây, chơi chuyền, bắn bi, đá cầu) → 7i hiệu năng.
 - `scripts/save_game.gd` (`SaveGame`, node con cuối của `Main`). File JSON `save_path` (`user://lang_que_save.json`):
@@ -1329,4 +1329,23 @@ thay mesh procedural bằng model Blender.
   bi ~25 phát ăn ~8 viên, chuyền ~43 lần nhặt được / 4 lần hỏng, bắt dê ~7 lần, rồng rắn ~5 lần bắt đuôi), tan sạch meta;
   người chơi rủ từng trò, bot chơi (cầu 20–40 chạm, bi xong ván, chuyền hết 5 bàn, bắt dê, bắt đuôi) so với đứng yên (thua).
   Chụp ảnh: `--folk=da_cau|ban_bi|chuyen|bit_mat|rong_ran [--folk-time=giây]` (+ `--fp --focus=x,z` để vào chơi).
+
+## 45. Hiệu năng phần script (giai đoạn 7i)
+
+- `tools/perf_test.gd` (headless, chạy với `timeout`): Chủ nhật 15:00 (≈ 210 người ngoài đường), tua cho làng vào nếp rồi
+  GỌI THẲNG `_process` / `_physics_process` của từng node 60 lần và bấm giờ — in tổng và 14 node tốn nhất, riêng Villagers
+  tách người / con vật và số lần lên lịch lại mỗi khung. (Cách "tắt từng node rồi so thời gian khung" nhiễu ±1 ms, không dùng.)
+- **Kết quả đo:** trước 3,05 ms / khung (Villagers 2,3 ms, River 0,5 ms, mọi thứ khác < 0,1 ms) → sau 1,63 ms
+  (Villagers ~1,3 ms, River ~0,2 ms). Các trò chơi, lễ hội, mùa, chợ… đều < 0,1 ms khi không ai chơi.
+- **Dân làng cập nhật theo khoảng cách** (`Villagers._process`): gần camera (< `close_distance` 45 m, không ở sau lưng
+  camera) diễn hoạt mỗi khung; tới `animate_distance` 90 m diễn hoạt cách khung (`mid_tick_every` 2); ngoài tầm / sau lưng
+  camera không diễn hoạt, bước đi cách khung; xa hơn `far_distance` 170 m hoặc đang trong nhà thì mỗi `far_tick_every` 4
+  khung. Khung bị bỏ thì delta nhân lên tương ứng (đi vẫn đúng tốc độ), mỗi người lệch một nhịp (`_frame + chỉ số`) để chia
+  đều. Con vật ngoài tầm cũng cách khung. `stat_next` / `stat_acts` đếm số lần `_next_activity` (người nào bị lên lịch lại
+  mỗi khung là dấu hiệu lỗi — hiện ~0 lần / khung).
+- **Một lần đặt vị trí mỗi bước đi** (`Villager._step_walk` + `_ground_y`): trước đây đặt `global_position` 2–3 lần mỗi bước
+  (đi, rồi chỉnh độ cao), mỗi lần là cập nhật transform ~30 node con.
+- **Cá sông** (`River._process`): camera cách tim sông hơn `fish_far_distance` 110 m thì 220 con cá chỉ bơi mỗi
+  `far_fish_every` 4 khung (kiểm tra khoảng cách 2 lần / s).
+- Đã chạy lại `market_test`, `festival_test`, `folk_test`, `tug_test` sau khi đổi: kết quả như cũ.
 

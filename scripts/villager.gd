@@ -492,17 +492,20 @@ func _step_walk(delta: float) -> void:
 	var seg_len := Vector2(target.x - from.x, target.z - from.z).length()
 	var t := 1.0 - clampf((dist - step) / maxf(seg_len, 0.001), 0.0, 1.0)
 	_path_y = lerpf(from.y, target.y, t)
+	# Đặt vị trí MỘT lần mỗi bước (mỗi lần đặt là cập nhật transform của ~30 node con)
+	var np := global_position
 	if dist <= step + 0.05:
-		global_position = Vector3(target.x, global_position.y, target.z)
+		np = Vector3(target.x, np.y, target.z)
 		path_index += 1
 		if path_index >= path.size():
 			state = State.IDLE
 	else:
 		var dir := to / dist
-		global_position += dir * step
+		np += dir * step
 		_face(dir, delta)
 	_walk_amount = move_toward(_walk_amount, 1.0, delta * 4.0)
-	_ground()
+	np.y = _ground_y(np)
+	global_position = np
 	_record_trail()
 
 
@@ -543,6 +546,15 @@ func _step_follow(delta: float) -> void:
 func _face(dir: Vector3, delta: float) -> void:
 	var yaw := atan2(dir.x, dir.z)
 	rotation.y = lerp_angle(rotation.y, yaw, clampf(delta * 6.0, 0.0, 1.0))   # quay người từ tốn
+
+
+## Độ cao mặt đất tại p (như _ground nhưng không đặt vị trí).
+func _ground_y(p: Vector3) -> float:
+	if role == "duck":
+		return p.y
+	if terrain != null and absf(p.x) < terrain.grid_extent and absf(p.z) < terrain.grid_extent:
+		return maxf(terrain.height_at(p.x, p.z), -0.1) + 0.02
+	return maxf(_path_y, 0.05)
 
 
 func _ground() -> void:

@@ -56,6 +56,12 @@ const BOAT_GAP_Z := -1.8
 const BOAT_CABIN := Vector2(-0.6, 2.6)
 
 ## Chiều dài sông (m), có sau build().
+## Camera cách tim sông xa hơn chừng này thì cá cập nhật thưa (mỗi `far_fish_every` khung).
+@export var fish_far_distance: float = 110.0
+@export var far_fish_every: int = 4
+var _fish_check: float = 0.0
+var _fish_far: bool = false
+var _fish_frame: int = 0
 var length: float = 0.0
 ## Tâm các đầm sen và vị trí các con đò (để chụp ảnh / NPC dùng sau này).
 var lotus_spots: Array[Vector3] = []
@@ -1058,7 +1064,21 @@ func _process(delta: float) -> void:
 	if _fish_mm == null or not is_visible_in_tree():
 		return
 	_time += delta
-	_update_fish(delta)
+	# Hiệu năng (mục 45): camera xa sông thì cá chỉ bơi mỗi `far_fish_every` khung
+	_fish_check -= delta
+	if _fish_check <= 0.0:
+		_fish_check = 0.5
+		var cam := get_viewport().get_camera_3d()
+		_fish_far = false
+		if cam != null:
+			var c2 := Vector2(cam.global_position.x, cam.global_position.z)
+			var mid: Vector2 = sample(nearest_s(c2))[0]
+			_fish_far = mid.distance_to(c2) > fish_far_distance
+	_fish_frame += 1
+	if not _fish_far:
+		_update_fish(delta)
+	elif _fish_frame % far_fish_every == 0:
+		_update_fish(delta * far_fish_every)
 	_update_ripples(delta)
 
 

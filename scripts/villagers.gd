@@ -63,6 +63,18 @@ const NIGHT_END := 5.2
 
 @export_group("Hiệu năng")
 @export var animate_distance: float = 90.0
+## Hiệu năng (mục 45): người / con vật xa camera hơn `animate_distance` chỉ cập nhật mỗi `mid_tick_every` khung, xa hơn
+## `far_distance` thì mỗi `far_tick_every` khung (delta nhân lên tương ứng, mỗi người lệch một nhịp để chia đều).
+@export var close_distance: float = 45.0
+@export var far_distance: float = 170.0
+@export var mid_tick_every: int = 2
+@export var far_tick_every: int = 4
+var _frame: int = 0
+## Đếm số lần lên lịch lại (bài đo hiệu năng đọc).
+var stat_next: int = 0
+var stat_people_us: int = 0
+var stat_animals_us: int = 0
+var stat_acts: Dictionary = {}
 
 ## Mùa hiện tại (Seasons đặt): "spring" / "summer" / "autumn" / "winter".
 var season: String = ""
@@ -688,6 +700,8 @@ func _start(v: Villager) -> void:
 
 
 func _next_activity(v: Villager, forced: String = "") -> void:
+	stat_next += 1
+	stat_acts[forced if forced != "" else "(tự chọn)"] = int(stat_acts.get(forced if forced != "" else "(tự chọn)", 0)) + 1
 	# Lễ xong trong đình: bước ra ở chân thềm
 	if v.has_meta("at_dinh"):
 		v.remove_meta("at_dinh")
@@ -875,18 +889,38 @@ func _process(delta: float) -> void:
 	if check_weather:
 		_weather_check = 1.0
 
+	_frame += 1
+	var idx := 0
+	var cam_fwd := -cam.global_transform.basis.z if cam != null else Vector3.FORWARD
+	var _t0 := Time.get_ticks_usec()
 	for v in people:
+		idx += 1
+		# Hiệu năng: gần camera (< close_distance, trong tầm nhìn) diễn hoạt mỗi khung; xa hơn một chút diễn hoạt cách
+		# khung; sau lưng camera / ngoài animate_distance không diễn hoạt, cập nhật thưa; rất xa / trong nhà thưa nữa.
+		var rel := v.position - cam_pos
+		var d2 := rel.length_squared()
+		var near := d2 < animate_distance * animate_distance and rel.dot(cam_fwd) > -4.0
+		var dt := delta
+		var every := 1
+		if v.state == Villager.State.INSIDE or d2 > far_distance * far_distance:
+			every = far_tick_every
+		elif not near or d2 > close_distance * close_distance:
+			every = mid_tick_every
+		if every > 1:
+			if (_frame + idx) % every != 0:
+				continue
+			dt = delta * every
 		if v.has_meta("talking"):
-			# Đang nói chuyện với người chơi: đứng lại, giữ nguyên việc đang làm
+			# Đang nói chuyện với người chơi / đang chơi trò: đứng lại, giữ nguyên việc đang làm
 			var st := v.state
 			var dw := v.dwell
 			v.state = Villager.State.IDLE
-			v.tick(delta, true)
+			v.tick(dt, true)
 			v.state = st
 			v.dwell = dw
 			continue
 		var was_walking := v.state == Villager.State.WALK
-		v.tick(delta, v.global_position.distance_to(cam_pos) < animate_distance)
+		v.tick(dt, near)
 		if was_walking and v.state == Villager.State.IDLE:
 			_arrive(v)
 		elif v.state != Villager.State.WALK and v.dwell <= 0.0:
@@ -898,7 +932,10 @@ func _process(delta: float) -> void:
 				and not v.activity in ["inside", "shelter", "lantern", "trungthu"]:
 			_next_activity(v)   # trời tối: bỏ dở việc, về nhà (hoặc cầm đèn đi chơi)
 
+	stat_people_us += Time.get_ticks_usec() - _t0
+	_t0 = Time.get_ticks_usec()
 	_tick_animals(delta, cam_pos)
+	stat_animals_us += Time.get_ticks_usec() - _t0
 
 	if selected != null:
 		if _following and outdoor_rig != null:
@@ -910,10 +947,19 @@ func _process(delta: float) -> void:
 
 
 func _tick_animals(delta: float, cam_pos: Vector3) -> void:
+	var _base_delta := delta
 	var h := _hour()
 	var night := _is_night(h) or h >= 19.5 or h < 5.5
+	var ai := 0
 	for a in animals:
-		var near := a.global_position.distance_to(cam_pos) < animate_distance * 0.7
+		ai += 1
+		var near := a.position.distance_squared_to(cam_pos) < animate_distance * animate_distance * 0.49
+		if not near:
+			if (_frame + ai) % mid_tick_every != 0:
+				continue
+			delta = _base_delta * mid_tick_every
+		else:
+			delta = _base_delta
 		match a.role:
 			"buffalo", "dog":
 				var owner := a.follow_target
