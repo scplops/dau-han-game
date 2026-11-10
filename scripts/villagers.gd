@@ -33,6 +33,7 @@ const NIGHT_END := 5.2
 @export var o_an_quan: OAnQuan
 @export var kite: KiteFlying
 @export var market: Market
+@export var festival: Festival
 
 @export_group("Đi lễ đình (mùng 1, rằm)")
 ## Giờ đi lễ buổi sáng / buổi chiều (giờ trong game).
@@ -119,6 +120,7 @@ const ACTIVITY_TEXT := {
 	"oaq": ["đang ra chỗ chơi ô ăn quan", "đang ngồi chơi ô ăn quan"],
 	"hs_play": ["đang ra chỗ chơi trốn tìm", "đang chơi trốn tìm"],
 	"kite": ["đang mang diều ra đồng", "đang thả diều"],
+	"trungthu": ["đang đi rước đèn", "đang rước đèn ông sao"],
 	"market": ["đang đi chợ", "đang xem hàng ở chợ phiên"],
 	"market_sell": ["đang gánh hàng ra chợ", "đang ngồi bán hàng ở chợ"],
 }
@@ -461,6 +463,9 @@ func _storm() -> bool:
 ## Trọng số các việc có thể làm theo vai trò và giờ.
 func _choices(v: Villager, h: float) -> Dictionary:
 	var drizzle := weather != null and weather.kind == "drizzle"
+	# Trung thu (mục 41): tối rằm tháng Tám trẻ con đi rước đèn
+	if festival != null and v.role in ["kid", "herder"] and festival.parade_time(h):
+		return {"trungthu": 1.0}
 	if _is_night(h):
 		if v.has_meta("lantern") and h >= 18.5 and h < 22.0:
 			return {"lantern": 3.0, "inside": 1.0}
@@ -611,6 +616,8 @@ func _target(v: Villager, act: String) -> Vector3:
 			return tip_cat.site_target(v)
 		"oaq":
 			return o_an_quan.site_target(v)
+		"trungthu":
+			return festival.parade_target(v)
 		"market":
 			return market.shopper_target()
 		"market_sell":
@@ -769,6 +776,9 @@ func _arrive(v: Villager) -> void:
 	if act == "khang" and tip_cat != null:
 		tip_cat.on_arrive(v)          # đánh khăng (mục 32): TipCat giữ tới khi tan cuộc
 		return
+	if act == "trungthu" and festival != null:
+		festival.on_parade_arrive(v)  # rước đèn (mục 41): quay đầu đi tiếp tới hết giờ
+		return
 	if act == "market_sell" and market != null:
 		market.on_seller_arrive(v)    # chợ phiên (mục 40): ngồi bán tới khi tan chợ
 		return
@@ -860,7 +870,7 @@ func _process(delta: float) -> void:
 		if check_weather and storm and v.state != Villager.State.INSIDE and v.activity != "shelter":
 			_next_activity(v, "shelter")
 		elif check_weather and night and v.state != Villager.State.INSIDE \
-				and not v.activity in ["inside", "shelter", "lantern"]:
+				and not v.activity in ["inside", "shelter", "lantern", "trungthu"]:
 			_next_activity(v)   # trời tối: bỏ dở việc, về nhà (hoặc cầm đèn đi chơi)
 
 	_tick_animals(delta, cam_pos)

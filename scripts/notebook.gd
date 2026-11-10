@@ -21,6 +21,7 @@ extends CanvasLayer
 @export var hud: Hud
 @export var outdoor_rig: CameraRig
 @export var market: Market
+@export var festival: Festival
 
 const PAGES: Array[String] = ["Kỷ lục", "Câu cá", "Người quen", "Quà & đồ", "Làng hôm nay"]
 const PAPER := Color("#f3e6c4")
@@ -264,6 +265,8 @@ func _village_text() -> String:
 		t += _row("Đồng", farming.stage_text().trim_prefix("Đồng: "))
 	if market != null:
 		t += _row("Chợ", market.status_text())
+	if festival != null and festival.mode != "":
+		t += _row("Lễ hội", festival.status_text())
 	if villagers != null:
 		t += _row("Dân làng", "%d hộ  ·  %d người  ·  %d con vật" % [villagers.households, villagers.people.size(), villagers.animals.size()])
 	if save_game != null:

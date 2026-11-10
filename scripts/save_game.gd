@@ -29,6 +29,7 @@ signal loaded(path: String)
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
 @export var market: Market
+@export var festival: Festival
 
 const VERSION := 1
 
@@ -170,6 +171,9 @@ func snapshot() -> Dictionary:
 	if market != null:
 		d["money"] = market.money
 		d["bag"] = market.bag.duplicate()
+	if festival != null:
+		d["lixi"] = festival.lixi.duplicate()
+		d["lixi_year"] = festival.lixi_year
 	d["records"] = records.duplicate()
 	return d
 
@@ -217,6 +221,11 @@ func apply(d: Dictionary) -> void:
 		market.bag.clear()
 		for it: Variant in d.get("bag", []):
 			market.bag.append(str(it))
+	if festival != null:
+		festival.lixi.clear()
+		for nm: Variant in d.get("lixi", []):
+			festival.lixi.append(str(nm))
+		festival.lixi_year = int(d.get("lixi_year", 0))
 	var rec: Dictionary = d.get("records", {})
 	for k: String in rec:
 		if records.has(k):

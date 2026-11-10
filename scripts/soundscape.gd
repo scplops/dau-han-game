@@ -70,7 +70,7 @@ func _ready() -> void:
 		_rng.randomize()
 	_setup_buses()
 	_queue.assign(["wind", "rain", "river", "crickets", "frogs", "bird0", "bird1", "bird2", "rooster", "drum", "bell",
-			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur"])
+			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur", "pop"])
 	for i in 14:
 		var p := AudioStreamPlayer3D.new()
 		p.bus = "Effects"
@@ -350,6 +350,7 @@ func _make(nm: String) -> AudioStreamWAV:
 		"cluck": return _wav(_cluck(), false)
 		"cheer": return _wav(_cheer(), false)
 		"murmur": return _wav(_murmur(5.0), true)
+		"pop": return _wav(_pop(), false)
 	return _wav(PackedFloat32Array([0.0]), false)
 
 
@@ -693,3 +694,14 @@ func _murmur(sec: float) -> PackedFloat32Array:
 			var env := maxf(0.0, sin(PI * fmod(t * syl, 1.0)))
 			x[i] += (lp - lp2 * 0.7) * env * 0.35
 	return _norm(_seamless(x, 4000), 0.6)
+
+
+## Tiếng pháo nổ "đùng": ồn trắng tắt rất nhanh + một nhịp trầm.
+func _pop() -> PackedFloat32Array:
+	var n := int(0.22 * SAMPLE_RATE)
+	var x := PackedFloat32Array()
+	x.resize(n)
+	for i in n:
+		var t := float(i) / SAMPLE_RATE
+		x[i] = _rng.randf_range(-1.0, 1.0) * exp(-t * 38.0) + sin(TAU * 110.0 * t) * exp(-t * 25.0) * 0.6
+	return _norm(x, 0.95)

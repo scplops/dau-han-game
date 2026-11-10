@@ -25,6 +25,7 @@ signal finished
 @export var tip_cat: TipCat
 @export var farming: Farming
 @export var market: Market
+@export var festival: Festival
 @export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
@@ -308,6 +309,9 @@ func _build_options() -> Array[Dictionary]:
 	# Việc nhờ / báo việc xong / nhắn tin luôn đứng đầu
 	if quests != null:
 		out.assign(quests.dialog_options(_real(v)))
+	# Tết (mục 41): chúc Tết, mừng tuổi
+	if festival != null:
+		out.append_array(festival.dialog_options(v, self))
 	# Chợ phiên (mục 40): xem hàng / bán cá cho người bán, biếu quà cho ai cũng được
 	if market != null:
 		for o in market.dialog_options(v, self):

@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -203,6 +203,7 @@ scripts/
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
+  festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
   save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
   farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
@@ -258,14 +259,14 @@ screenshots/           # ảnh chụp, không commit
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
 - Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện,
-  việc nhờ, chèo đò, trò chơi dân gian); túi đồ đầy đủ, lưu game vẫn để giai đoạn sau.
+  việc nhờ, chèo đò, trò chơi dân gian, chợ phiên, lễ hội); túi đồ đầy đủ vẫn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), nhạc nền (tiếng động đã có — mục 38),
-thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/sấm.
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
+thay mesh procedural bằng model Blender.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
 
@@ -1205,4 +1206,29 @@ thay mesh procedural bằng model Blender, các mùa trong năm, âm thanh mưa/
   hết tiền không mua được, bán cá (1,5 kg chép + 0,3 kg diếc = 44 nghìn), biếu quà (giỏ đồ bớt, quen thêm) → lưu / nạp tiền +
   giỏ đồ → 11:36 tan chợ (cất hàng, người bán về) → hôm sau đóng, báo phiên tới. Chụp ảnh: `--hour=8 --settle=40 --fp
   --focus=1.5,-20.5 --fp-yaw=-70` (đứng ở lối giữa chợ; nhìn từ trên cao thì mái lều che người bán).
+
+## 41. Lễ hội theo lịch âm (giai đoạn 7e)
+
+- `scripts/festival.gd` (`Festival`, node con của `Main` — ngoài `World` nên không sinh va chạm). Đồ trang trí dựng một
+  lần (`_build`, gọi trễ sau khi làng dựng xong), bật / tắt theo `mode_now()` (kiểm mỗi giây): `tet` (25 Chạp → mùng 7
+  Giêng), `gieng` (13–15 tháng Giêng), `trungthu` (13–15 tháng Tám); tháng nhuận không tính.
+- **Dây cờ đuôi nheo** (`Bunting`, mọi kỳ lễ): căng ngang đường trục mỗi 9 m giữa hai cột tre, cờ 5 màu dùng shader gió.
+- **Tết** (`Tet`): 2 cây nêu (sân đình, ngoài cổng làng — tre 9 m, túm lá ngọn, dải đỏ, đèn lồng), câu đối đỏ trên trụ cổng,
+  băng rôn "CHÚC MỪNG NĂM MỚI" (`BILLBOARD_FIXED_Y`), cành đào trong chậu trước cổng mỗi nhà (một MultiMesh 60 cây).
+  **Pháo:** vừa sang mùng 1 tháng Giêng (giờ qua nửa đêm) và 6:00 sáng mùng 1 → `light_firecrackers()`: 9 s tiếng `pop`
+  (Soundscape, tiếng mới) lách tách quanh cây nêu sân đình + xác pháo đỏ (CPUParticles3D). `firecrackers` đếm số đợt.
+- **Chúc Tết** (mùng 1–7, `dialog_options` thêm vào khung thoại trước câu của chợ): "Chúc mừng năm mới …!" → người lớn
+  mừng tuổi `lixi_range` (2–5 nghìn, cộng `Market.money`); trẻ con chúc lại, người chơi mừng tuổi 1 nghìn (nếu còn tiền).
+  Mỗi người một lần mỗi năm (`lixi` theo tên, `lixi_year`; lưu cùng game).
+- **Trung thu** (`MidAutumn`): đèn ông sao to ở cổng làng, mâm cỗ (ngũ quả, bánh nướng bánh dẻo, đèn kéo quân có đèn
+  `night_light`) ở sân đình. **Rước đèn** tối rằm `parade_hours` (18:24–20:48, không mưa): `Villagers._choices` cho trẻ con /
+  trẻ chăn trâu việc `trungthu` (đặt TRƯỚC nhánh ban đêm; việc này cũng được miễn lệnh "tối về nhà") → đi tới một đầu đường
+  trục (`parade_target`, meta `parade_to_gate` đổi đầu) → `on_parade_arrive`: cầm đèn ông sao (`StarLantern` gắn vào node
+  người — sao 5 cánh không đổ bóng, tự sáng; cứ 3 đứa một đèn `OmniLight3D`) rồi quay đầu đi tiếp; hết giờ thì cất đèn về
+  nhà. Trống ếch "tùng rinh rinh" (tiếng `drum` cao giọng) đi theo đoàn. Thường ~65 đứa cùng rước (trâu vẫn theo trẻ chăn).
+- Sổ tay "Làng hôm nay" có dòng "Lễ hội" (`status_text`).
+- `tools/festival_test.gd`: ngày thường (tắt hết) → 28 Chạp (nêu, đào, cờ) → giao thừa + 6:00 mùng 1 (2 đợt pháo) → chúc
+  Tết người lớn (+2…5 nghìn, một lần) và trẻ con (−1 nghìn) → rằm tháng Giêng (cờ, không nêu) → rằm tháng Tám 18:36 (75 đứa
+  đi rước, 65 đèn sáng, đi suốt z −41…−149) → 21:00 cất đèn. Chụp ảnh: `--date=2027-02-06 --hour=9 --focus=0,-44 --yaw=180`
+  (Tết), `--date=2027-09-15 --hour=19.2 --settle=45 --focus=0,-75` (rước đèn).
 
