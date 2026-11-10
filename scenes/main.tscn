@@ -39,6 +39,7 @@
 [ext_resource type="Script" path="res://scripts/builders/market.gd" id="41_market"]
 [ext_resource type="Script" path="res://scripts/festival.gd" id="42_festival"]
 [ext_resource type="Script" path="res://scripts/seasons.gd" id="43_seasons"]
+[ext_resource type="Script" path="res://scripts/tug_war.gd" id="44_tug"]
 [ext_resource type="Script" path="res://scripts/lunar_calendar.gd" id="29_calendar"]
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
 [ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
@@ -168,8 +169,9 @@ fov = 40.0
 near = 0.1
 far = 300.0
 
-[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "school", "football", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig", "calendar", "school_day", "hide_seek", "jump_rope", "tip_cat", "farming", "o_an_quan", "kite", "market", "festival")]
+[node name="Villagers" type="Node3D" parent="World" node_paths=PackedStringArray("village", "river", "school", "football", "terrain", "house", "day_night", "weather", "hud", "outdoor_rig", "calendar", "school_day", "hide_seek", "jump_rope", "tip_cat", "farming", "o_an_quan", "kite", "market", "festival", "tug_war")]
 script = ExtResource("18_villagers")
+tug_war = NodePath("../../TugOfWar")
 village = NodePath("../Village")
 river = NodePath("../River")
 school = NodePath("../School")
@@ -279,8 +281,9 @@ outdoor_rig = NodePath("../CameraRig")
 dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 
-[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan", "hide_seek", "kite", "jump_rope", "tip_cat", "farming", "market", "festival")]
+[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan", "hide_seek", "kite", "jump_rope", "tip_cat", "farming", "market", "festival", "tug_war")]
 script = ExtResource("24_dialogue")
+tug_war = NodePath("../TugOfWar")
 villagers = NodePath("../World/Villagers")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
@@ -298,8 +301,9 @@ farming = NodePath("../Farming")
 market = NodePath("../World/Market")
 festival = NodePath("../Festival")
 
-[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue", "hide_seek", "jump_rope", "tip_cat", "o_an_quan", "kite")]
+[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue", "hide_seek", "jump_rope", "tip_cat", "o_an_quan", "kite", "tug_war")]
 script = ExtResource("23_fp")
+tug_war = NodePath("../TugOfWar")
 outdoor_rig = NodePath("../CameraRig")
 house_entry = NodePath("../HouseEntry")
 fishing = NodePath("../Fishing")
@@ -399,8 +403,9 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 village = NodePath("../World/Village")
 
-[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival")]
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war")]
 script = ExtResource("38_save")
+tug_war = NodePath("../TugOfWar")
 calendar = NodePath("../Calendar")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
@@ -473,3 +478,14 @@ house_entry = NodePath("../HouseEntry")
 soundscape = NodePath("../Soundscape")
 hud = NodePath("../HUD")
 villagers = NodePath("../World/Villagers")
+
+[node name="TugOfWar" type="Node3D" parent="." node_paths=PackedStringArray("villagers", "first_person", "dialogue", "hud", "day_night", "weather", "village", "festival")]
+script = ExtResource("44_tug")
+villagers = NodePath("../World/Villagers")
+first_person = NodePath("../FirstPerson")
+dialogue = NodePath("../Dialogue")
+hud = NodePath("../HUD")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+village = NodePath("../World/Village")
+festival = NodePath("../Festival")

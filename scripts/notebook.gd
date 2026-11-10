@@ -141,6 +141,7 @@ func _records_text() -> String:
 	var t := _h("Trò chơi dân gian")
 	t += _row("Nhảy dây", ("nhảy liền %d lần  ·  %d lượt" % [int(r.rope_best), int(r.rope_games)]) if int(r.rope_games) > 0 else "chưa chơi")
 	t += _row("Đánh khăng", ("lượt cao nhất %d khăng  ·  %d lượt" % [int(r.khang_best), int(r.khang_turns)]) if int(r.khang_turns) > 0 else "chưa chơi")
+	t += _row("Kéo co", ("thắng %d / %d cuộc" % [int(r.get("tug_wins", 0)), int(r.get("tug_games", 0))]) if int(r.get("tug_games", 0)) > 0 else "chưa chơi")
 	var race := "chưa đua"
 	if int(r.races) > 0:
 		var parts: Array[String] = []

@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42) — chưa có túi đồ đầy đủ.
 
 ---
 
@@ -201,6 +201,7 @@ scripts/
   kite.gd              # trò chơi dân gian thả diều, mượn diều của trẻ con (mục 30)
   jump_rope.gd         # trò chơi dân gian nhảy dây: trẻ con tự chơi, người chơi vào nhảy (mục 31)
   tip_cat.gd           # trò chơi dân gian đánh khăng: trẻ con tự chơi, người chơi vào đánh (mục 32)
+  tug_war.gd           # trò chơi dân gian kéo co: dân làng tự kéo, người chơi vào kéo theo nhịp hò (mục 43)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
@@ -1255,4 +1256,35 @@ thay mesh procedural bằng model Blender.
 - `tools/seasons_test.gd`: 6 ngày (giữa mùa + giáp ranh): mùa, mức ngả màu lá, hoa phượng, số hạt bay, mức ve, phân bố thời
   tiết qua 2000 lần chọn, số trẻ muốn tắm sông (đông = 0). Chụp ảnh: `--date=2027-06-20 --hour=10 --focus=-66,-22
   --distance=30 --pitch=-28 --yaw=200` (sân trường, phượng nở), đổi ngày để so bốn mùa.
+
+## 43. Trò chơi dân gian: Kéo co (giai đoạn 7g)
+
+- `scripts/tug_war.gd` (`TugOfWar`, node con CUỐI của `Main`). Mỗi lúc chỉ có MỘT cuộc kéo co (từ điển `g`: `center`,
+  `axis`, `teams` [đội 0 phía −axis, đội 1 phía +axis], `x` — độ lệch dải vải đỏ, `score`, `round`, `phase`:
+  `gather` → `ready` (2,5 s) → `pull` → `win` (3 s) → hiệp sau / `done`). Dải đỏ qua vạch `win_dist` (2,2 m) của đội nào
+  thì đội đó thắng hiệp; hết `round_seconds` (40) thì đội đang kéo được hơn thắng; thắng `rounds_to_win` (2) hiệp là thắng.
+- **Hình:** vạch vôi giữa + hai vạch thắng đỏ nhạt, dây thừng (ImmediateMesh quay về camera) có dải vải đỏ rủ ở giữa,
+  bảng tỉ số `Label3D`. Người kéo đứng so le hai bên dây (`_slot(đội, k)` — trượt theo `x`), dáng kéo ghi đè sau khi
+  Villagers diễn hoạt: thân ngả ra sau (`body.rotation.x` âm), chân choãi, hai tay nắm dây phía trước, nhún theo nhịp;
+  đội thắng giơ hai tay reo.
+- **Dân làng tự chơi:** việc `tug` của Villagers (trẻ con, trẻ chăn trâu, đàn ông; `ambient_hours` 15:30–17:42, ngày lễ
+  hội thêm 8:00–11:00; không mưa) → bãi `site` (−34; −10,5: dải cỏ giữa tường trường và đường đất, phía tây cổng làng,
+  dây căng theo hướng bắc – nam) → `on_arrive`: vào đội ít người hơn (tối đa `team_size` 4 mỗi bên); mỗi bên đủ 3 người
+  (hoặc chờ quá `gather_wait` mà mỗi bên có 2) là kéo; lực hai đội dao động ngẫu nhiên + cơn rướn; xong cuộc thì tan
+  (dwell 0). Meta `tug` + `talking`.
+- **Người chơi** (luôn ở đội 0, đứng đầu dây): nhìn người đang kéo "E: Xin kéo co cùng (chơi lại từ đầu)" (`join_at` — tỉ số
+  về 0–0, hai đội chia lại cho cân) hoặc rủ qua hội thoại "… chơi kéo co với … không?" (trẻ con, trẻ chăn trâu, nông dân) →
+  "(Căng dây ra kéo)" (`start_with`: dây căng ngang trước mặt 3 m, gọi ≤ 5 người rảnh trong 35 m, thiếu thì người làng bên
+  — `_make_temp`). `refusal`: cụ già / người gánh hàng, đang học, tối, mưa, dở việc, chỗ chật (`open_ground`: hai phía 6,5 m
+  không vướng). **Cách kéo:** Space / chuột trái (`fish_reel`) ĐÚNG NHỊP hò (`beat_period` 0,9 s, ±`beat_window`) → `power`
+  +`hit_gain` ("Hò dô ta! ×n"), bấm lệch / bấm hai lần một nhịp → −`miss_loss` ("Lệch nhịp!"); `power` tự giảm
+  `power_decay`/s. Lực đội mình = `my_base` + `my_gain` × power; đội kia = `their_base` + dao động + cơn rướn 2 s mỗi 6–10 s.
+  Giao diện: tỉ số, thước dây (chấm đỏ), thước nhịp (chấm trắng vào vùng vàng), thanh sức; hết cuộc: E kéo lại, Esc thôi
+  (cuộc ở bãi thì dân làng kéo tiếp, cuộc người chơi bày thì tan). Camera `TugCam` nhìn ngang. Tín hiệu
+  `finished(won, mine, theirs)` → kỷ lục `tug_wins` / `tug_games` (sổ tay trang Kỷ lục).
+- `step(dt)` tách riêng. `tools/tug_test.gd`: 8 người ở bãi tự kéo trọn một cuộc (2 hiệp, ~40 s) rồi tan; người chơi rủ ở
+  sân nhà mình: trúng 100 % nhịp thắng 2–0 (~31 s), 80 % thắng 2–0, 60 % thắng sát nút 2–1, không bấm / bấm bừa thua 0–2;
+  xin vào cuộc ở bãi (0–0, hiệp 1), Esc; từ chối cụ già / trời giông. Bài thử phải chạy với `timeout` (lỗi script trong
+  bài thử thì SceneTree không tự thoát). Chụp ảnh: `--date=2027-06-20 --hour=16 --tug=12 --distance=13 --pitch=-24 --yaw=75`
+  (dân làng kéo), thêm `--fp --focus=-30,-9` (bạn vào kéo).
 

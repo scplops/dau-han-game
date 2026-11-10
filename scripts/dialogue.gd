@@ -22,6 +22,7 @@ signal finished
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
+@export var tug_war: TugOfWar
 @export var tip_cat: TipCat
 @export var farming: Farming
 @export var market: Market
@@ -100,6 +101,9 @@ func start(v: Villager, player: Node3D) -> bool:
 		return false
 	if v.has_meta("kite_amb"):
 		bark(v, ["Diều em lên cao chưa?", "Gió to thích quá!", "Mượn diều thả không? Nhìn vào em rồi bấm E!"][_rng.randi_range(0, 2)])
+		return false
+	if tug_war != null and tug_war.is_member(v):
+		bark(v, ["Hò dô ta!", "Vào kéo với bọn này đi! Nhìn vào rồi bấm E!", "Kéo đi! Kéo đi!"][_rng.randi_range(0, 2)])
 		return false
 	if jump_rope != null and jump_rope.is_member(v):
 		bark(v, ["Vào nhảy với bọn em đi!", "Đang nhảy, chờ tí!", "Một, hai, ba…"][_rng.randi_range(0, 2)])
@@ -297,6 +301,8 @@ func game_options(v: Villager) -> Array[Dictionary]:
 		out.append({"key": "khang", "text": "Chơi đánh khăng không em?", "answer": _ans_khang, "next": _khang_next})
 	if hide_seek != null and kid:
 		out.append({"key": "hideseek", "text": "Chơi trốn tìm không em? {Me} đi tìm cho!", "answer": _ans_hs, "next": _hs_next})
+	if tug_war != null and v.role in ["kid", "herder", "farmer"]:
+		out.append({"key": "tug", "text": "{Npc} chơi kéo co với {me} không{a}?", "answer": _ans_tug, "next": _tug_next})
 	if o_an_quan != null and v.role in ["kid", "herder", "elder", "farmer", "carrier"]:
 		out.append({"key": "oaq", "text": "{Npc} chơi ô ăn quan với {me} không{a}?", "answer": _ans_oaq, "next": _oaq_next})
 	return out
@@ -622,6 +628,30 @@ func _player_dir() -> Vector3:
 	var f := -_player.global_transform.basis.z
 	f.y = 0.0
 	return f.normalized()
+
+
+func _look_dir() -> Vector3:
+	if _player == null:
+		return Vector3.ZERO
+	var f := -_player.global_transform.basis.z
+	f.y = 0.0
+	return f.normalized()
+
+
+func _ans_tug() -> String:
+	var no := tug_war.refusal(npc, _player_pos(), _look_dir())
+	if no != "":
+		return no
+	return _pick(["Chơi! Để {self} gọi thêm người, chia hai phe. {You} về phe {self} nhé!",
+			"Được! Dây thừng đây rồi. Nhớ kéo theo nhịp hò, đừng kéo bừa!"])
+
+
+func _tug_next() -> Array[Dictionary]:
+	if tug_war.refusal(npc, _player_pos(), _look_dir()) != "":
+		return [{"text": "Ừ, để lúc khác vậy.", "end": true}]
+	var v := npc
+	return [{"text": "(Căng dây ra kéo)", "end": true, "then": func() -> void: tug_war.start_with(v)},
+			{"text": "Thôi, để lúc khác.", "end": true}]
 
 
 func _ans_rope() -> String:

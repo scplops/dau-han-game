@@ -402,6 +402,30 @@ func _run() -> void:
 		if rig != null:
 			rig.set_focus(site)
 			rig.global_position = site
+	# Kéo co: --tug[=giây] 8 người kéo ở bãi (camera nhìn vào bãi); cùng --fp: bạn vào kéo cùng
+	var tgs := scene.get_node_or_null("TugOfWar") as TugOfWar
+	if tgs != null and args.has("tug"):
+		var vst := scene.get_node("World/Villagers") as Villagers
+		var nt := 0
+		var first_t: Villager = null
+		for v in vst.people:
+			if nt < 8 and (v.role == "kid" or (v.role == "farmer" and not v.get_meta("female", false))) and not v.has_meta("talking"):
+				v.visible = true
+				v.global_position = tgs.site + Vector3(2.0, 0, -3.0 + nt * 0.8)
+				tgs.on_arrive(v)
+				if first_t == null:
+					first_t = v
+				nt += 1
+		if fp != null and fp.active and first_t != null:
+			tgs.join_at(first_t)
+		for i in int(60 * maxf(float(args["tug"]), 9.0)):
+			tgs.step(1.0 / 60.0)
+			tgs._pose(1.0 / 60.0)
+			if tgs.playing and i % 54 == 27:
+				tgs.player_pull()
+		if rig != null and not tgs.playing:
+			rig.set_focus(tgs.site)
+			rig.global_position = tgs.site
 	if jrs != null and args.has("rope-play") and fp != null and fp.active:
 		var vsp := scene.get_node("World/Villagers") as Villagers
 		var kid: Villager = null

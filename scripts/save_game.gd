@@ -23,6 +23,7 @@ signal loaded(path: String)
 @export var villagers: Villagers
 @export var football: Football
 @export var jump_rope: JumpRope
+@export var tug_war: TugOfWar
 @export var tip_cat: TipCat
 @export var boat_race: BoatRace
 @export var kite: KiteFlying
@@ -42,6 +43,7 @@ var records: Dictionary = {
 	"oaq_wins": 0, "oaq_losses": 0, "oaq_draws": 0,
 	"hs_games": 0, "hs_found": 0, "hs_all_found": 0,
 	"goals": 0,
+	"tug_wins": 0, "tug_games": 0,
 	"play_seconds": 0.0,
 }
 var last_saved: String = ""
@@ -67,6 +69,11 @@ func _connect_games() -> void:
 			if who == "Bạn":
 				records.rope_games = int(records.rope_games) + 1
 				records.rope_best = maxi(int(records.rope_best), count))
+	if tug_war != null:
+		tug_war.finished.connect(func(won: bool, _a: int, _b: int) -> void:
+			records.tug_games = int(records.tug_games) + 1
+			if won:
+				records.tug_wins = int(records.tug_wins) + 1)
 	if tip_cat != null:
 		tip_cat.turn_done.connect(func(who: String, points: int, out: bool) -> void:
 			if who == "Bạn":
