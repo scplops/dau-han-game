@@ -405,6 +405,10 @@ func step(g: Dictionary, dt: float) -> void:
 			_end_group(g)
 		return
 	g.t_left = float(g.t_left) - dt
+	# Có đứa tới sau khi trò đã bắt đầu: bày lại từ đầu cho đủ chỗ (không thì mảng trạng thái thiếu phần tử — đã gặp:
+	# bịt mắt bắt dê báo lỗi mỗi khung khi đứa thứ 5 tới)
+	if int(g.get("n0", members.size())) != members.size():
+		_restart(g)
 	match kind:
 		"da_cau": _step_cau(g, dt)
 		"ban_bi": _step_bi(g, dt)
@@ -418,6 +422,7 @@ func _restart(g: Dictionary) -> void:
 	g.started = true
 	g.t = 0.0
 	var n := (g.members as Array).size()
+	g.n0 = n                       # số người lúc bày trò (mảng trạng thái từng trò theo số này)
 	for v: Villager in g.members:
 		var bf := v.get_node_or_null("Blindfold")
 		if bf != null:

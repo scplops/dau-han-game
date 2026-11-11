@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50).
 
 ---
 
@@ -205,6 +205,7 @@ scripts/
   tug_war.gd           # trò chơi dân gian kéo co: dân làng tự kéo, người chơi vào kéo theo nhịp hò (mục 43)
   folk_games.gd        # năm trò dân gian nhỏ: đá cầu, bắn bi, chơi chuyền, bịt mắt bắt dê, rồng rắn lên mây (mục 44)
   graphics.gd          # chất lượng đồ hoạ: trời, SSAO, glow, sương thể tích, vân bề mặt; 3 mức, phím G (mục 47)
+  football_hud.gd      # giao diện đá bóng góc nhìn thứ nhất: tỉ số, chỉ bóng / khung thành / cầu thủ, sa bàn, lời nhắc (mục 50)
   game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
@@ -527,8 +528,7 @@ thay mesh procedural bằng model Blender.
   đá lại chỉ người được giao (người chơi được ưu tiên nếu gần ngang người máy, phạt đền thì luôn là người chơi).
   Máy coi người chơi như cầu thủ: đồng đội không tranh bóng khi người chơi gần bóng hơn, chuyền cho người chơi, đối
   phương lách / tranh bóng / phạm lỗi với người chơi. Người chơi chạy (> 4,2 m/s) xô vào đối phương đang giữ bóng là
-  phạm lỗi. Rời đội: thôi nhập vai, làm việc khác, ra xa sân 8 m. Bảng tỉ số riêng (trên giữa màn hình): tỉ số,
-  hiệp, đồng hồ, đội của bạn, khung thành đối phương ở phía nào (so với hướng nhìn), việc cần làm, thanh lực sút.
+  phạm lỗi. Rời đội: thôi nhập vai, làm việc khác, ra xa sân 8 m. Giao diện riêng khi đá: mục 50.
 - `tools/football_join_test.gd`: 7 tình huống luật (ném biên, phạt góc, phát bóng lên do thủ môn, đá phạt, phạt
   đền ở chấm 5 m, bàn hiệp 2 đúng đội); một trận máy đấu máy (thường 4–9 bàn, ~5 ném biên, 2–4 phát bóng lên, 1–5
   phạt góc, 1–5 phạm lỗi, có nghỉ giữa hiệp, hết giờ, tản đi); người nhập vai xin vào → gọi người → sút (~20 lần
@@ -1481,3 +1481,31 @@ thay mesh procedural bằng model Blender.
   19:00 lên bờ hết, gỡ sạch meta / góc xoay / áo.
 - Chụp ảnh: `--date=2027-06-22 --hour=17.2 --weather=clear --swim[=bến] [--swim-kids=N] --distance=13 --pitch=-28 --yaw=120` (bến tây);
   thêm `--fp --fp-pitch=-4` để xem từ mắt người chơi đang bơi.
+
+## 50. Giao diện đá bóng góc nhìn thứ nhất (giai đoạn 9c)
+
+- Người chơi vào đá (mục 17) kêu "lộn xộn, không chơi được": chữ trọng tài 3D to đè lên bảng tỉ số, HUD chung + dải phím + bản đồ
+  làng vẫn chiếm màn hình, không biết bóng ở đâu, ai là đồng đội, khung thành nào của mình. Vẫn là góc nhìn thứ nhất; làm lại
+  phần hiển thị.
+- `scripts/football_hud.gd` (`FootballHud`, `Control` con của `Football._ui` — CanvasLayer lớp 4; vẽ hết bằng `_draw()` mỗi khung):
+  - **Trên giữa:** bảng tỉ số gọn (ô màu hai đội `TEAM_COLORS` đỏ / xanh, tên, đội của bạn có "· BẠN", tỉ số to, hiệp + đồng hồ);
+    lời trọng tài (`_call_text`) chữ vàng ngay dưới, mờ dần.
+  - **Trong cảnh** (`_project`: `unproject_position`, điểm sau lưng thì lật qua tâm; ngoài khung thì ghim ở mép): vòng trắng quanh
+    quả bóng + "BÓNG n m" — bóng ngoài tầm nhìn thì mũi tên ở mép màn hình; trong tầm chân (`_ball_in_reach`) vòng chuyển vàng,
+    nhấp nháy, "BÓNG Ở CHÂN BẠN". "▼ SÚT VÀO ĐÂY · n m" trên khung thành đối phương (ngoài khung: mũi tên vàng), "Khung thành nhà"
+    trên khung thành mình. Dấu ▼ màu đội trên đầu từng cầu thủ (đồng đội đậm có viền trắng, đối thủ nhạt). "BẠN ĐÁ Ở ĐÂY" ở chỗ
+    đặt bóng khi bạn được đá lại.
+  - **Dưới giữa:** MỘT dòng việc cần làm (`Football.user_prompt()`: chạy tới bóng / bóng ở chân bạn — sút, chuyền / đồng đội giữ
+    bóng — gọi chuyền / đối phương giữ bóng / chờ đá lại / ném biên, phạt góc, phát bóng, đá phạt, phạt đền / giao bóng / nghỉ giữa
+    hiệp…; `_holder_team()` = đội có cầu thủ trong 1,3 m quanh bóng) + thanh lực sút khi đang giữ chuột.
+  - **Góc dưới phải:** sa bàn sân nhìn từ trên (8 px / m), hướng tấn công của bạn quay LÊN TRÊN: chấm màu hai đội, bóng trắng, bạn
+    là mũi tên theo hướng nhìn, khung thành đối phương vàng. **Góc dưới trái:** phím.
+  - Người đứng xem gần sân (chưa vào đội) chỉ thấy bảng tỉ số.
+- `Football._set_play_view(on)` (trong `join_user` / `leave_user`): ẩn HUD chung + bản đồ nhỏ (`first_person.hud.visible`), mở rộng
+  góc nhìn `user_fov` 86° (thường 72°); rời đội thì trả lại. Người chơi đang trong trận thì `_call` KHÔNG hiện chữ 3D trên sân.
+- **Con của CanvasLayer không tự giãn theo cửa sổ** (đã gặp: `size` = 0, mọi thứ vẽ dồn vào góc trái trên): FootballHud tự đặt
+  `size = get_viewport_rect().size` mỗi khung. Lề ghim mép giới hạn theo cỡ cửa sổ (headless cửa sổ rất nhỏ → Rect2 âm).
+- **Lỗi tìm ra khi chạy lại bài thử:** `FolkGames` — đứa tới sau khi trò đã bắt đầu được thêm vào `members` nhưng mảng trạng thái
+  (`pos`, `bark`…) vẫn theo số người cũ → bịt mắt bắt dê lỗi chỉ số mỗi khung; giờ `step` thấy số người khác `g.n0` thì `_restart`.
+- Đã chạy lại `football_join_test` (luật, trận máy, người chơi sút / chuyền / phạt đền, rời đội) và `folk_test`: không lỗi.
+  Chụp ảnh: `--date=2027-06-22 --hour=17 --weather=clear --fp --focus=-49,-167 --fb-join=9 [--fb-restart=penalty]`.

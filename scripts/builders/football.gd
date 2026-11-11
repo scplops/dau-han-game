@@ -57,6 +57,8 @@ const FORMATION: Array[Vector2] = [Vector2(0.3, 0.5), Vector2(0.38, 0.22), Vecto
 @export var user_shot_speed: Vector2 = Vector2(6.0, 17.0)
 @export var user_charge_time: float = 0.9
 @export var user_reach: float = 1.7
+## Góc nhìn (độ) khi người nhập vai đang đá — rộng hơn bình thường để thấy bóng, đồng đội.
+@export var user_fov: float = 86.0
 
 var rect: Rect2
 var score: Array[int] = [0, 0]
@@ -95,10 +97,7 @@ var _charge: float = 0.0
 var _user_foul_cd: float = 0.0
 var _pen_save: bool = false
 var _ui: CanvasLayer
-var _ui_panel: PanelContainer
-var _ui_score: Label
-var _ui_info: Label
-var _ui_call: Label
+var _hud: FootballHud
 
 
 func build() -> void:
@@ -945,10 +944,14 @@ func join_user() -> void:
 	else:
 		_call("Bạn vào đá cho %s (%s)" % [TEAM_NAMES[user_team], side], false)
 	_ui.visible = true
+	_set_play_view(true)
+	if _call_label != null:
+		_call_label.visible = false
 
 
 func leave_user() -> void:
 	user_team = -1
+	_set_play_view(false)
 	_charging = false
 	_charge = 0.0
 	if _restart.get("taker") is String:
@@ -1353,63 +1356,84 @@ func _begin_fulltime() -> void:
 func _call(text: String, on_field: bool = true) -> void:
 	_call_text = text
 	_call_t = 4.0
-	if _call_label != null and on_field:
+	# Người chơi đang trong trận: lời trọng tài hiện trên giao diện (chữ 3D to trên sân che mất tầm nhìn)
+	if _call_label != null and on_field and user_team < 0:
 		_call_label.text = text
 		_call_label.global_position = Vector3(_ball_pos.x, 2.6, _ball_pos.z)
 		_call_label.visible = true
 		_call_label.set_meta("t", 0.0)
 
 
-# --- Bảng tỉ số cho người chơi ---------------------------------------------------------------
+# --- Giao diện cho người chơi (mục 50: `FootballHud` vẽ, ở đây chỉ bật / tắt và soạn lời nhắc) ----------------
 
 func _build_overlay() -> void:
 	_ui = CanvasLayer.new()
 	_ui.layer = 4
 	_ui.visible = false
 	add_child(_ui)
-	_ui_panel = PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Palette.HUD_BG
-	sb.set_corner_radius_all(10)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
-	_ui_panel.add_theme_stylebox_override("panel", sb)
-	_ui_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_ui_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_ui_panel.offset_top = 14
-	_ui.add_child(_ui_panel)
-	var box := VBoxContainer.new()
-	_ui_panel.add_child(box)
-	_ui_score = _ui_label(true, 24, Palette.HUD_TEXT)
-	_ui_info = _ui_label(false, 15, Palette.HUD_SUBTEXT)
-	_ui_call = _ui_label(true, 17, Palette.FLOWER_YELLOW)
-	for l in [_ui_score, _ui_info, _ui_call]:
-		box.add_child(l)
+	_hud = FootballHud.new()
+	_hud.fb = self
+	_ui.add_child(_hud)
 
 
-func _ui_label(bold: bool, size: int, col: Color) -> Label:
-	var l := Label.new()
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.add_theme_font_override("font", Hud.font(bold))
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", col)
-	return l
-
-
-## Hướng (so với chỗ người chơi đang nhìn) tới điểm `p`.
-func _rel_dir(p: Vector2) -> String:
+## Vào / rời trận: ẩn HUD chung + bản đồ nhỏ (đã có sa bàn sân), mở rộng góc nhìn cho dễ thấy bóng và đồng đội.
+func _set_play_view(on: bool) -> void:
 	if first_person == null:
+		return
+	if first_person.hud != null:
+		first_person.hud.visible = not on
+	if first_person.camera != null:
+		first_person.camera.fov = user_fov if on else first_person.fov
+
+
+## Đội đang giữ bóng (có cầu thủ máy trong 1,3 m quanh bóng); −1 nếu bóng tự do.
+func _holder_team() -> int:
+	var b := Vector2(_ball_pos.x, _ball_pos.z)
+	var best := -1
+	var bd := 1.3
+	for q in players:
+		var d := Vector2(q.v.global_position.x, q.v.global_position.z).distance_to(b)
+		if d < bd:
+			bd = d
+			best = int(q.team)
+	return best
+
+
+## Việc người chơi nên làm lúc này (một dòng, FootballHud hiện chữ to dưới màn hình).
+func user_prompt() -> String:
+	if user_team < 0:
 		return ""
-	var to := p - _user_pos2()
-	var fwd3 := -first_person.global_transform.basis.z
-	var a := wrapf(atan2(to.x, -to.y) - atan2(fwd3.x, -fwd3.z), -PI, PI)
-	if absf(a) < PI * 0.25:
-		return "phía trước"
-	if absf(a) > PI * 0.75:
-		return "phía sau"
-	return "bên phải" if a > 0.0 else "bên trái"
+	match phase:
+		Phase.IDLE:
+			return "Chờ mọi người ra sân… (tập sút: chạy tới bóng, giữ chuột trái)" if players.is_empty() else "Chờ đủ người…"
+		Phase.HALFTIME:
+			return "Nghỉ giữa hiệp — hiệp 2 đổi sân"
+		Phase.FULLTIME:
+			return "Hết giờ!"
+		Phase.GOAL:
+			return "VÀO!  Về sân nhà chờ giao bóng"
+		Phase.RESTART:
+			if _restart.get("taker") is String:
+				if not bool(_restart.get("placed", false)) or not _ball_in_reach():
+					return "Bạn được đá — chạy tới chỗ đặt bóng"
+				return {"throw": "NÉM BIÊN: chuột trái ném (giữ để ném xa) · chuột phải ném cho đồng đội",
+						"corner": "PHẠT GÓC: giữ chuột trái lấy lực, nhìn lên cho bóng bổng",
+						"goal_kick": "PHÁT BÓNG: giữ chuột trái lấy lực",
+						"free": "ĐÁ PHẠT: chuột trái sút · chuột phải chuyền",
+						"penalty": "PHẠT ĐỀN: nhìn vào góc khung thành, giữ chuột trái rồi thả"}.get(String(_restart.kind), "Bạn đá")
+			return "Chờ %s đá lại" % ("đồng đội" if int(_restart.get("team", -1)) == user_team else "đối phương")
+		Phase.KICKOFF:
+			if user_team == _kickoff_team and _user_near(center3(), 3.5):
+				return "GIAO BÓNG: chuột phải chuyền cho đồng đội · chuột trái sút"
+			return "Chờ giao bóng — %s" % ("đội bạn giao" if user_team == _kickoff_team else "đối phương giao")
+	if _ball_in_reach() and _user_can_touch():
+		return "BÓNG Ở CHÂN BẠN — giữ chuột trái: sút · chuột phải: chuyền"
+	var holder := _holder_team()
+	if holder == user_team:
+		return "Đồng đội giữ bóng — chạy lên phía trước, Q: gọi chuyền"
+	if holder >= 0:
+		return "Đối phương giữ bóng — chạy tới tranh bóng (đừng chạy xô vào người)"
+	return "Chạy tới bóng (theo vòng / mũi tên trắng)"
 
 
 func _update_overlay() -> void:
@@ -1419,33 +1443,6 @@ func _update_overlay() -> void:
 	if not show and first_person != null and first_person.active and phase != Phase.IDLE:
 		show = rect.grow(10.0).has_point(_user_pos2())
 	_ui.visible = show
-	if not show:
-		return
-	var mins := int(maxf(_match_timer, 0.0)) / 60
-	var secs := int(maxf(_match_timer, 0.0)) % 60
-	var hname: String = {Phase.HALFTIME: "Nghỉ giữa hiệp", Phase.FULLTIME: "Hết giờ", Phase.IDLE: "Chờ người"}.get(phase, "Hiệp %d" % half)
-	_ui_score.text = "%s  %d – %d  %s   ·   %s   ·   %02d:%02d" % [TEAM_NAMES[0], score[0], score[1], TEAM_NAMES[1], hname, mins, secs]
-	var info := ""
-	if user_team >= 0:
-		var goal := Vector2(rect.end.x if _attack_dir(user_team) > 0.0 else rect.position.x, rect.get_center().y)
-		info = "Bạn đá cho %s · khung thành đối phương ở %s" % [TEAM_NAMES[user_team], _rel_dir(goal)]
-		var act := ""
-		if phase == Phase.RESTART and _restart.get("taker") is String:
-			act = {"throw": "Bạn ném biên: chuột trái (giữ để ném xa) / chuột phải ném cho đồng đội",
-					"corner": "Bạn đá phạt góc: giữ chuột trái lấy lực, nhìn lên để bóng bổng",
-					"goal_kick": "Bạn phát bóng lên: giữ chuột trái lấy lực",
-					"free": "Bạn đá phạt: chuột trái sút / chuột phải chuyền",
-					"penalty": "Bạn sút phạt đền: nhìn vào góc khung thành, giữ chuột trái lấy lực"}.get(String(_restart.kind), "")
-		elif phase == Phase.KICKOFF and user_team == _kickoff_team and _user_near(center3(), 3.5):
-			act = "Bạn giao bóng: chuột phải chuyền cho đồng đội hoặc chuột trái sút"
-		else:
-			act = "Giữ chuột trái: sút  ·  chuột phải: chuyền  ·  Q: gọi chuyền  ·  chạy vào bóng: dẫn"
-		if _charging:
-			var n := int(round(_charge * 10.0))
-			act = "Lực sút  " + "■".repeat(n) + "□".repeat(10 - n)
-		info += "\n" + act
-	_ui_info.text = info
-	_ui_call.text = _call_text if _call_t > 0.0 else ""
 
 
 # --- Bóng -------------------------------------------------------------------------------
