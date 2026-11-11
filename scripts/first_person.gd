@@ -26,6 +26,7 @@ const SOLID_LAYER := 4
 @export var tip_cat: TipCat
 @export var o_an_quan: OAnQuan
 @export var kite: KiteFlying
+@export var river: River
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -39,6 +40,17 @@ const SOLID_LAYER := 4
 @export var mouse_sensitivity: float = 0.0025
 @export var fov: float = 72.0
 
+@export_group("Bơi")
+## Bơi thường / bơi sải (giữ Shift) dưới sông, m/s.
+@export var swim_speed: float = 1.5
+@export var swim_fast_speed: float = 2.6
+## Vào sâu hơn mép nước chừng này mới bắt đầu bơi (gần mép thì lội).
+@export var swim_margin: float = 1.3
+## Khi bơi mắt cao hơn mặt nước chừng này.
+@export var swim_eye: float = 0.17
+## Trong nước đổi hướng / lấy đà chậm hơn trên bờ.
+@export var swim_acceleration: float = 3.5
+
 @export_group("Tương tác")
 @export var reach: float = 3.2
 @export var dribble_distance: float = 0.55
@@ -48,6 +60,11 @@ var active: bool = false
 var speed_scale: float = 1.0
 ## Hệ số tốc độ chạy (Inventory đặt khi no bụng, mục 48).
 var run_boost: float = 1.0
+## Đang bơi dưới sông (mục 49).
+var swimming: bool = false
+var _eye: float = 1.6
+var _stroke: float = 0.0
+var _tread: float = 0.0
 var camera: Camera3D
 var _pitch: float = 0.0
 var _colliders_built: bool = false
@@ -170,6 +187,9 @@ func enter() -> void:
 
 ## Thôi nhập vai: camera ngắm cảnh quay về chỗ đang đứng.
 func exit() -> void:
+	_set_swimming(false)
+	_eye = eye_height
+	camera.rotation.z = 0.0
 	active = false
 	_suspended = ""
 	set_physics_process(false)
@@ -319,12 +339,16 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("cam_left", "cam_right", "cam_forward", "cam_back")
 	var wish := (global_transform.basis * Vector3(input.x, 0, input.y))
 	wish.y = 0.0
-	wish = wish.normalized() * (run_speed * run_boost if Input.is_action_pressed("fp_run") else walk_speed) * minf(input.length(), 1.0) * speed_scale
-	var t := 1.0 - exp(-acceleration * delta)
+	_update_swimming()
+	var top := run_speed * run_boost if Input.is_action_pressed("fp_run") else walk_speed
+	if swimming:
+		top = swim_fast_speed * run_boost if Input.is_action_pressed("fp_run") else swim_speed
+	wish = wish.normalized() * top * minf(input.length(), 1.0) * speed_scale
+	var t := 1.0 - exp(-(swim_acceleration if swimming else acceleration) * delta)
 	velocity.x = lerpf(velocity.x, wish.x, t)
 	velocity.z = lerpf(velocity.z, wish.z, t)
 	if is_on_floor():
-		if Input.is_action_just_pressed("fp_jump"):
+		if Input.is_action_just_pressed("fp_jump") and not swimming:
 			velocity.y = jump_speed
 	else:
 		velocity.y -= gravity * delta
@@ -338,7 +362,20 @@ func _physics_process(delta: float) -> void:
 	# Nhún nhẹ theo bước chân
 	var hs := Vector2(velocity.x, velocity.z).length()
 	_bob += hs * delta * 2.2
-	camera.position.y = eye_height + (sin(_bob * PI) * 0.025 * clampf(hs / walk_speed, 0.0, 1.5) if is_on_floor() else 0.0)
+	var eye_to := eye_height
+	var bob := sin(_bob * PI) * 0.025 * clampf(hs / walk_speed, 0.0, 1.5) if is_on_floor() else 0.0
+	if swimming:
+		# Mắt sát mặt nước, nhấp nhô và nghiêng theo nhịp sải tay; mỗi sải một gợn nước
+		eye_to = river.water_level + swim_eye - global_position.y
+		var before_stroke := _stroke
+		_stroke += hs * delta * 1.25
+		bob = 0.035 * sin(_stroke * TAU) * clampf(hs / swim_speed, 0.0, 1.0) + 0.012 * sin(_tread * 2.4)
+		_tread += delta
+		if floorf(_stroke) != floorf(before_stroke) or (hs < 0.3 and fmod(_tread, 1.8) < delta):
+			river.splash(global_position - global_transform.basis.z * 0.5)
+	_eye = lerpf(_eye, eye_to, 1.0 - exp(-7.0 * delta))
+	camera.position.y = _eye + bob
+	camera.rotation.z = lerpf(camera.rotation.z, 0.035 * sin(_stroke * PI) if swimming and hs > 0.3 else 0.0, minf(delta * 6.0, 1.0))
 	if _inside_walk:
 		# Bước ra khỏi nền nhà là ra sân
 		var it := house_entry.interior
@@ -352,6 +389,26 @@ func _physics_process(delta: float) -> void:
 		outdoor_rig.global_position = Vector3(global_position.x, 0.0, global_position.z)
 	_dribble(hs)
 	_update_look()
+
+
+## Xuống sông đủ sâu thì bơi, lên gần bờ (hoặc trèo lên đò, cầu ván) thì đi bộ lại.
+func _update_swimming() -> void:
+	var now := false
+	if river != null and not _inside_walk and global_position.y < river.water_level + 0.12:
+		# Đã bơi thì nới biên một chút cho khỏi chập chờn ở mép nước
+		now = river.is_water(Vector2(global_position.x, global_position.z), swim_margin - (0.5 if swimming else 0.0))
+	_set_swimming(now)
+
+
+func _set_swimming(on: bool) -> void:
+	if on == swimming:
+		return
+	swimming = on
+	_tread = 0.0
+	if on and river != null:
+		river.splash(global_position)
+	if hud != null:
+		hud.set_swimming(on)
 
 
 ## Bước lên bậc thấp: bị chặn ngang mà nâng lên `step_height` thì đi tiếp được → nâng lên.

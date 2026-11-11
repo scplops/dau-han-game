@@ -293,7 +293,7 @@ func _on_ripple(pos: Vector3) -> void:
 
 ## Bước chân khi nhập vai đi trên mặt đất.
 func _tick_steps(delta: float) -> void:
-	if first_person == null or not first_person.active or first_person._suspended != "" or not first_person.is_on_floor():
+	if first_person == null or not first_person.active or first_person._suspended != "" or not first_person.is_on_floor() or first_person.swimming:
 		return
 	var v := first_person.velocity
 	var sp := Vector2(v.x, v.z).length()

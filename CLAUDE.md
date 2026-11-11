@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49).
 
 ---
 
@@ -208,6 +208,7 @@ scripts/
   game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
+  river_swim.gd        # tắm sông: trẻ con chiều hè tan học ra bến bơi, té nước; người chơi bơi thì gọi (mục 49)
   inventory.gd         # túi đồ + tiền: danh mục vật phẩm, ăn / mồi / diều / sáo, biếu quà, màn hình phím I (mục 48)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
   seasons.gd           # bốn mùa: màu lá, hoa phượng, thời tiết theo mùa, lá rụng, ve kêu (mục 42)
@@ -1445,3 +1446,35 @@ thay mesh procedural bằng model Blender.
   màn hình (ngăn, mở / gấp, không mở khi trò chuyện), nạp file cũ. Hiệu ứng đẩy trong `_process` — bài thử chờ `process_frame`
   (chờ `physics_frame` thì sau lúc dựng cảnh nặng nhiều bước vật lý dồn vào một khung, `_process` chưa chạy).
 - Chụp ảnh: `--inventory[=0..4]` (mở túi ở ngăn đó, kèm đồ mẫu).
+
+## 49. Bơi dưới sông, trẻ con tắm sông chiều hè (giai đoạn 9b)
+
+- **Sông chỉ sâu ~0,26 m** (mục 14: lòng sông nằm TRÊN nền cỏ, không đào sâu được) nên độ sâu là "giả": người bơi nằm sấp sát mặt
+  nước; người đứng trong nước thì hạ node xuống DƯỚI lòng sông (lòng bùn đục che chân) cho nước ngang ngực; người chơi bơi thì hạ mắt.
+- **Người chơi bơi** (`FirstPerson.swimming`, cần `river`): xuống sông sâu hơn mép nước `swim_margin` 1,3 m và chân thấp hơn mặt nước
+  (`_update_swimming`; đứng trên đò / cầu ván thì không tính; đã bơi thì nới biên 0,5 m cho khỏi chập chờn) → mắt hạ dần xuống cách mặt
+  nước `swim_eye` 0,17 m (`_eye` nội suy), W A S D bơi `swim_speed` 1,5 m/s, Shift bơi sải `swim_fast_speed` 2,6 (× `run_boost` khi no
+  bụng), đổi hướng chậm (`swim_acceleration`), không nhảy; camera nhấp nhô + nghiêng theo nhịp sải, mỗi sải một gợn nước
+  (`River.splash` → Soundscape tự phát tiếng nước), đứng nước cũng gợn; không có tiếng bước chân. HUD: "Đang bơi dưới sông"
+  (`Hud.set_swimming`). Lên gần bờ thì tự đi bộ lại. Vẫn nhìn + E được (trèo lên đò, nói với bọn trẻ…).
+- `scripts/river_swim.gd` (`RiverSwim`, node con của `Main`, đứng SAU `World`): trẻ con tắm sông.
+  - **Lịch** `weight(v, h)` (Villagers `_choices`, việc `swim` sẵn có): mùa hạ trong giờ tắm — ngày đi học `hours_school_day`
+    16:30–18:54 (sau giờ tan học), ngày nghỉ / chiều thứ Bảy `hours_day_off` từ 14:30 — và trước `go_by` 18:00: `summer_weight` 9
+    (cao hơn đá bóng 7); mùa hạ ngoài giờ 1,2; xuân / thu buổi chiều 1,0; mùa đông, mưa: 0. Bến cách cổng trường ~230 m (đi thường
+    mất ~3 giờ trong game) nên đi tắm thì CHẠY (`run_mul` 2 → `speed_mul`), tới bến gần nhất còn chỗ (`landing_for`, `max_per_landing`).
+  - **Tới mép nước** (`on_arrive`): meta `swimming` + `talking` (Villagers chỉ diễn hoạt), con trai cởi trần (`wear("shirtless")`, meta
+    `outfit_before` như đá bóng), con gái mặc nguyên. Pha: `enter` (chạy mấy bước, nhảy ùm — gợn nước) → `swim` (bơi tới điểm ngẫu
+    nhiên trong vùng bơi `_zone_point`: dọc sông ±`zone_along` 9 m, cách mép 2,4–8 m, né cầu ván, đầm sen `lotus_clear`, đò neo) ⇄
+    `splash` (40 % số lần tới nơi: đứng nước ngang ngực `stand_depth`, dáng `play`, quay mặt về đứa gần nhất / người chơi, té nước
+    3–6 s) → `exit` (hết `swim_seconds` 50–90 s thật, hết giờ, mưa: bơi về mép bến, đứng thẳng, mặc áo lại, dwell 0 → thường về nhà).
+    Bị Villagers gọi đi việc khác thì thôi tắm ngay (`_release`).
+  - **Dáng `swim`** (`Villager._animate`): hai tay quạt vòng so le, chân đập, thân lắc; RiverSwim xoay cả node quanh X `tilt_deg` 72°
+    (đầu nhô khỏi mặt nước), gót chân ở `swim_feet` −0,2 m so với mặt nước.
+  - Thỉnh thoảng một đứa reo (`BARKS`); người chơi đang bơi tới gần 7 m thì gọi (`GREET`, 14 s một lần). Nhấn E vào đứa đang tắm:
+    chỉ nói câu ngắn (Dialogue). `stats` đếm xuống / lên / gợn nước / câu reo.
+- `tools/swim_test.gd` (chạy với `timeout 550`): trọng số theo mùa / giờ / ngày nghỉ / mưa; chiều hè 16:36 tua ×4 — 6–13 đứa cùng
+  chạy ra sông (lấy mẫu thưa nên dao động), ~30 lượt xuống sông, tới ~19 đứa cùng tắm ở 3 bến, ai xuống cũng ở trong nước, đang bơi thì nằm sấp đúng độ cao, con trai cởi trần; người
+  chơi xuống sông: mắt cao 0,50 m (mặt nước 0,32), bơi 1,49 m/s, sải 2,60 m/s, không nhảy được, bọn trẻ gọi, lên bờ mắt về 1,6 m;
+  19:00 lên bờ hết, gỡ sạch meta / góc xoay / áo.
+- Chụp ảnh: `--date=2027-06-22 --hour=17.2 --weather=clear --swim[=bến] [--swim-kids=N] --distance=13 --pitch=-28 --yaw=120` (bến tây);
+  thêm `--fp --fp-pitch=-4` để xem từ mắt người chơi đang bơi.

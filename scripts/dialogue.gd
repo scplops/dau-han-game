@@ -24,6 +24,7 @@ signal finished
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
 @export var folk_games: FolkGames
+@export var river_swim: RiverSwim
 @export var tip_cat: TipCat
 @export var farming: Farming
 @export var market: Market
@@ -109,6 +110,9 @@ func start(v: Villager, player: Node3D) -> bool:
 		return false
 	if tug_war != null and tug_war.is_member(v):
 		bark(v, ["Hò dô ta!", "Vào kéo với bọn này đi! Nhìn vào rồi bấm E!", "Kéo đi! Kéo đi!"][_rng.randi_range(0, 2)])
+		return false
+	if river_swim != null and river_swim.is_member(v):
+		bark(v, fill_for(v, ["Nước mát lắm, {you} xuống tắm đi!", "Đang tắm sông mà! Té nước này!", "{You} bơi được không? Xuống đây!"][_rng.randi_range(0, 2)]))
 		return false
 	if jump_rope != null and jump_rope.is_member(v):
 		bark(v, ["Vào nhảy với bọn em đi!", "Đang nhảy, chờ tí!", "Một, hai, ba…"][_rng.randi_range(0, 2)])

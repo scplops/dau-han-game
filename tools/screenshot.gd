@@ -7,6 +7,7 @@ extends SceneTree
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
 ##        [--notebook=0..4] (mở sổ tay ở trang đó, kèm dữ liệu mẫu)
+##        [--swim[=bến 0..2]] [--swim-kids=N] (trẻ con tắm sông ở bến đó; cùng --fp: bạn bơi cạnh, nhìn về bọn trẻ)
 ##        [--inventory[=0..4]] (mở túi đồ ở ngăn đó — tất cả, đồ ăn, đồ dùng, đồ đạc, giỏ cá — kèm đồ mẫu)
 ##        [--enter=house_0 --fp --fp-in=stair|up|x,y,z] (đứng ở chân cầu thang / trên gác nhà 2 tầng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus;
@@ -456,6 +457,37 @@ func _run() -> void:
 		if rig != null and not tgs.playing:
 			rig.set_focus(tgs.site)
 			rig.global_position = tgs.site
+	# Tắm sông (mục 49): --swim[=bến] cho N đứa trẻ xuống bơi ở bến đó; cùng --fp thì người chơi bơi cạnh
+	var rsw := scene.get_node_or_null("RiverSwim") as RiverSwim
+	if rsw != null and args.has("swim"):
+		var vsw := scene.get_node("World/Villagers") as Villagers
+		var rv := scene.get_node("World/River") as River
+		var sw_arg := str(args["swim"])
+		var li_sw := clampi(int(sw_arg) if sw_arg.is_valid_int() else 0, 0, rv.landings.size() - 1)
+		var edge_sw: Vector3 = rv.landings[li_sw].edge
+		var nk := 0
+		for v in vsw.people:
+			if nk < int(args.get("swim-kids", "8")) and v.role == "kid" and not v.has_meta("talking"):
+				v.visible = true
+				v.state = Villager.State.IDLE
+				v.activity = "swim"
+				v.global_position = edge_sw + Vector3(-1.5 + nk * 0.4, 0, 0)
+				rsw.on_arrive(v)
+				nk += 1
+		for i in 60 * 14:
+			rsw.step(1.0 / 60.0)
+		if fp != null and fp.active:
+			var zs: Dictionary = rsw._zones[li_sw]
+			var smp_sw := rv.sample(float(zs.s0))
+			var n_sw := (smp_sw[1] as Vector2).orthogonal() * float(zs.side)
+			var q_sw := (smp_sw[0] as Vector2) + n_sw * (rv.half_width(float(zs.s0)) - 9.5)
+			fp.global_position = Vector3(q_sw.x, rv.water_level, q_sw.y)
+			fp.rotation.y = atan2(-n_sw.x, -n_sw.y)
+			for i in 40:
+				await physics_frame
+		elif rig != null:
+			rig.set_focus(edge_sw)
+			rig.global_position = edge_sw
 	if jrs != null and args.has("rope-play") and fp != null and fp.active:
 		var vsp := scene.get_node("World/Villagers") as Villagers
 		var kid: Villager = null

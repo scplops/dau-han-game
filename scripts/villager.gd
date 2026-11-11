@@ -835,6 +835,21 @@ func _animate(delta: float) -> void:
 				elbows[0].rotation.x = -0.5 - 0.3 * push
 				elbows[1].rotation.x = -0.5 - 0.3 * push
 			body.rotation.x = 0.12 + 0.08 * push
+		"swim":
+			# Bơi sải (RiverSwim xoay cả người nằm sấp sát mặt nước): hai tay quạt vòng so le, chân đập, thân lắc
+			var st := _work_time * 4.2
+			if arms.size() == 2:
+				arms[0].rotation.x = -fposmod(st, TAU)
+				arms[1].rotation.x = -fposmod(st + PI, TAU)
+			for e in elbows:
+				e.rotation.x = -0.15
+			if legs.size() == 2:
+				legs[0].rotation.x = 0.32 * sin(st * 2.3)
+				legs[1].rotation.x = -0.32 * sin(st * 2.3)
+			for k in knees:
+				k.rotation.x = 0.2
+			body.position.y = 0.0
+			body.rotation = Vector3(0.0, 0.0, 0.16 * sin(st))
 		"sleep":
 			# Nằm ngửa (thân được IndoorFolk xoay nằm), tay xuôi, thở chậm
 			for l in legs:

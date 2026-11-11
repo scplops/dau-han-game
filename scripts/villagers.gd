@@ -30,6 +30,7 @@ const NIGHT_END := 5.2
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
 @export var folk_games: FolkGames
+@export var river_swim: RiverSwim
 @export var tip_cat: TipCat
 @export var farming: Farming
 @export var o_an_quan: OAnQuan
@@ -551,7 +552,12 @@ func _choices(v: Villager, h: float) -> Dictionary:
 			"carrier": c["river"] = 2.5
 			"farmer": c["river"] = 0.8
 			"kid":
-				if season != "winter":          # mùa đông rét, không tắm sông
+				# Tắm sông (mục 49): chiều hè tan học là ùa ra sông; mùa đông rét thì không
+				if river_swim != null:
+					var sw := river_swim.weight(v, h)
+					if sw > 0.0:
+						c["swim"] = sw
+				elif season != "winter":
 					c["swim"] = 3.2 if season == "summer" else 2.0
 			"elder": c["fishing"] = 2.0
 	# Chiều tan học, tan đồng: trẻ con và thanh niên ra sân bóng, người già ra xem
@@ -663,6 +669,8 @@ func _target(v: Villager, act: String) -> Vector3:
 			return school.yard_spots[_rng.randi_range(0, school.yard_spots.size() - 1)] + Vector3(_rng.randf_range(-1, 1), 0, _rng.randf_range(-1, 1))
 		"river", "swim", "fishing":
 			var l: Dictionary = river.landings[_rng.randi_range(0, river.landings.size() - 1)]
+			if act == "swim" and river_swim != null:
+				l = river_swim.landing_for(v)        # bến gần nhất còn chỗ
 			v.set_meta("landing", l)
 			match act:
 				"fishing": return l.spot
@@ -742,6 +750,8 @@ func _next_activity(v: Villager, forced: String = "") -> void:
 			v.set_outfit(false)
 	v.walk_path(p)
 	v.speed_mul = 1.7 if act == "shelter" else (1.3 if weather != null and weather.kind == "drizzle" else 1.0)
+	if act == "swim" and river_swim != null:
+		v.speed_mul = river_swim.run_mul          # chạy ùa ra sông (bến ở xa)
 	v.work_anim = "idle"
 	v.activity_text = ACTIVITY_TEXT[act][0]
 	if v.lantern != null:
@@ -875,6 +885,9 @@ func _arrive(v: Villager) -> void:
 	# Ra tới sân bóng: vào đá nếu còn chỗ, không thì đứng xem
 	if act == "football" and football != null:
 		football.arrive(v)
+	# Tới bến sông: nhảy xuống tắm (mục 49) — RiverSwim giữ tới khi lên bờ
+	if act == "swim" and river_swim != null:
+		river_swim.on_arrive(v)
 
 
 # --- Mỗi khung hình --------------------------------------------------------------------
