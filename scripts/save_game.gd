@@ -31,10 +31,11 @@ signal loaded(path: String)
 @export var o_an_quan: OAnQuan
 @export var hide_seek: HideSeek
 @export var market: Market
+@export var inventory: Inventory
 @export var festival: Festival
 @export var graphics: Graphics
 
-const VERSION := 1
+const VERSION := 2
 
 ## Kỷ lục của người chơi (sổ tay mục 38 đọc từ đây).
 var records: Dictionary = {
@@ -183,9 +184,8 @@ func snapshot() -> Dictionary:
 			if is_instance_valid(v) and v is Villager:
 				met[(v as Villager).display_name] = int(dialogue._met[v])
 		d["met"] = met
-	if market != null:
-		d["money"] = market.money
-		d["bag"] = market.bag.duplicate()
+	if inventory != null:
+		d["inventory"] = inventory.snapshot()
 	if festival != null:
 		d["lixi"] = festival.lixi.duplicate()
 		d["lixi_year"] = festival.lixi_year
@@ -233,11 +233,11 @@ func apply(d: Dictionary) -> void:
 		for v in villagers.people:
 			if met.has(v.display_name):
 				dialogue._met[v] = int(met[v.display_name])
-	if market != null:
-		market.money = int(d.get("money", market.money))
-		market.bag.clear()
-		for it: Variant in d.get("bag", []):
-			market.bag.append(str(it))
+	if inventory != null:
+		if d.has("inventory"):
+			inventory.load_data(d.inventory)
+		else:
+			inventory.load_legacy(d)        # file lưu bản trước: tiền + túi đồ ở chợ, quà là tên
 	if festival != null:
 		festival.lixi.clear()
 		for nm: Variant in d.get("lixi", []):

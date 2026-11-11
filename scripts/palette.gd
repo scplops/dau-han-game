@@ -167,3 +167,20 @@ const FLAG_STAR := Color("#ffd23a")
 const PHUONG := Color("#e2442f")         # hoa phượng
 const BLACKBOARD := Color("#2f4a3a")
 const SIGN_BLUE := Color("#2b5ea8")
+
+# Biểu tượng vật phẩm trong túi đồ (bổ sung, mục 48)
+const ICON_FISH := Color("#9aa5a8")       # cá bạc (mè, trắm)
+const ICON_FISH_RED := Color("#d8643c")   # chép đỏ
+const ICON_FISH_GOLD := Color("#c9a24a")  # chép
+const ICON_FISH_DARK := Color("#4e4a44")  # trê
+const ICON_POTATO := Color("#8a4f7a")     # khoai lang
+const ICON_EGG := Color("#efe3c8")        # trứng gà
+const ICON_DUCK_EGG := Color("#cfe0d8")   # trứng vịt
+const ICON_POMELO := Color("#a9c25a")     # quả bưởi
+const ICON_GUAVA := Color("#c8dc8a")      # ổi chín
+const ICON_LONGAN := Color("#b98a4f")     # nhãn
+const ICON_SIM := Color("#6b3f78")        # sim chín
+const ICON_CANDY := Color("#b07a3e")      # kẹo lạc, bánh đa
+const ICON_RICE_CAKE := Color("#f4f0e4")  # bánh giầy, xôi
+const ICON_SLOT := Color("#e8d8b2")       # ô đồ trong túi
+const ICON_SLOT_ON := Color("#f7c873")    # ô đang chọn

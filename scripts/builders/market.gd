@@ -6,8 +6,8 @@ extends Node3D
 ## - Phiên chợ: ngày âm lịch chia 5 dư 1 (mùng 1, 6, 11, 16, 21, 26), buổi sáng `market_hours`.
 ## - Người bán: lúc chợ mở, Market gọi người gánh hàng (thiếu thì nông dân nữ) ra sạp (việc `market_sell`), ngồi ghế
 ##   đẩu sau sạp; tan chợ thì về. Người đi chợ: việc `market` của Villagers (phụ nữ, cụ già, trẻ con) — đứng trước sạp.
-## - Người chơi (nhập vai, trò chuyện với người bán): xem hàng → mua (tiền `money`, đồ vào `bag`); hàng cá mua cá trong
-##   giỏ theo cân × giá loài; đồ đã mua đem biếu dân làng (Dialogue: "Biếu … chút quà") — họ quý hơn.
+## - Người chơi (nhập vai, trò chuyện với người bán): xem hàng → mua (tiền và đồ ở túi đồ `Inventory`, mục 48); bán lại
+##   cho người bán đồ đúng loại sạp họ (nửa giá), hàng cá mua cá trong giỏ theo cân × giá loài. Biếu quà: `Inventory`.
 
 signal traded(text: String)
 
@@ -17,6 +17,7 @@ signal traded(text: String)
 @export var weather: Weather
 @export var villagers: Villagers
 @export var fishing: Fishing
+@export var inventory: Inventory
 @export var random_seed: int = 1906
 @export_group("Bố cục")
 ## Tâm lối đi giữa hai dãy lều.
@@ -28,19 +29,17 @@ signal traded(text: String)
 @export var market_hours: Vector2 = Vector2(5.5, 11.5)
 ## Gọi người bán ra chợ sớm hơn giờ họp bao nhiêu giờ (gánh hàng từ trong làng ra mất một lúc).
 @export var prep_hours: float = 1.25
-## Tiền người chơi có lúc bắt đầu (nghìn đồng).
-@export var start_money: int = 20
 
-## Các sạp: loại, tên, hàng bán (tên, giá nghìn đồng).
+## Các sạp: loại, tên, hàng bán (mã vật phẩm trong `Inventory.ITEMS` — tên, giá lấy từ đó).
 const STALLS: Array = [
-	{"kind": "veg", "name": "Hàng rau", "items": [["bó rau muống", 2], ["mớ rau cải", 2], ["bó hành lá", 1]]},
-	{"kind": "fruit", "name": "Hàng hoa quả", "items": [["nải chuối", 5], ["quả bưởi", 8], ["chùm nhãn", 6]]},
-	{"kind": "fish", "name": "Hàng cá", "items": [["mớ tép", 5], ["xâu cá rô", 9]]},
-	{"kind": "poultry", "name": "Hàng gà vịt", "items": [["chục trứng gà", 12], ["chục trứng vịt", 10]]},
-	{"kind": "rice", "name": "Hàng gạo", "items": [["cân gạo nếp", 10], ["cân gạo tám", 9]]},
-	{"kind": "pottery", "name": "Hàng đồ gốm", "items": [["cái nồi đất", 12], ["cái bát men", 4], ["cái chum nhỏ", 25]]},
-	{"kind": "hats", "name": "Hàng nón quạt", "items": [["cái nón lá", 15], ["cái quạt nan", 3]]},
-	{"kind": "sweets", "name": "Hàng bánh kẹo", "items": [["cái bánh đa", 2], ["gói kẹo lạc", 1], ["đôi bánh giầy", 3], ["cái kẹo kéo", 1]]},
+	{"kind": "veg", "name": "Hàng rau", "items": ["rau_muong", "rau_cai", "hanh", "khoai"]},
+	{"kind": "fruit", "name": "Hàng hoa quả", "items": ["chuoi", "buoi", "nhan", "oi"]},
+	{"kind": "fish", "name": "Hàng cá", "items": ["moi", "tep", "ca_ro"]},
+	{"kind": "poultry", "name": "Hàng gà vịt", "items": ["trung_ga", "trung_vit"]},
+	{"kind": "rice", "name": "Hàng gạo", "items": ["gao_nep", "gao_tam", "xoi_lac"]},
+	{"kind": "pottery", "name": "Hàng đồ gốm", "items": ["noi_dat", "bat_men", "chum"]},
+	{"kind": "hats", "name": "Hàng nón quạt", "items": ["non_la", "quat", "dieu", "sao"]},
+	{"kind": "sweets", "name": "Hàng bánh kẹo", "items": ["banh_da", "keo_lac", "banh_giay", "keo_keo", "quay", "bi"]},
 ]
 ## Giá cá hàng cá mua lại (nghìn đồng / kg).
 const FISH_PRICE := {"Cá chép": 25, "Cá chép đỏ": 30, "Cá diếc": 20, "Cá trắm cỏ": 22, "Cá trê": 28, "Cá mè trắng": 15}
@@ -48,8 +47,6 @@ const FISH_PRICE := {"Cá chép": 25, "Cá chép đỏ": 30, "Cá diếc": 20, "
 var stalls: Array[Dictionary] = []   # {kind, name, items, pos (giữa sạp), face (hướng nhìn ra lối), seat, seller}
 var entry_path: PackedVector2Array    # từ đường đất vào lối giữa chợ (Villagers nối vào đồ thị đường)
 var aisle: PackedVector2Array
-var money: int = 20
-var bag: Array[String] = []           # đồ đã mua, chưa biếu
 var is_open: bool = false
 var _goods: Node3D
 var _rng := RandomNumberGenerator.new()
@@ -59,7 +56,6 @@ var _called: bool = false
 
 func build() -> void:
 	_rng.seed = random_seed
-	money = start_money
 	var mb := MeshBuilder.new(random_seed, 0.05)
 	mb.contact_shade_height = 0.5
 	mb.contact_shade_strength = 0.2
@@ -375,58 +371,92 @@ func stall_of(v: Villager) -> Dictionary:
 	return stalls[i] if i >= 0 and i < stalls.size() else {}
 
 
-## Các câu thêm vào khung thoại (Dialogue gọi): xem hàng, bán cá (hàng cá), biếu quà (ai cũng được).
+## Các câu thêm vào khung thoại (Dialogue gọi): xem hàng, bán lại đồ / bán cá cho người bán.
 func dialog_options(v: Villager, dlg: Dialogue) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var st := stall_of(v)
-	if not st.is_empty() and is_open:
-		out.append({"key": "mk_buy", "repeat": true, "text": "{Npc} bán gì thế{a}? Cho {me} xem hàng.",
-				"answer": func() -> String: return "%s đây, {you} xem đi. Hôm nay hàng tươi lắm! (Bạn có %d nghìn)" % [st.name, money],
-				"next": func() -> Array[Dictionary]: return _buy_options(st, dlg)})
-		if str(st.kind) == "fish" and fishing != null and not fishing.basket.is_empty():
-			out.append({"key": "mk_sell", "repeat": true, "text": "{Npc} mua cá {me} câu được không{a}?",
-					"answer": func() -> String: return sell_fish()})
-	if not bag.is_empty():
-		out.append({"key": "mk_gift", "repeat": true, "text": "{Me} biếu {npc} chút quà{a}.",
-				"answer": func() -> String: return "Ôi, {you} quà cáp gì thế này…",
-				"next": func() -> Array[Dictionary]: return _gift_options(v, dlg)})
+	if st.is_empty() or not is_open or inventory == null:
+		return out
+	out.append({"key": "mk_buy", "repeat": true, "text": "{Npc} bán gì thế{a}? Cho {me} xem hàng.",
+			"answer": func() -> String: return "%s đây, {you} xem đi. Hôm nay hàng tươi lắm! (Bạn có %d nghìn)" % [st.name, inventory.money],
+			"next": func() -> Array[Dictionary]: return _buy_options(st, dlg, 0)})
+	var has_fish := str(st.kind) == "fish" and fishing != null and not fishing.basket.is_empty()
+	if has_fish or not sellable(st).is_empty():
+		out.append({"key": "mk_sell", "repeat": true, "text": "{Npc} có mua lại đồ của {me} không{a}?",
+				"answer": func() -> String: return "Có gì {you} đưa {self} xem nào.",
+				"next": func() -> Array[Dictionary]: return _sell_options(st, 0)})
 	return out
 
 
-func _buy_options(st: Dictionary, dlg: Dialogue) -> Array[Dictionary]:
+## Đồ trong túi người chơi mà sạp này mua lại.
+func sellable(st: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	if inventory == null:
+		return out
+	for id in inventory.order:
+		if str((Inventory.ITEMS[id] as Dictionary).stall) == str(st.kind):
+			out.append(id)
+	return out
+
+
+func resell_price(id: String) -> int:
+	var r := inventory.resell_ratio if inventory != null else 0.5
+	return maxi(1, int(Inventory.price_of(id) * r))
+
+
+## Lựa chọn theo trang: 3 món, hoặc 2 món + "Hàng khác…" khi còn nữa; luôn có câu thôi ở cuối.
+static func _paged(entries: Array[Dictionary], page: int, more: Callable, quit: String) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for it: Array in st.items:
-		var nm: String = it[0]
-		var price: int = it[1]
-		out.append({"text": "Mua %s — %d nghìn" % [nm, price], "answer": func() -> String: return buy(nm, price),
-				"next": func() -> Array[Dictionary]: return _buy_options(st, dlg)})
-		if out.size() >= 3:
-			break
-	out.append({"text": "Thôi, {me} xem thế thôi{a}.", "end": true})
+	var per := 3 if entries.size() <= 3 else 2
+	var start := page * per
+	for k in range(start, mini(start + per, entries.size())):
+		out.append(entries[k])
+	if entries.size() > start + per:
+		out.append({"text": "Món khác…", "answer": func() -> String: return "Còn đây nữa này.",
+				"next": func() -> Array[Dictionary]: return more.call(page + 1)})
+	out.append({"text": quit, "end": true})
 	return out
 
 
-func _gift_options(v: Villager, dlg: Dialogue) -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	var seen := {}
-	for nm in bag:
-		if seen.has(nm):
-			continue
-		seen[nm] = true
-		out.append({"text": "Biếu %s" % nm, "answer": func() -> String: return give(v, nm, dlg)})
-		if out.size() >= 3:
-			break
-	out.append({"text": "Thôi, để lúc khác.", "end": true})
-	return out
+func _buy_options(st: Dictionary, dlg: Dialogue, page: int) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	for id: String in st.items:
+		entries.append({"text": "Mua %s — %d nghìn" % [Inventory.item_name(id), Inventory.price_of(id)],
+				"answer": func() -> String: return buy(id),
+				"next": func() -> Array[Dictionary]: return _buy_options(st, dlg, page)})
+	return _paged(entries, page, func(p: int) -> Array[Dictionary]: return _buy_options(st, dlg, p), "Thôi, {me} xem thế thôi{a}.")
 
 
-func buy(nm: String, price: int) -> String:
-	if money < price:
-		return "Ơ, {you} không đủ tiền rồi (còn %d nghìn). Câu cá bán cho hàng cá lấy tiền mà mua nhé." % money
-	money -= price
-	bag.append(nm)
-	traded.emit("Mua %s · còn %d nghìn" % [nm, money])
-	return "Đây, %s của {you} đây. Cầm cẩn thận nhé! (Còn %d nghìn)" % [nm, money]
+func _sell_options(st: Dictionary, page: int) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	if str(st.kind) == "fish" and fishing != null and not fishing.basket.is_empty():
+		entries.append({"text": "Bán cá trong giỏ (%d con)" % fishing.basket.size(), "answer": func() -> String: return sell_fish()})
+	for id in sellable(st):
+		entries.append({"text": "Bán %s — %d nghìn" % [Inventory.item_name(id), resell_price(id)],
+				"answer": func() -> String: return sell_item(id),
+				"next": func() -> Array[Dictionary]: return _sell_options(st, 0)})
+	return _paged(entries, page, func(p: int) -> Array[Dictionary]: return _sell_options(st, p), "Thôi, {me} giữ lại{a}.")
+
+
+func buy(id: String) -> String:
+	var price := Inventory.price_of(id)
+	var nm := Inventory.item_name(id)
+	if not inventory.spend(price):
+		return "Ơ, {you} không đủ tiền rồi (còn %d nghìn). Câu cá bán cho hàng cá lấy tiền mà mua nhé." % inventory.money
+	inventory.add(id)
+	traded.emit("Mua %s · còn %d nghìn" % [nm, inventory.money])
+	return "Đây, %s của {you} đây. Cầm cẩn thận nhé! (Còn %d nghìn)" % [nm, inventory.money]
+
+
+## Bán lại một món cho người bán đúng loại hàng (`resell_ratio` giá).
+func sell_item(id: String) -> String:
+	var nm := Inventory.item_name(id)
+	if not inventory.remove(id):
+		return "Ơ, {you} còn %s nào đâu?" % nm
+	var got := resell_price(id)
+	inventory.earn(got)
+	traded.emit("Bán %s · được %d nghìn" % [nm, got])
+	return "Ừ, %s thì {self} lấy %d nghìn thôi nhé. (Bạn có %d nghìn)" % [nm, got, inventory.money]
 
 
 ## Hàng cá mua hết cá trong giỏ: cân × giá loài.
@@ -440,23 +470,6 @@ func sell_fish() -> String:
 	var got := maxi(1, roundi(total))
 	fishing.basket.clear()
 	fishing._update_log()
-	money += got
+	inventory.earn(got)
 	traded.emit("Bán %d con cá · được %d nghìn" % [n, got])
-	return "Cá tươi thế này {self} lấy hết! %d con, {self} trả {you} %d nghìn nhé. (Bạn có %d nghìn)" % [n, got, money]
-
-
-## Biếu quà: bỏ khỏi giỏ đồ, người nhận vui, nhớ người chơi lâu hơn.
-func give(v: Villager, nm: String, dlg: Dialogue) -> String:
-	var i := bag.find(nm)
-	if i < 0:
-		return "…"
-	bag.remove_at(i)
-	if dlg != null:
-		var real: Villager = v.get_meta("proxy_of", v)
-		dlg._met[real] = int(dlg._met.get(real, 0)) + 2
-	traded.emit("Biếu %s %s" % [v.display_name, nm])
-	var kid := v.role in ["kid", "herder"]
-	if kid:
-		return ["A, %s! Em cảm ơn {you}! Thích quá!" % nm, "Cho em thật ạ? Em cảm ơn {you} nhiều!"][_rng.randi_range(0, 1)]
-	return ["Quý hoá quá, {you} biếu {self} %s à. Cảm ơn {you} nhé!" % nm,
-			"Ôi, {you} chu đáo quá. Lần sau sang {self} mời nước chè nhé!"][_rng.randi_range(0, 1)]
+	return "Cá tươi thế này {self} lấy hết! %d con, {self} trả {you} %d nghìn nhé. (Bạn có %d nghìn)" % [n, got, inventory.money]

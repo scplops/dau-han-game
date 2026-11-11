@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42) — chưa có túi đồ đầy đủ.
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`).
 
 ---
 
@@ -147,6 +147,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
    `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B), `cycle_quality` (G — mức đồ hoạ),
+   `toggle_inventory` (I — túi đồ),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -207,6 +208,7 @@ scripts/
   game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
+  inventory.gd         # túi đồ + tiền: danh mục vật phẩm, ăn / mồi / diều / sáo, biếu quà, màn hình phím I (mục 48)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
   seasons.gd           # bốn mùa: màu lá, hoa phượng, thời tiết theo mùa, lá rụng, ve kêu (mục 42)
   save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
@@ -265,13 +267,13 @@ screenshots/           # ảnh chụp, không commit
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
 - Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện,
-  việc nhờ, chèo đò, trò chơi dân gian, chợ phiên, lễ hội); túi đồ đầy đủ vẫn để giai đoạn sau.
+  việc nhờ, chèo đò, trò chơi dân gian, chợ phiên, lễ hội, túi đồ + tiền); chế tạo / nấu ăn để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), làm thuê mùa vụ lấy tiền công, nấu ăn / chế tạo đồ, nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
 thay mesh procedural bằng model Blender.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -1407,3 +1409,39 @@ thay mesh procedural bằng model Blender.
   hiên), `--hour=17.6 --pitch=-12 --distance=24 --focus=6,2 --yaw=20` (trời + ao), `--hour=21 --pitch=-14` (sao).
 - Chưa đo FPS thật (máy cloud vẽ bằng phần mềm). SSIL và sương thể tích là hai thứ nặng nhất — máy yếu bấm G về "Vừa".
 
+## 48. Túi đồ và tiền (giai đoạn 9a)
+
+- `scripts/inventory.gd` (`Inventory`, `CanvasLayer` con CUỐI của `Main`, `layer` 19). Gộp những thứ trước đây rải rác:
+  tiền (`Market.money` cũ), đồ mua ở chợ (`Market.bag` cũ), quà của việc nhờ (giờ là vật phẩm thật; `Quests.gifts` chỉ còn là
+  lịch sử tên quà), cá trong giỏ (vẫn ở `Fishing.basket`, hiện ở ngăn "Giỏ cá"). Đơn vị: nghìn đồng.
+- **Danh mục** `ITEMS` (31 món): mã → `name`, `cat` (food / tool / goods), `price`, `stall` (sạp chợ mua lại, "" = không ai
+  mua), `icon`, `use` (eat / drink / bait / kite / flute / ""), `energy` (giây no bụng), `desc`, `likes` (vai thích được biếu),
+  `alias` (tên cũ). `Market.STALLS[].items` và `Quests.GIFTS` dùng MÃ vật phẩm; giá lấy từ danh mục. `items` (mã → số),
+  `order` (thứ tự thêm vào); `add` / `remove` / `earn` / `spend` (false nếu không đủ) / `count`; tín hiệu `changed`, `used`.
+- **Công dụng:** ăn / uống → `energy` giây thật (trần `energy_cap` 360): Inventory ĐẨY hệ số sang `FirstPerson.run_boost` (1,25),
+  `BoatRace.stamina_scale` (0,6), `TugOfWar.decay_scale` (0,7) — các phần đó không cần biết Inventory. Hộp mồi giun →
+  `Fishing.bait` += `bait_per_box` (5); mỗi lần quăng cần tốn một lượt (`_baited`): chờ cá × `bait_factor` 0,5, tầm dụ cá × 1,4.
+  Diều giấy → `KiteFlying.start(null)` (thả diều của mình, không có đứa trẻ đứng cạnh; điều kiện `self_refusal`: giờ, thời
+  tiết, chỗ thoáng); đứt dây thì mất diều (`flying_own_kite`). Sáo trúc → tiếng `flute` (Soundscape: câu nhạc ngũ cung, rung,
+  hơi thổi), trẻ con / cụ già trong 14 m khen.
+- **Kiếm tiền / đồ:** bán cá (hàng cá) và bán lại đồ cho sạp đúng loại (`Market.sellable`, `resell_ratio` nửa giá) — câu
+  "{Npc} có mua lại đồ của {me} không?"; việc nhờ: quà vào túi + người lớn trả tiền công `Quests.PAY` (3–8 nghìn, trẻ con không
+  trả); nhất đua thuyền `race_prize` 10 nghìn (thuyền đơn 2 nghìn mỗi thuyền thua); thắng kéo co → gói kẹo lạc; thắng ô ăn quan
+  (ván chơi hết) → bánh đa; mừng tuổi Tết (Festival cộng / trừ qua `earn` / `spend`). `earned` / `spent` để sổ tay ghi.
+- **Chợ** (`Market`): mua / bán theo trang (`_paged`: 3 món, hoặc 2 món + "Món khác…" + câu thôi — khung thoại tối đa 4 lựa chọn).
+  Hàng mới: hộp mồi giun (hàng cá), diều giấy + sáo trúc (nón quạt), khoai (rau), ổi (hoa quả), xôi lạc (gạo), con quay + bi (bánh kẹo).
+- **Biếu quà** (`Inventory.dialog_options` → Dialogue, sau câu của chợ): ai cũng nhận; đúng món thích (`likes`) thì `_met` +3 và
+  lời cảm ơn riêng, không thì +2.
+- **Màn hình túi đồ** (phím I, `toggle_inventory`): giấy như sổ tay, túi tiền góc trên phải; 5 ngăn (Tất cả, Đồ ăn, Đồ dùng, Đồ đạc,
+  Giỏ cá); lưới 5 cột ô có **biểu tượng vẽ bằng code** (lớp trong `ItemIcon` — `_draw()` hình phẳng theo `icon`, màu `Palette.ICON_*`
+  bổ sung); bên phải chi tiết món (mô tả, công dụng, giá bán lại, ai thích), nút Dùng / Bỏ đi 1; dòng trạng thái: no bụng còn bao
+  lâu, mồi còn mấy lượt, đồ đang cầm cho việc nhờ, đã kiếm / tiêu. A / D đổi ngăn, W / S chọn, E dùng, I / Esc gấp. Mở như sổ tay:
+  không khi đang trò chuyện / chơi trò gì / sổ tay đang mở; nhập vai thì `_suspend("inventory")`. HUD có tiền ở dòng thông tin
+  (`Hud.money_text`). Chữ báo (`toast`) hiện cả khi túi gấp.
+- **Lưu** (`SaveGame` VERSION 2): `inventory` = `snapshot()` (tiền, đồ + thứ tự, no bụng, đã kiếm / tiêu, mồi). File bản trước
+  (`money`, `bag`, `gifts` dạng tên) → `load_legacy` đổi tên ra mã (`id_of`, có `alias`).
+- `tools/inventory_test.gd` (chạy với `timeout`): danh mục đủ, mua / không đủ tiền / bán lại / bán cá, ăn → hệ số chạy / chèo / kéo co
+  rồi hết, mồi giun, biếu quà (+3 / +2), việc nhờ (quà + tiền công), thưởng trò chơi, thả diều của mình + đứt dây mất diều, sáo,
+  màn hình (ngăn, mở / gấp, không mở khi trò chuyện), nạp file cũ. Hiệu ứng đẩy trong `_process` — bài thử chờ `process_frame`
+  (chờ `physics_frame` thì sau lúc dựng cảnh nặng nhiều bước vật lý dồn vào một khung, `_process` chưa chạy).
+- Chụp ảnh: `--inventory[=0..4]` (mở túi ở ngăn đó, kèm đồ mẫu).

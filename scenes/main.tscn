@@ -46,6 +46,7 @@
 [ext_resource type="Script" path="res://scripts/school_day.gd" id="30_schoolday"]
 [ext_resource type="Script" path="res://scripts/o_an_quan.gd" id="31_oaq"]
 [ext_resource type="Script" path="res://scripts/hide_seek.gd" id="32_hs"]
+[ext_resource type="Script" path="res://scripts/inventory.gd" id="47_inv"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -134,8 +135,9 @@ village = NodePath("../Village")
 [node name="School" type="Node3D" parent="World"]
 script = ExtResource("20_school")
 
-[node name="Market" type="Node3D" parent="World" node_paths=PackedStringArray("village", "calendar", "day_night", "weather", "villagers", "fishing")]
+[node name="Market" type="Node3D" parent="World" node_paths=PackedStringArray("village", "calendar", "day_night", "weather", "villagers", "fishing", "inventory")]
 script = ExtResource("41_market")
+inventory = NodePath("../../Inventory")
 village = NodePath("../Village")
 calendar = NodePath("../../Calendar")
 day_night = NodePath("../../DayNight")
@@ -272,8 +274,9 @@ villagers = NodePath("../World/Villagers")
 day_night = NodePath("../DayNight")
 school_day = NodePath("../SchoolDay")
 
-[node name="Quests" type="Node3D" parent="." node_paths=PackedStringArray("village", "river", "football", "fishing", "villagers", "first_person", "outdoor_rig", "dialogue", "hud")]
+[node name="Quests" type="Node3D" parent="." node_paths=PackedStringArray("village", "river", "football", "fishing", "villagers", "first_person", "outdoor_rig", "dialogue", "hud", "inventory")]
 script = ExtResource("25_quests")
+inventory = NodePath("../Inventory")
 village = NodePath("../World/Village")
 river = NodePath("../World/River")
 football = NodePath("../World/Football")
@@ -284,8 +287,9 @@ outdoor_rig = NodePath("../CameraRig")
 dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 
-[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan", "hide_seek", "kite", "jump_rope", "tip_cat", "farming", "market", "festival", "tug_war", "folk_games")]
+[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan", "hide_seek", "kite", "jump_rope", "tip_cat", "farming", "market", "festival", "tug_war", "folk_games", "inventory")]
 script = ExtResource("24_dialogue")
+inventory = NodePath("../Inventory")
 folk_games = NodePath("../FolkGames")
 tug_war = NodePath("../TugOfWar")
 villagers = NodePath("../World/Villagers")
@@ -408,8 +412,9 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 village = NodePath("../World/Village")
 
-[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics")]
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics", "inventory")]
 script = ExtResource("38_save")
+inventory = NodePath("../Inventory")
 graphics = NodePath("../Graphics")
 folk_games = NodePath("../FolkGames")
 tug_war = NodePath("../TugOfWar")
@@ -447,8 +452,9 @@ boat_race = NodePath("../BoatRace")
 calendar = NodePath("../Calendar")
 market = NodePath("../World/Market")
 
-[node name="Notebook" type="CanvasLayer" parent="." node_paths=PackedStringArray("save_game", "fishing", "quests", "dialogue", "villagers", "calendar", "day_night", "weather", "farming", "first_person", "hud", "outdoor_rig", "market", "festival")]
+[node name="Notebook" type="CanvasLayer" parent="." node_paths=PackedStringArray("save_game", "fishing", "quests", "dialogue", "villagers", "calendar", "day_night", "weather", "farming", "first_person", "hud", "outdoor_rig", "market", "festival", "inventory")]
 script = ExtResource("40_notebook")
+inventory = NodePath("../Inventory")
 save_game = NodePath("../SaveGame")
 fishing = NodePath("../Fishing")
 quests = NodePath("../Quests")
@@ -464,8 +470,9 @@ outdoor_rig = NodePath("../CameraRig")
 market = NodePath("../World/Market")
 festival = NodePath("../Festival")
 
-[node name="Festival" type="Node3D" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "village", "villagers", "market", "soundscape")]
+[node name="Festival" type="Node3D" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "village", "villagers", "market", "soundscape", "inventory")]
 script = ExtResource("42_festival")
+inventory = NodePath("../Inventory")
 calendar = NodePath("../Calendar")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
@@ -512,3 +519,20 @@ world_environment = NodePath("../WorldEnvironment")
 sun = NodePath("../Sun")
 day_night = NodePath("../DayNight")
 terrain = NodePath("../World/Terrain")
+
+[node name="Inventory" type="CanvasLayer" parent="." node_paths=PackedStringArray("market", "fishing", "quests", "dialogue", "first_person", "kite", "boat_race", "tug_war", "o_an_quan", "soundscape", "villagers", "notebook", "hud", "outdoor_rig")]
+script = ExtResource("47_inv")
+market = NodePath("../World/Market")
+fishing = NodePath("../Fishing")
+quests = NodePath("../Quests")
+dialogue = NodePath("../Dialogue")
+first_person = NodePath("../FirstPerson")
+kite = NodePath("../KiteFlying")
+boat_race = NodePath("../BoatRace")
+tug_war = NodePath("../TugOfWar")
+o_an_quan = NodePath("../OAnQuan")
+soundscape = NodePath("../Soundscape")
+villagers = NodePath("../World/Villagers")
+notebook = NodePath("../Notebook")
+hud = NodePath("../HUD")
+outdoor_rig = NodePath("../CameraRig")

@@ -201,6 +201,20 @@ func refusal(v: Villager, at: Vector3 = Vector3.INF) -> String:
 	return ""
 
 
+## Lời báo khi người chơi tự thả diều của mình (túi đồ, mục 48): rỗng = thả được.
+func self_refusal(at: Vector3) -> String:
+	var h := day_night.time_of_day if day_night != null else 15.0
+	if h >= 18.5 or h < 6.0:
+		return "Tối rồi, thả diều sao thấy. Mai ra sớm mà thả."
+	if weather != null and weather.kind in ["storm", "drizzle"]:
+		return "Mưa thế này ướt hết giấy diều mất."
+	if weather != null and weather.kind == "fog":
+		return "Sương mù lặng gió, diều không lên được."
+	if not open_area(at):
+		return "Chỗ này lắm cây với mái nhà — ra bờ ruộng hay chỗ trống mà thả."
+	return ""
+
+
 ## Chỗ thoáng: phía trên trống, xung quanh ít vật che ở tầm cao 3–6 m.
 func open_area(at: Vector3) -> bool:
 	if first_person == null:
@@ -277,16 +291,17 @@ func start(v: Villager) -> void:
 			was_ambient = true
 	if was_ambient:
 		v.set_meta("kite_lent", true)
-	kid = v
-	kid.set_meta("talking", true)
+	kid = v                       # null: người chơi thả diều của mình (túi đồ)
 	first_person._suspend("kite")
 	_down = _down_dir()
 	var fp := first_person.global_position
-	# Đứa trẻ đứng cạnh, lệch sang bên tay phải người thả
-	var side := _down.cross(Vector3.UP).normalized()
-	var spot := fp + side * 1.3 - _down * 0.4
-	kid.global_position = Vector3(spot.x, kid.global_position.y if absf(kid.global_position.y - fp.y) < 0.6 else fp.y, spot.z)
-	kid.work_anim = ""
+	if kid != null:
+		kid.set_meta("talking", true)
+		# Đứa trẻ đứng cạnh, lệch sang bên tay phải người thả
+		var side := _down.cross(Vector3.UP).normalized()
+		var spot := fp + side * 1.3 - _down * 0.4
+		kid.global_position = Vector3(spot.x, kid.global_position.y if absf(kid.global_position.y - fp.y) < 0.6 else fp.y, spot.z)
+		kid.work_anim = ""
 	_build_kite(_rng.randi_range(0, KITE_COLORS.size() - 1))
 	visible = true
 	_ui.visible = true

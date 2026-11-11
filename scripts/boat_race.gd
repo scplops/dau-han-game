@@ -46,6 +46,8 @@ signal finished(place: int, time: float)
 @export var drag: float = 0.9
 @export var stamina_drain: float = 0.026
 @export var stamina_regen: float = 0.12
+## Hệ số sức chèo tụt (Inventory đặt khi người chơi no bụng, mục 48).
+var stamina_scale: float = 1.0
 @export var beat_period: float = 0.72
 @export var beat_window: float = 0.13
 @export var beat_boost: float = 0.28
@@ -822,7 +824,7 @@ func step(delta: float, rowing: bool, steer: float) -> void:
 		if i == 0 and not ambient:
 			var tired := float(b.stamina) < 0.12
 			target = ((tired_speed if tired else row_speed) if rowing else 0.0) * sc
-			b.stamina = clampf(float(b.stamina) + (-stamina_drain if rowing else stamina_regen) * delta, 0.0, 1.0)
+			b.stamina = clampf(float(b.stamina) + (-stamina_drain * stamina_scale if rowing else stamina_regen) * delta, 0.0, 1.0)
 			b.head = clampf(float(b.head) + steer * steer_rate * delta, -0.6, 0.6)
 			b.head = float(b.head) * (1.0 - 0.4 * delta)   # tự thẳng lại chút ít
 		else:

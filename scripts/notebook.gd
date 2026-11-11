@@ -22,6 +22,7 @@ extends CanvasLayer
 @export var outdoor_rig: CameraRig
 @export var market: Market
 @export var festival: Festival
+@export var inventory: Inventory
 
 const PAGES: Array[String] = ["Kỷ lục", "Câu cá", "Người quen", "Quà & đồ", "Làng hôm nay"]
 const PAPER := Color("#f3e6c4")
@@ -221,20 +222,16 @@ func _gifts_text() -> String:
 	if quests == null:
 		return ""
 	var t := ""
-	if market != null:
-		t += _h("Túi tiền  ·  %d nghìn đồng" % market.money)
-		if market.bag.is_empty():
-			t += _soft("Chưa mua gì. Sáng ngày phiên chợ ra bãi cỏ ngoài cổng làng mua bán; câu cá bán cho hàng cá lấy tiền.")
+	if inventory != null:
+		t += _h("Túi tiền  ·  %s" % inventory.money_text())
+		t += _soft("Đã kiếm %d nghìn, đã tiêu %d nghìn." % [inventory.earned, inventory.spent])
+		if inventory.order.is_empty():
+			t += _soft("Túi đồ trống. Sáng ngày phiên chợ ra bãi cỏ ngoài cổng làng mua bán; câu cá bán cho hàng cá lấy tiền.")
 		else:
-			var cnt := {}
-			var order: Array[String] = []
-			for it in market.bag:
-				if not cnt.has(it):
-					order.append(it)
-				cnt[it] = int(cnt.get(it, 0)) + 1
-			t += "[color=#%s]Đồ đã mua (đem biếu dân làng được):[/color]\n" % INK_SOFT.to_html(false)
-			for it in order:
-				t += "•  %s%s\n" % [it, ("  × %d" % int(cnt[it])) if int(cnt[it]) > 1 else ""]
+			t += "[color=#%s]Trong túi đồ (phím I để mở, dùng, xem kỹ):[/color]\n" % INK_SOFT.to_html(false)
+			for id in inventory.order:
+				var n := inventory.count(id)
+				t += "•  %s%s\n" % [Inventory.item_name(id), ("  × %d" % n) if n > 1 else ""]
 		t += "\n"
 	t += _h("Việc giúp dân làng  ·  %d việc đã xong" % quests.done_count)
 	if quests.active.is_empty():
@@ -242,7 +239,7 @@ func _gifts_text() -> String:
 	else:
 		for q: Dictionary in quests.active:
 			t += "•  %s\n" % str(q.get("title", "Việc được nhờ"))
-	t += "\n" + _h("Quà đã nhận  ·  %d món" % quests.gifts.size())
+	t += "\n" + _h("Quà đã nhận khi giúp việc  ·  %d món" % quests.gifts.size())
 	if quests.gifts.is_empty():
 		t += _soft("Chưa có quà nào.")
 	else:

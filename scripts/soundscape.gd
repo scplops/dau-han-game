@@ -73,7 +73,7 @@ func _ready() -> void:
 		_rng.randomize()
 	_setup_buses()
 	_queue.assign(["wind", "rain", "river", "crickets", "frogs", "cicada", "bird0", "bird1", "bird2", "rooster", "drum", "bell",
-			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur", "pop"])
+			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur", "pop", "flute"])
 	for i in 14:
 		var p := AudioStreamPlayer3D.new()
 		p.bus = "Effects"
@@ -359,6 +359,7 @@ func _make(nm: String) -> AudioStreamWAV:
 		"cheer": return _wav(_cheer(), false)
 		"murmur": return _wav(_murmur(5.0), true)
 		"pop": return _wav(_pop(), false)
+		"flute": return _wav(_flute(), false)
 	return _wav(PackedFloat32Array([0.0]), false)
 
 
@@ -732,3 +733,36 @@ func _pop() -> PackedFloat32Array:
 		var t := float(i) / SAMPLE_RATE
 		x[i] = _rng.randf_range(-1.0, 1.0) * exp(-t * 38.0) + sin(TAU * 110.0 * t) * exp(-t * 25.0) * 0.6
 	return _norm(x, 0.95)
+
+
+## Sáo trúc (túi đồ, mục 48): một câu nhạc ngũ cung, mỗi nốt có rung, hơi thổi (ồn lọc) và luyến lên ở đầu nốt.
+func _flute() -> PackedFloat32Array:
+	# [nốt (bán cung so với Sol 392 Hz), số phách]
+	var tune: Array = [[0, 1.0], [3, 0.5], [5, 0.5], [7, 1.5], [5, 0.5], [3, 1.0], [0, 0.5], [-2, 0.5], [0, 2.0],
+			[5, 1.0], [7, 0.5], [10, 0.5], [7, 1.0], [5, 0.5], [3, 0.5], [0, 2.5]]
+	var beat := 0.34
+	var total := 0.0
+	for nt: Array in tune:
+		total += float(nt[1]) * beat
+	var n := int((total + 0.4) * SAMPLE_RATE)
+	var x := PackedFloat32Array()
+	x.resize(n)
+	var pos := 0
+	var phase := 0.0
+	var breath := 0.0
+	for nt: Array in tune:
+		var f0 := 392.0 * pow(2.0, float(nt[0]) / 12.0)
+		var len_s := float(nt[1]) * beat
+		var m := int(len_s * SAMPLE_RATE)
+		for i in m:
+			if pos + i >= n:
+				break
+			var t := float(i) / SAMPLE_RATE
+			var bend := 1.0 - 0.03 * exp(-t * 30.0)              # luyến lên đầu nốt
+			var vib := 1.0 + 0.006 * sin(TAU * 5.5 * t) * clampf(t * 3.0, 0.0, 1.0)
+			phase += TAU * f0 * bend * vib / SAMPLE_RATE
+			var env := clampf(t / 0.04, 0.0, 1.0) * clampf((len_s - t) / 0.05, 0.0, 1.0)
+			breath = breath * 0.85 + _rng.randf_range(-1.0, 1.0) * 0.15
+			x[pos + i] = (sin(phase) + 0.22 * sin(2.0 * phase) + 0.06 * sin(3.0 * phase) + 0.18 * breath) * env * (0.75 + 0.25 * sin(PI * t / len_s))
+		pos += m
+	return _norm(x, 0.8)

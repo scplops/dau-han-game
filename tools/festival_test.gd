@@ -29,7 +29,7 @@ func _run() -> void:
 	dn.auto_run = false
 	var fe := scene.get_node("Festival") as Festival
 	var vs := scene.get_node("World/Villagers") as Villagers
-	var mk := scene.get_node("World/Market") as Market
+	var inv := scene.get_node("Inventory") as Inventory
 	var dlg := scene.get_node("Dialogue") as Dialogue
 	dn.time_of_day = 10.0
 	await _frames(70)
@@ -62,15 +62,15 @@ func _run() -> void:
 			adult = v
 		if v.role == "kid" and kid == null:
 			kid = v
-	var m0 := mk.money
+	var m0 := inv.money
 	dlg.npc = adult
 	var o := fe.dialog_options(adult, dlg)
 	var a1 := dlg._fill((o[0].answer as Callable).call()) if not o.is_empty() else "KHÔNG CÓ CÂU"
-	print("3) Chúc Tết %s: \"%s\" · tiền %d → %d · chúc lần nữa còn câu %s" % [adult.display_name, a1, m0, mk.money, not fe.dialog_options(adult, dlg).is_empty()])
+	print("3) Chúc Tết %s: \"%s\" · tiền %d → %d · chúc lần nữa còn câu %s" % [adult.display_name, a1, m0, inv.money, not fe.dialog_options(adult, dlg).is_empty()])
 	dlg.npc = kid
-	var m1 := mk.money
+	var m1 := inv.money
 	o = fe.dialog_options(kid, dlg)
-	print("   Chúc Tết %s: \"%s\" · tiền %d → %d" % [kid.display_name, dlg._fill((o[0].answer as Callable).call()), m1, mk.money])
+	print("   Chúc Tết %s: \"%s\" · tiền %d → %d" % [kid.display_name, dlg._fill((o[0].answer as Callable).call()), m1, inv.money])
 	_goto(cal, 1, 15)
 	await _frames(70)
 	print("4) %s: lễ '%s' · cờ %s · cây nêu %s" % [cal.date_text(), fe.mode, fe._bunting.visible, fe._tet.visible])

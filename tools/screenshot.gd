@@ -7,6 +7,7 @@ extends SceneTree
 ##        [--fish=N] [--fish-state=charge|wait|nibble|bite|reel|caught] (câu cá ở bến thứ N)
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
 ##        [--notebook=0..4] (mở sổ tay ở trang đó, kèm dữ liệu mẫu)
+##        [--inventory[=0..4]] (mở túi đồ ở ngăn đó — tất cả, đồ ăn, đồ dùng, đồ đạc, giỏ cá — kèm đồ mẫu)
 ##        [--enter=house_0 --fp --fp-in=stair|up|x,y,z] (đứng ở chân cầu thang / trên gác nhà 2 tầng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus;
 ##        cùng --enter=khoá thì đi bộ bên trong toà nhà đó)
@@ -603,6 +604,25 @@ func _run() -> void:
 			dlgn._met[vsn.people[k * 7]] = 9 - k
 		nb.show_notebook()
 		nb.set_page(int(args["notebook"]))
+		await process_frame
+		await process_frame
+	# --inventory[=N]: mở túi đồ ở ngăn N, kèm đồ mẫu (mục 48)
+	if args.has("inventory"):
+		var inv := scene.get_node("Inventory") as Inventory
+		var fsh2 := scene.get_node("Fishing") as Fishing
+		inv.reset()
+		for id: String in ["chuoi", "banh_giay", "che", "xoi_lac", "moi", "dieu", "sao", "quay", "bi", "non_la", "trung_ga", "gao_nep", "bat_men"]:
+			inv.add(id, 1 + (id.length() % 3))
+		inv.earn(46)
+		inv.energy = 95.0
+		fsh2.bait = 3
+		fsh2.basket.clear()
+		fsh2.basket.append({"name": "Cá chép đỏ", "kg": 1.12})
+		fsh2.basket.append({"name": "Cá trê", "kg": 0.64})
+		inv.show_inventory()
+		var tab := str(args["inventory"])
+		inv.set_tab(int(tab) if tab.is_valid_int() else 0)
+		inv._select(2)
 		await process_frame
 		await process_frame
 	if args.has("flash") and weather != null:

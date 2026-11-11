@@ -46,6 +46,8 @@ const SOLID_LAYER := 4
 var active: bool = false
 ## Hệ số tốc độ (gánh nước thì đi chậm lại).
 var speed_scale: float = 1.0
+## Hệ số tốc độ chạy (Inventory đặt khi no bụng, mục 48).
+var run_boost: float = 1.0
 var camera: Camera3D
 var _pitch: float = 0.0
 var _colliders_built: bool = false
@@ -317,7 +319,7 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("cam_left", "cam_right", "cam_forward", "cam_back")
 	var wish := (global_transform.basis * Vector3(input.x, 0, input.y))
 	wish.y = 0.0
-	wish = wish.normalized() * (run_speed if Input.is_action_pressed("fp_run") else walk_speed) * minf(input.length(), 1.0) * speed_scale
+	wish = wish.normalized() * (run_speed * run_boost if Input.is_action_pressed("fp_run") else walk_speed) * minf(input.length(), 1.0) * speed_scale
 	var t := 1.0 - exp(-acceleration * delta)
 	velocity.x = lerpf(velocity.x, wish.x, t)
 	velocity.z = lerpf(velocity.z, wish.z, t)

@@ -107,6 +107,11 @@ var _log: Dictionary = {}
 var _total: int = 0
 ## Cá đang có trong giỏ: [{name, kg}] — việc nhờ "câu cá" lấy ra từ đây.
 var basket: Array[Dictionary] = []
+## Số lượt câu còn mồi giun (Inventory: hộp mồi giun, mục 48) — mỗi lần quăng tốn một lượt, cá cắn nhanh hơn.
+var bait: int = 0
+## Có mồi thì thời gian chờ cá cắn × hệ số này.
+@export var bait_factor: float = 0.5
+var _baited: bool = false
 
 # Hình
 var _angler: Node3D
@@ -582,7 +587,11 @@ func _do_cast(delta: float) -> void:
 	if _t >= 1.0:
 		river.splash(_cast_to)
 		state = State.WAIT
-		_wait_timer = _roll_wait()
+		_baited = bait > 0
+		if _baited:
+			bait -= 1
+			_update_log()
+		_wait_timer = _roll_wait() * (bait_factor if _baited else 1.0)
 		_bob_pos = _cast_to
 
 
@@ -598,7 +607,7 @@ func _do_wait(delta: float) -> void:
 			return
 		_wait_timer -= delta
 		if _wait_timer <= 0.0:
-			var idx := river.fish_near(_cast_to, lure_radius)
+			var idx := river.fish_near(_cast_to, lure_radius * (1.4 if _baited else 1.0))
 			if idx >= 0:
 				_take_fish(idx)
 			else:
@@ -909,6 +918,8 @@ func _show_meter(title_a: String, a: float, col_a: Color, title_b: String, b: fl
 func _update_log() -> void:
 	_log_panel.visible = hud == null or hud.visible
 	var lines: Array[String] = [_appetite_text()]
+	if bait > 0:
+		lines.append("Mồi giun: còn %d lượt" % bait)
 	if _log.is_empty():
 		lines.append("Giỏ còn trống")
 	else:

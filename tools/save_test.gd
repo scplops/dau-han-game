@@ -46,6 +46,13 @@ func _run() -> void:
 	qs.gifts.clear()
 	qs.gifts.append("gói chè Thái")
 	qs.gifts.append("con quay gỗ")
+	var inv := scene.get_node("Inventory") as Inventory
+	inv.reset()
+	inv.add("dieu")
+	inv.add("chuoi", 3)
+	inv.earn(17)                 # (+ giải nhất đua thuyền ở dưới)
+	inv.energy = 50.0
+	fish.bait = 4
 	var v1: Villager = vs.people[3]
 	var v2: Villager = vs.people[40]
 	dlg._met.clear()
@@ -71,6 +78,8 @@ func _run() -> void:
 	fish._total = 0
 	fish.basket.clear()
 	qs.gifts.clear()
+	inv.reset()
+	fish.bait = 0
 	dlg._met.clear()
 	for k in sg.records:
 		sg.records[k] = 0
@@ -85,6 +94,8 @@ func _run() -> void:
 		"sổ câu": fish._total == 4 and int(fish._log.get("Cá chép", {}).get("count", 0)) == 3,
 		"giỏ cá": fish.basket.size() == 1,
 		"quà": qs.gifts.size() == 2 and qs.gifts[1] == "con quay gỗ",
+		"túi đồ": inv.money == inv.start_money + 17 + inv.race_prize and inv.count("chuoi") == 3 and inv.count("dieu") == 1 and inv.order == ["dieu", "chuoi"],
+		"no bụng + mồi": absf(inv.energy - 50.0) < 1.0 and fish.bait == 4,
 		"người đã quen": int(dlg._met.get(v1, 0)) == 2 and int(dlg._met.get(v2, 0)) == 5,
 		"kỷ lục nhảy dây": int(sg.records.rope_best) == 37,
 		"kỷ lục diều": absf(float(sg.records.kite_best) - 64.5) < 0.01,

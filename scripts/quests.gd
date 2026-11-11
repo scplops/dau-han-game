@@ -22,6 +22,7 @@ signal changed
 @export var outdoor_rig: CameraRig
 @export var dialogue: Dialogue
 @export var hud: Hud
+@export var inventory: Inventory
 @export var random_seed: int = 0          # 0 = mỗi lần chơi một khác
 
 @export_group("Nhịp")
@@ -34,13 +35,16 @@ signal changed
 ## Gánh nước thì đi chậm lại.
 @export_range(0.3, 1.0) var carry_speed: float = 0.7
 
+## Quà theo vai người nhờ (mã vật phẩm `Inventory.ITEMS`) — vào túi đồ.
 const GIFTS := {
-	"farmer": ["rổ khoai lang", "bó rau muống", "chục trứng gà"],
-	"carrier": ["nải chuối tiêu", "gói xôi lạc", "mấy cái bánh đa"],
-	"elder": ["gói chè Thái", "đĩa kẹo lạc", "túi ổi chín"],
-	"kid": ["con quay gỗ", "con diều giấy", "mấy viên bi"],
-	"herder": ["chùm sim chín", "cây sáo trúc"],
+	"farmer": ["khoai", "rau_muong", "trung_ga", "xoi_lac"],
+	"carrier": ["chuoi", "xoi_lac", "banh_da", "moi"],
+	"elder": ["che", "keo_lac", "oi", "banh_giay"],
+	"kid": ["quay", "dieu", "bi", "keo_keo"],
+	"herder": ["sim", "sao", "dieu"],
 }
+## Tiền công người lớn trả thêm (nghìn đồng); trẻ con không có tiền, chỉ cho quà.
+const PAY := {"farmer": Vector2i(3, 6), "carrier": Vector2i(3, 7), "elder": Vector2i(4, 8)}
 ## [lời người nhờ dặn, lời người chơi nhắn lại (sau "X nhắn {npc}")].
 const MESSAGES: Array = [
 	["tối nay sang nhà {self} ăn giỗ", "tối nay sang ăn giỗ"],
@@ -68,7 +72,7 @@ const KINDS_BY_ROLE := {
 
 var active: Array[Dictionary] = []
 var items: Array[String] = []       # đồ đang cầm (đôi thùng nước, đồ nhặt được)
-var gifts: Array[String] = []       # quà đã nhận
+var gifts: Array[String] = []       # tên quà đã nhận (lịch sử; vật phẩm nằm ở Inventory)
 var done_count: int = 0
 
 var _rng := RandomNumberGenerator.new()
@@ -175,7 +179,10 @@ func make_quest(giver: Villager, kind: String) -> Dictionary:
 	var kid := giver.role in ["kid", "herder"]
 	var q := {"id": _next_id, "kind": kind, "giver": giver, "i": 0, "nodes": [], "marker": null}
 	var gift_list: Array = GIFTS.get(giver.role, ["gói kẹo"])
-	q.gift = str(gift_list[_rng.randi_range(0, gift_list.size() - 1)])
+	q.gift_id = str(gift_list[_rng.randi_range(0, gift_list.size() - 1)])
+	q.gift = Inventory.item_name(str(q.gift_id))
+	var pay: Vector2i = PAY.get(giver.role, Vector2i.ZERO)
+	q.pay = _rng.randi_range(pay.x, pay.y) if pay != Vector2i.ZERO else 0
 	var report := {"type": "talk", "npc": giver, "desc": "Về báo cho %s" % g}
 	match kind:
 		"water":
@@ -363,15 +370,20 @@ func _finish(q: Dictionary) -> String:
 	active.erase(q)
 	gifts.append(str(q.gift))
 	done_count += 1
+	var pay := int(q.get("pay", 0))
+	if inventory != null:
+		inventory.add(str(q.get("gift_id", Inventory.id_of(str(q.gift)))))
+		inventory.earn(pay)
 	_update_carry()
-	_show_toast("Xong việc! Nhận được: " + str(q.gift))
+	_show_toast("Xong việc! Nhận được: %s%s" % [q.gift, (" + %d nghìn" % pay) if pay > 0 else ""])
 	changed.emit()
+	var money_s := (" Còn %d nghìn này nữa, {you} cầm lấy mà tiêu." % pay) if pay > 0 else ""
 	match giver.role:
 		"kid", "herder":
 			return "Ghê thật! {Self} cho {you} %s này, {you} cầm lấy!" % q.gift
 		"elder":
-			return "Ngoan quá, may mà có {you}. {Self} có %s, cầm về mà dùng nhé." % q.gift
-	return "Cảm ơn {you} nhiều nhé! Có %s đây, {you} cầm về mà dùng." % q.gift
+			return "Ngoan quá, may mà có {you}. {Self} có %s, cầm về mà dùng nhé.%s" % [q.gift, money_s]
+	return "Cảm ơn {you} nhiều nhé! Có %s đây, {you} cầm về mà dùng.%s" % [q.gift, money_s]
 
 
 # --- Các bước ------------------------------------------------------------------------------
@@ -587,8 +599,6 @@ func _update_ui() -> void:
 		lines.append("    " + str(_step(q).get("desc", "")) + "  ·  " + _direction_word(q))
 	if not items.is_empty():
 		lines.append("Đang cầm: " + ", ".join(items))
-	if not gifts.is_empty():
-		lines.append("Quà đã nhận (%d): %s" % [gifts.size(), ", ".join(gifts.slice(maxi(gifts.size() - 3, 0)))])
 	_list.text = "\n".join(lines)
 	_panel.visible = not lines.is_empty() and (hud == null or hud.visible)
 

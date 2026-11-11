@@ -30,6 +30,7 @@ func _run() -> void:
 	var dn := scene.get_node("DayNight") as DayNight
 	dn.auto_run = false
 	var mk := scene.get_node("World/Market") as Market
+	var inv := scene.get_node("Inventory") as Inventory
 	var vs := scene.get_node("World/Villagers") as Villagers
 	while int(cal.lunar().day) % 5 != 1 or cal.weekday() == 0:
 		cal.add_days(1)
@@ -74,7 +75,7 @@ func _run() -> void:
 		return
 	fp.global_position = (sweets.front as Vector3) + Vector3(0, 0.1, 0)
 	await _frames(3)
-	var m0 := mk.money
+	var m0 := inv.money
 	dlg.start(seller, fp)
 	fp._suspend("talk")
 	dlg._options = dlg._build_options()
@@ -83,10 +84,10 @@ func _run() -> void:
 	dlg._choose(i_buy)
 	var item_txt := str(dlg._options[0].text)
 	dlg._choose(0)
-	print("   %s → tiền %d → %d, giỏ đồ %s" % [item_txt, m0, mk.money, mk.bag])
-	mk.money = 0
+	print("   %s → tiền %d → %d, túi đồ %s" % [item_txt, m0, inv.money, inv.items])
+	inv.money = 0
 	dlg._choose(1)
-	print("   hết tiền mua tiếp: giỏ đồ vẫn %d món, lời người bán: \"%s\"" % [mk.bag.size(), dlg._text_label.text.left(70)])
+	print("   hết tiền mua tiếp: túi đồ vẫn %d món, lời người bán: \"%s\"" % [inv.total_items(), dlg._text_label.text.left(70)])
 	dlg.end()
 	fp._resume()
 	# Bán cá
@@ -99,7 +100,8 @@ func _run() -> void:
 	dlg._options = dlg._build_options()
 	var i_sell := _opt(dlg, "mk_sell")
 	dlg._choose(i_sell)
-	print("   hàng cá mua giỏ cá (chép 1,5 kg + diếc 0,3 kg): có câu %s · tiền %d nghìn (mong đợi ~44) · giỏ cá còn %d" % [i_sell >= 0, mk.money, fish.basket.size()])
+	dlg._choose(0)                      # "Bán cá trong giỏ"
+	print("   hàng cá mua giỏ cá (chép 1,5 kg + diếc 0,3 kg): có câu %s · tiền %d nghìn (mong đợi ~44) · giỏ cá còn %d" % [i_sell >= 0, inv.money, fish.basket.size()])
 	dlg.end()
 	fp._resume()
 	# Biếu quà
@@ -113,20 +115,20 @@ func _run() -> void:
 	dlg.start(friend, fp)
 	fp._suspend("talk")
 	dlg._options = dlg._build_options()
-	var i_gift := _opt(dlg, "mk_gift")
+	var i_gift := _opt(dlg, "inv_gift")
 	dlg._choose(i_gift)
 	dlg._choose(0)
-	print("   biếu %s: có câu %s · giỏ đồ còn %d · quen thêm %d" % [friend.display_name, i_gift >= 0, mk.bag.size(), int(dlg._met.get(friend, 0)) - met0])
+	print("   biếu %s: có câu %s · túi đồ còn %d · quen thêm %d" % [friend.display_name, i_gift >= 0, inv.total_items(), int(dlg._met.get(friend, 0)) - met0])
 	dlg.end()
 	fp._resume()
 	# 4) Lưu / nạp
 	var sg := scene.get_node("SaveGame") as SaveGame
-	mk.bag.append("cái nón lá")
+	inv.add("non_la")
 	var snap := sg.snapshot()
-	mk.money = 999
-	mk.bag.clear()
+	var before := [inv.money, inv.items.duplicate()]
+	inv.reset()
 	sg.apply(snap)
-	print("4) Lưu / nạp: tiền %d · giỏ đồ %s" % [mk.money, mk.bag])
+	print("4) Lưu / nạp: tiền %d · túi đồ %s · khớp %s" % [inv.money, inv.items, [inv.money, inv.items] == before])
 	# 3) Tan chợ
 	dn.time_of_day = 11.6
 	await _frames(90)

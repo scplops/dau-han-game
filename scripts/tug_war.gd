@@ -38,6 +38,8 @@ signal finished(won: bool, mine: int, theirs: int)
 @export var hit_gain: float = 0.22
 @export var miss_loss: float = 0.08
 @export var power_decay: float = 0.10
+## Hệ số sức kéo tụt (Inventory đặt khi người chơi no bụng, mục 48).
+var decay_scale: float = 1.0
 ## Sức đội mình = base + gain × power; đội kia = base + dao động + cơn rướn.
 @export var my_base: float = 0.72
 @export var my_gain: float = 0.6
@@ -475,7 +477,7 @@ func _step_pull(dt: float) -> void:
 	var f0: float
 	var f1: float
 	if playing:
-		power = maxf(power - power_decay * dt, 0.0)
+		power = maxf(power - power_decay * decay_scale * dt, 0.0)
 		f0 = my_base + my_gain * power
 		f1 = their_base + float(g.bias[1]) + 0.12 * sin(t * 1.3 + float(g.ph[1])) + (0.22 if float(g.surge) > 0.0 else 0.0)
 	else:

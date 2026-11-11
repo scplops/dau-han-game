@@ -28,6 +28,7 @@ signal finished
 @export var farming: Farming
 @export var market: Market
 @export var festival: Festival
+@export var inventory: Inventory
 @export var kite: KiteFlying
 ## Người chơi là nữ thì trẻ con gọi "chị", không thì gọi "anh".
 @export var player_female: bool = false
@@ -324,11 +325,15 @@ func _build_options() -> Array[Dictionary]:
 	# Tết (mục 41): chúc Tết, mừng tuổi
 	if festival != null:
 		out.append_array(festival.dialog_options(v, self))
-	# Chợ phiên (mục 40): xem hàng / bán cá cho người bán, biếu quà cho ai cũng được
+	# Chợ phiên (mục 40): xem hàng / bán lại đồ, bán cá cho người bán; túi đồ (mục 48): biếu quà cho ai cũng được
+	var extra: Array[Dictionary] = []
 	if market != null:
-		for o in market.dialog_options(v, self):
-			if out.size() < 3:            # khung thoại chỉ hiện 3 câu + câu chào
-				out.append(o)
+		extra.append_array(market.dialog_options(v, self))
+	if inventory != null:
+		extra.append_array(inventory.dialog_options(v, self))
+	for o in extra:
+		if out.size() < 3:            # khung thoại chỉ hiện 3 câu + câu chào
+			out.append(o)
 	var all: Array[Dictionary] = []
 	all.append({"key": "doing", "text": "{Npc} đang làm gì đấy{a}?", "answer": _ans_doing})
 	match v.role:

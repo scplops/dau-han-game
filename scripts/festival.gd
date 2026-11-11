@@ -14,6 +14,7 @@ extends Node3D
 @export var village: Village
 @export var villagers: Villagers
 @export var market: Market
+@export var inventory: Inventory
 @export var soundscape: Soundscape
 @export var random_seed: int = 815
 ## Giờ rước đèn tối rằm tháng Tám.
@@ -409,12 +410,11 @@ func dialog_options(v: Villager, _dlg: Dialogue) -> Array[Dictionary]:
 func greet(v: Villager) -> String:
 	lixi.append(v.display_name)
 	if v.role in ["kid", "herder"]:
-		if market != null and market.money >= 1:
-			market.money -= 1
+		if inventory != null and inventory.spend(1):
 			return "Em chúc {you} năm mới mạnh khoẻ, phát tài! … A, {you} mừng tuổi em ạ? Em xin! (Bạn mừng tuổi 1 nghìn)"
 		return "Em chúc {you} năm mới mạnh khoẻ, phát tài ạ!"
 	var n := _rng.randi_range(lixi_range.x, lixi_range.y)
-	if market != null:
-		market.money += n
+	if inventory != null:
+		inventory.earn(n)
 	return ["Năm mới {self} chúc {you} mạnh khoẻ, làm ăn tấn tới! {Self} mừng tuổi {you} này. (Được %d nghìn)" % n,
 			"Chúc {you} năm mới an khang! Lấy may đầu năm nhé, {self} mừng tuổi {you}. (Được %d nghìn)" % n][_rng.randi_range(0, 1)]
