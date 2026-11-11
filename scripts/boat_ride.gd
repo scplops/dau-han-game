@@ -120,6 +120,17 @@ func _on_hull(i: int) -> void:
 		board(i)
 
 
+## Con đò mà người nhập vai đang đứng trên sàn (−1 nếu không đứng trên đò nào): đứng đâu trên đò cũng nhấn E chèo được.
+func boat_under(pos: Vector3) -> int:
+	if river == null or active:
+		return -1
+	for i in river.boat_nodes.size():
+		var lp := river.boat_nodes[i].to_local(pos)
+		if absf(lp.x) < river.boat_beam * 0.5 + 0.1 and absf(lp.z) < 4.9 and lp.y > River.BOAT_DECK - 0.2 and lp.y < River.BOAT_DECK + 1.2:
+			return i
+	return -1
+
+
 ## Nhập vai: bước lên sàn đò chỗ khe mạn, nhìn về phía mũi.
 func step_aboard(i: int) -> void:
 	var b := river.boat_nodes[i]

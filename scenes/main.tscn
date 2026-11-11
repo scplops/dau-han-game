@@ -312,8 +312,9 @@ farming = NodePath("../Farming")
 market = NodePath("../World/Market")
 festival = NodePath("../Festival")
 
-[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue", "hide_seek", "jump_rope", "tip_cat", "o_an_quan", "kite", "tug_war", "folk_games", "river")]
+[node name="FirstPerson" type="CharacterBody3D" parent="." node_paths=PackedStringArray("outdoor_rig", "house_entry", "fishing", "football", "villagers", "hud", "world", "dialogue", "hide_seek", "jump_rope", "tip_cat", "o_an_quan", "kite", "tug_war", "folk_games", "river", "boat_ride")]
 script = ExtResource("23_fp")
+boat_ride = NodePath("../BoatRide")
 river = NodePath("../World/River")
 folk_games = NodePath("../FolkGames")
 tug_war = NodePath("../TugOfWar")

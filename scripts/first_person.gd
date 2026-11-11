@@ -27,6 +27,7 @@ const SOLID_LAYER := 4
 @export var o_an_quan: OAnQuan
 @export var kite: KiteFlying
 @export var river: River
+@export var boat_ride: BoatRide
 
 @export_group("Di chuyển")
 @export var walk_speed: float = 2.4
@@ -481,6 +482,10 @@ func _update_look() -> void:
 				hint = jh
 		elif football.user_team >= 0 and target is StaticBody3D and (target as Node).get_parent() == football.ball_node():
 			hint = ""
+	# Đứng trên đò (không nhìn vào gì khác): đứng đâu cũng nhấn E là cầm chèo, không cần ra đuôi tìm cọc chèo
+	if target == null and boat_ride != null and boat_ride.boat_under(global_position) >= 0:
+		target = boat_ride
+		hint = "E: Chèo đò  (W / S: tới / lùi  ·  A / D: rẽ)"
 	_look_target = target
 	if hud != null:
 		hud.set_hint(hint)
@@ -491,6 +496,9 @@ func _act() -> void:
 		return
 	if _look_target == football:
 		football.join_user()
+		return
+	if _look_target == boat_ride:
+		boat_ride.board(boat_ride.boat_under(global_position))
 		return
 	if _look_target is Villager:
 		var v := _look_target as Villager

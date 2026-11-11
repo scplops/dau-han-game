@@ -111,6 +111,18 @@ func _run() -> void:
 	lp = _local(fp, b)
 	print("5) thôi chèo giữa sông: nhập vai tiếp %s, camera nhập vai %s, đứng trên đò (z=%.2f, y=%.2f), ván: %s" % [
 			fp._suspended == "" and fp.active, fp.camera.current, lp.z, lp.y, b.get_node_or_null("Plank") != null])
+	# 5b) Đứng giữa sàn đò, không nhìn vào gì: vẫn có gợi ý chèo, nhấn E là chèo
+	fp.global_position = b.to_global(Vector3(0.3, River.BOAT_DECK + 0.05, -3.2))
+	fp._pitch = -0.2
+	fp.camera.rotation.x = -0.2
+	fp.rotation.y = b.rotation.y + PI * 0.5        # nhìn ngang ra sông
+	await _frames(10)
+	var hint5 := str(hud._hint_label.text)
+	fp._act()
+	await _frames(5)
+	print("5b) đứng giữa sàn đò nhìn ra sông: gợi ý '%s' · nhấn E → đang chèo: %s" % [hint5, br.active])
+	br.disembark()
+	await _frames(20)
 	# 6) Lội xuống nước từ khe mạn, rồi trèo lên lại bằng bậc
 	fp.global_position = b.to_global(Vector3(2.6, 0.0, River.BOAT_GAP_Z))
 	await _frames(30)
@@ -118,7 +130,15 @@ func _run() -> void:
 	_face(fp, b.to_global(Vector3(0, River.BOAT_DECK + 1.6, River.BOAT_GAP_Z)))
 	fp._pitch = 0.0
 	fp.camera.rotation.x = 0.0
-	await _walk(fp, 0.9)
+	# Dưới sông là đang bơi (mục 49) nên chậm hơn đi bộ: bơi tới khi đã đứng trên sàn (tối đa 3 s)
+	Input.action_press("cam_forward")
+	for i in 180:
+		await physics_frame
+		lp = _local(fp, b)
+		if absf(lp.y - River.BOAT_DECK) < 0.12 and absf(lp.x) < 0.9:
+			break
+	Input.action_release("cam_forward")
+	await _frames(5)
 	lp = _local(fp, b)
 	print("6) đứng dưới nước y=%.2f → trèo bậc mạn: (%.2f, %.2f, %.2f), lên sàn: %s" % [in_water, lp.x, lp.y, lp.z, absf(lp.y - River.BOAT_DECK) < 0.12 and absf(lp.x) < 1.1])
 	# 7) Chèo vào sát bờ, thôi chèo → ván tự bắc

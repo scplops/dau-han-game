@@ -715,6 +715,9 @@ thay mesh procedural bằng model Blender.
 - **Nhập vai:** đi qua ván lên đò, hoặc nhìn đò từ bờ "E: Lên đò" (`step_aboard` — đặt ngay lên
   sàn chỗ khe). Đứng trên đò thì mắt nằm trong hộp `ClickTarget` nên tia nhìn bỏ qua nó (không
   hit_from_inside). Tới đuôi nhìn cọc chèo "E: Cầm chèo" → `board(i)` (`FirstPerson._suspend("boat")`).
+  **Đứng ở bất cứ đâu trên sàn đò** mà không nhìn vào vật gì khác (`BoatRide.boat_under(pos)` ≥ 0) cũng có gợi ý
+  "E: Chèo đò (W / S: tới / lùi · A / D: rẽ)" → `board` (trước đây phải ra đúng đuôi tìm cọc chèo, người chơi không biết cách
+  chèo); nhìn vào cần câu thì vẫn là "E: ngồi câu cá". Dòng phím HUD có "Bấm đò: chèo đò" / "đứng trên đò: chèo đò".
   Ngắm cảnh: bấm vào đò là chèo luôn.
 - Khi chèo: người chèo (Villager dựng riêng, nón lá, dáng `work`) đứng ở đuôi, mái chèo quạt theo
   nhịp; ván cất đi. `HouseEntry.locked`, `CameraRig.active = false`; tâm `CameraRig` bám theo đò để
@@ -733,7 +736,7 @@ thay mesh procedural bằng model Blender.
   ngắm cảnh đặt tâm vào đò.
 - HUD: `Hud.set_boat(on)` — dòng phím `SHORTCUTS_BOAT`, chỗ "Trên đò". Bản đồ nhỏ vẽ các đò (thoi
   gỗ theo hướng mũi) và mũi tên đỏ theo đò khi đang chèo (`BoatRide.heading_for_map`).
-- `tools/boat_test.gd` (headless): đi qua ván lên đò, vào mui, cầm chèo, chèo tới / rẽ / lùi (luôn
+- `tools/boat_test.gd` (headless): đi qua ván lên đò, vào mui, cầm chèo, đứng giữa sàn nhìn ra sông nhấn E là chèo (5b), chèo tới / rẽ / lùi (luôn
   cách mép ≥ `bank_margin`), thôi chèo giữa sông (không ván), lội xuống rồi trèo bậc mạn, chèo sát bờ
   (có ván), nhìn đò từ bờ "E: Lên đò", bấm đò từ ngắm cảnh, ngồi câu trên đò (quay ra lòng sông,
   phao rơi xuống nước), đang chèo thì không câu, rê chuột vào cần câu trên đò.
