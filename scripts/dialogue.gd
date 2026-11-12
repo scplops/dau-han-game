@@ -555,7 +555,7 @@ func _ans_ball() -> String:
 	if football != null and football.phase != Football.Phase.IDLE:
 		return "Đang đá đấy ạ! " + _score_text() + " {You} ra cổ vũ đi!"
 	if h >= 16.0 and h < 18.6:
-		return "Có ạ! Chiều nào xóm Đông cũng đá với xóm Đoài ở sân bóng góc làng. Bọn xóm Đoài cởi trần đá hăng lắm!"
+		return "Có ạ! Chiều nào xóm Đông cũng đá với xóm Đoài ở sân bóng ngoài cổng làng, mỗi bên mười một người. Bọn xóm Đoài cởi trần đá hăng lắm!"
 	if h < 16.0:
 		return "Chiều tan học mới đá cơ ạ, giờ này nắng lắm."
 	return "Tối rồi, mẹ {self} không cho ra sân đâu ạ."

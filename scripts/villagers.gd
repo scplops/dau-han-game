@@ -752,6 +752,8 @@ func _next_activity(v: Villager, forced: String = "") -> void:
 	v.speed_mul = 1.7 if act == "shelter" else (1.3 if weather != null and weather.kind == "drizzle" else 1.0)
 	if act == "swim" and river_swim != null:
 		v.speed_mul = river_swim.run_mul          # chạy ùa ra sông (bến ở xa)
+	if act == "football" and v.role in ["kid", "farmer"]:
+		v.speed_mul = 1.8                         # sân bóng ở ngoài cổng làng: chạy ra cho kịp trận
 	v.work_anim = "idle"
 	v.activity_text = ACTIVITY_TEXT[act][0]
 	if v.lantern != null:

@@ -249,7 +249,7 @@ func make_quest(giver: Villager, kind: String) -> Dictionary:
 			if football == null:
 				return {}
 			q.title = "Sút bóng cho %s xem" % g
-			q.ask = "{You} có sút vào lưới được không? Bọn {self} cá là {you} không sút nổi đâu! Ra sân bóng góc làng mà sút."
+			q.ask = "{You} có sút vào lưới được không? Bọn {self} cá là {you} không sút nổi đâu! Ra sân bóng ngoài cổng làng mà sút."
 			q.steps = [
 				{"type": "goal", "desc": "Sút một quả vào lưới ở sân bóng"},
 				report.merged({"text": "Thấy chưa, {me} sút vào lưới rồi nhé!"}),

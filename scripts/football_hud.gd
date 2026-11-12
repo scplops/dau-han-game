@@ -208,7 +208,7 @@ func _draw_prompt() -> void:
 
 ## Sa bàn sân: hướng tấn công của bạn quay lên trên.
 func _draw_radar() -> void:
-	var k := 8.0                                     # px / m
+	var k := minf(8.0, 300.0 / maxf(fb.rect.size.x, 1.0))      # px / m — sân lớn thì thu nhỏ cho vừa góc màn hình
 	var pw := fb.rect.size.y * k                     # bề ngang sân → ngang sa bàn
 	var ph := fb.rect.size.x * k                     # chiều dài sân → dọc sa bàn
 	var o := Vector2(size.x - pw - 34.0, size.y - ph - 44.0)
@@ -220,7 +220,7 @@ func _draw_radar() -> void:
 	draw_rect(Rect2(o, Vector2(pw, ph)), Color(0.36, 0.6, 0.3, 0.9))
 	draw_rect(Rect2(o, Vector2(pw, ph)), SOFT, false, 1.5)
 	draw_line(Vector2(o.x, cen.y), Vector2(o.x + pw, cen.y), SOFT, 1.0)
-	draw_arc(cen, 2.5 * k, 0.0, TAU, 24, SOFT, 1.0)
+	draw_arc(cen, fb.circle_radius * k, 0.0, TAU, 24, SOFT, 1.0)
 	var gw := fb.goal_width * k
 	draw_rect(Rect2(cen.x - gw * 0.5, o.y - 5.0, gw, 5.0), Palette.FLOWER_YELLOW)                       # khung thành đối phương
 	draw_rect(Rect2(cen.x - gw * 0.5, o.y + ph, gw, 5.0), TEAM_COLORS[fb.user_team])                    # khung thành nhà

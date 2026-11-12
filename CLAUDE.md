@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51).
 
 ---
 
@@ -480,9 +480,8 @@ thay mesh procedural bằng model Blender.
 ## 17. Sân bóng làng (giai đoạn 2b)
 
 - `scripts/builders/football.gd` (node `World/Football`, đứng SAU `Villagers` để điều khiển
-  cầu thủ sau khi Villagers tick xong mỗi khung). Sân 30 × 18 m ở `Village.pitch_rect`
-  (x −64…−34, z −176…−158): góc tây bắc làng, sau ngõ cuối, cạnh lối ra sông phía bắc.
-  `Village._reserved` và vườn tạp né vùng này.
+  cầu thủ sau khi Villagers tick xong mỗi khung). **Từ giai đoạn 9d sân là 64 × 40 m, 11 đấu 11, nằm ngoài cổng làng phía
+  đông — xem mục 51** (các con số kích thước / số người bên dưới là của sân cũ 30 × 18 m ở góc tây bắc làng).
 - **Sân kiểu làng:** cỏ mòn thành đất ở khung thành và giữa sân, vạch vôi hơi xiêu, khung thành
   tre có lưới cước, cờ góc đỏ, ghế băng tre, bảng tỉ số gỗ (Label3D, tên hai đội "Xóm Đông" đỏ –
   "Xóm Đoài" xanh), hai cây bàng, đống rơm, xe đạp dựng.
@@ -1509,3 +1508,28 @@ thay mesh procedural bằng model Blender.
   (`pos`, `bark`…) vẫn theo số người cũ → bịt mắt bắt dê lỗi chỉ số mỗi khung; giờ `step` thấy số người khác `g.n0` thì `_restart`.
 - Đã chạy lại `football_join_test` (luật, trận máy, người chơi sút / chuyền / phạt đền, rời đội) và `folk_test`: không lỗi.
   Chụp ảnh: `--date=2027-06-22 --hour=17 --weather=clear --fp --focus=-49,-167 --fb-join=9 [--fb-restart=penalty]`.
+
+## 51. Sân bóng 11 đấu 11 (giai đoạn 9d)
+
+- **Sân mới 64 × 40 m** ở `Village.pitch_rect` (x 38…102, z −26…14): bãi ngoài cổng làng phía đông, giữa đường đất `roads[1]`
+  và cánh đồng — trong lũy tre không còn chỗ cho sân lớn. Ô ruộng đông bắc `Terrain.outer_fields[1]` thu lại còn (33, 19, 71, 21)
+  để nhường chỗ. Chỗ sân cũ trong làng (`Village.old_pitch_rect`, góc tây bắc) vẫn để trống: `_reserved` và vườn tạp vẫn né
+  vùng đó — bỏ đi thì chuỗi số ngẫu nhiên lệch, bố cục 60 nhà đổi theo.
+- **Kích thước theo sân lớn** (`Football`, đều `@export`): khung thành `goal_width` 5 × `goal_height` 2 m; vòng cấm `box_depth` 9 ×
+  `box_width` 20 m; chấm phạt đền `penalty_spot` 7 m; vòng tròn giữa sân `circle_radius` 5 m; máy sút trong `shot_range` 20 m (lực
+  11–15 m/s); thủ môn lao ra khi bóng trong 6 m và trong vòng cấm. Mọi chỗ trước đây viết cứng 3 / 3,5 / 5 / 14 m đều dùng các
+  biến này (vạch vôi, `_in_own_box`, phạt đền, giao bóng, chỗ đất mòn). Trận `match_length` 360 s (2 hiệp 3 phút).
+- **11 người mỗi bên:** `max_players` 22 (tính cả người nhập vai — `arrive` so với `_total()`); `FORMATION` 10 vị trí ngoài kiểu
+  4-4-2 (thứ tự xếp để đội ít người vẫn dàn đều) + thủ môn (đội từ 4 người, tính cả người chơi).
+- **Người chơi xin vào** (`join_user`): gọi dân làng rảnh trong `gather_distance` 45 m (`_gather`), còn thiếu bao nhiêu thì
+  **người làng bên** vào đá ngay cho đủ 21 người máy (`_fill_guests`: `GameKit.make_person`, meta `fb_guest`, node `FootballGuests`
+  dưới `Main` — NGOÀI `World` để nhập vai không dựng va chạm từ họ; Football tự `_animate`; hết trận / bị loại khỏi đội thì
+  `queue_free`). (Đã thử gọi dân làng trong 110 m: họ còn đang chạy tới nên sân vắng lúc đầu.)
+- **Dân làng tự đá:** việc `football` như cũ (16:18–18:36); sân giờ xa nhà nên trẻ con / nông dân chạy ra (`speed_mul` 1,8).
+- `FootballHud`: sa bàn tự thu tỉ lệ theo chiều dài sân (`min(8, 300 / dài)` px / m), vòng tròn giữa theo `circle_radius`.
+  Bản đồ nhỏ vẽ sân theo `pitch_rect` mới. Lời thoại "sân bóng góc làng" → "sân bóng ngoài cổng làng".
+- Đã chạy lại: `football_join_test` (luật 7/7 với chấm 7 m; trận máy 6 phút ~4 bàn, ~9 phạm lỗi, bóng hầu như không ra biên
+  vì sân rộng; người chơi vào: 20–21 người máy trên sân, sút ~26 lần, 4 bàn, gọi chuyền, ném biên, 6 quả phạt đền),
+  `football_test -- --players=22`, `fp_test` (dẫn bóng, sút), `quest_test` (việc sút vào lưới). Làng vẫn 60 nhà, 13 nhà 2 tầng.
+- Chụp ảnh: `--football=22 --focus=70,-6 --distance=62 --pitch=-52 --yaw=0` (cả sân từ trên);
+  `--fp --focus=70,-6 --fb-join=9 [--fb-restart=penalty]` (bạn vào đá). Các lệnh chụp cũ dùng `--focus=-49,-167` / `-47,-145` là sân cũ.

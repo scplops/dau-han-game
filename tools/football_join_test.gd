@@ -66,7 +66,7 @@ func _run() -> void:
 	fb.phase = Football.Phase.PLAY
 	fb._foul(0, Vector2(fb.rect.position.x + 1.5, c.y + 1.0), "Thử")
 	var spot := fb._restart.pos as Vector3
-	n += 1; ok += int(fb._restart.get("kind") == "penalty" and int(fb._restart.get("team")) == 1 and absf(spot.x - (fb.rect.position.x + 5.0)) < 0.1)
+	n += 1; ok += int(fb._restart.get("kind") == "penalty" and int(fb._restart.get("team")) == 1 and absf(spot.x - (fb.rect.position.x + fb.penalty_spot)) < 0.1)
 	print("đội 0 phạm lỗi trong vòng cấm nhà: %s cho đội %s, chấm cách vạch %.1f m" % [fb._restart.get("kind"), fb._restart.get("team"), spot.x - fb.rect.position.x])
 	_sim(fb, 6.0)
 	print("   sút phạt đền xong: giai đoạn %s, tỉ số %d – %d, cản được %d" % [Football.Phase.keys()[fb.phase], fb.score[0], fb.score[1], fb.stats.pen_saved])
