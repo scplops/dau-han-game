@@ -25,6 +25,7 @@ signal loaded(path: String)
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
 @export var farm_work: FarmWork
+@export var music: Music
 @export var folk_games: FolkGames
 @export var tip_cat: TipCat
 @export var boat_race: BoatRace
@@ -199,6 +200,8 @@ func snapshot() -> Dictionary:
 		d["lixi_year"] = festival.lixi_year
 	if graphics != null:
 		d["quality"] = graphics.quality
+	if music != null:
+		d["music"] = music.enabled
 	if help_guide != null:
 		d["guide_done"] = help_guide.done()
 	d["records"] = records.duplicate()
@@ -255,6 +258,8 @@ func apply(d: Dictionary) -> void:
 		festival.lixi_year = int(d.get("lixi_year", 0))
 	if help_guide != null and bool(d.get("guide_done", false)):
 		help_guide.set_done(true)
+	if music != null and d.has("music"):
+		music.set_enabled(bool(d.music))
 	if graphics != null and d.has("quality"):
 		graphics.set_quality(int(d.quality))
 	var rec: Dictionary = d.get("records", {})

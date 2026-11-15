@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56), lặn mò ốc / trai (mục 57).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56), lặn mò ốc / trai (mục 57), nhạc nền tự soạn (mục 58).
 
 ---
 
@@ -147,7 +147,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
    `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B), `cycle_quality` (G — mức đồ hoạ),
-   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp), `fp_dive` (C / Ctrl — lặn khi đang bơi),
+   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp), `fp_dive` (C / Ctrl — lặn khi đang bơi), `toggle_music` (L — nhạc nền),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -208,6 +208,7 @@ scripts/
   football_hud.gd      # giao diện đá bóng góc nhìn thứ nhất: tỉ số, chỉ bóng / khung thành / cầu thủ, sa bàn, lời nhắc (mục 50)
   game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
+  music.gd             # nhạc nền tự soạn theo buổi: đàn tranh, sáo, đàn bầu trên thang ngũ cung (mục 58)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   river_dive.gd        # lặn mò ốc, mò trai dưới đáy sông: màn nước, thanh hơi thở, nhặt, mọc lại (mục 57)
   river_swim.gd        # tắm sông: trẻ con chiều hè tan học ra bến bơi, té nước; người chơi bơi thì gọi (mục 49)
@@ -278,7 +279,7 @@ screenshots/           # ảnh chụp, không commit
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), chế tạo đồ, nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), chế tạo đồ,
 thay mesh procedural bằng model Blender.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -1668,3 +1669,28 @@ thay mesh procedural bằng model Blender.
 - `tools/dive_test.gd`: 42 con dưới đáy quanh 3 bến; bơi nổi không nhặt được; giữ C: mắt 0,20 m (đáy 0,06, mặt nước 0,32), màn
   xanh, có gợi ý, E nhặt vào túi; lặn bơi 1,18 m/s; ~14 s hết hơi tự ngoi lên, giữ phím không lặn lại, thả ra bấm lại thì lặn;
   mọc lại; trên bờ không lặn. Chụp ảnh: `--date=2027-06-22 --hour=15 --fp --focus=-150,-100 --dive=0 --fp-pitch=-8`.
+
+## 58. Nhạc nền tự soạn (giai đoạn 10g)
+
+- `scripts/music.gd` (`Music`, node con của `Main`, bus riêng `Music`). Cũng TỔNG HỢP BẰNG CODE như mục 38, nhưng không phải một
+  bản thu sẵn: **mỗi lần phát là một khúc mới do máy tự soạn** (30–37 s), xong thì lặng `pause_seconds` 18–40 s rồi mới tới khúc
+  sau, nên không bị lặp một bản mãi. Lần đầu nổi nhạc sau `first_delay` 6 s.
+- **Bốn buổi** (`mood_at(giờ)`, bảng `MOODS`: chủ âm, độ dài phách, số ô nhịp, nhạc cụ giai điệu, tỉ lệ lặng, đàn bầu nền, âm
+  lượng): sáng sớm 5–8 h (sáo, chậm, Rê), ban ngày 8–16:30 (đàn tranh, nhanh, Sol), chiều muộn 16:30–19:30 (sáo, chậm hơn, Đô),
+  đêm (đàn tranh thưa nốt, trầm, La).
+- **Soạn** (`score(buổi, seed)` → danh sách nốt [bắt đầu, dài, Hz, nhạc cụ, độ to]): thang ngũ cung `SCALE` (0, 2, 5, 7, 9 bán
+  cung: hò – xự – xang – xê – cống), `degree_hz`; câu 4 ô nhịp, mỗi ô chọn một kiểu chia phách (`RHYTHMS`), câu hai nhắc lại nhịp
+  câu đầu; giai điệu đi bước ngắn (±1, ±2 bậc), cuối câu về chủ âm và ngân dài; đầu mỗi ô gảy đệm chủ âm / bậc năm quãng dưới;
+  đàn tranh thỉnh thoảng láy nốt quãng trên.
+- **Nhạc cụ** (`compose` cộng từng nốt vào một mảng mẫu 16 kHz rồi chuẩn hoá, mờ hai đầu): đàn tranh `_pluck` = dây gảy
+  Karplus–Strong (vòng trễ một chu kỳ, mỗi vòng lọc mềm đi); sáo `_flute` = sin + hoạ âm, luyến đầu nốt, rung, hơi thổi; đàn bầu
+  nền `_drone` = sin trầm + quãng năm khẽ, to nhỏ chậm. Tất cả là hàm tĩnh thuần tính toán → dựng trong **luồng phụ**
+  (`WorkerThreadPool.add_task`, ~0,2–0,35 s mỗi khúc) nên không giật hình; xong thì luồng chính đổi thành `AudioStreamWAV`
+  (`Soundscape._wav`).
+- Mưa to thì bus nhạc lùi xuống `rain_db`; giông (mưa > 0,8) thì không nổi khúc mới. Phím **L** (`toggle_music`) tắt / bật riêng
+  nhạc (phím N vẫn tắt mọi tiếng); lựa chọn được lưu cùng game (`music`).
+- `tools/music_test.gd`: buổi theo giờ; bốn buổi dài 32–37 s, 29–83 nốt, dựng 210–340 ms, không câm, MỌI nốt nằm trên thang ngũ
+  cung; hai seed cho hai khúc khác nhau (80 % mẫu khác), cùng seed giống hệt; trong game 17:30 nổi khúc chiều, hết khúc thì lặng,
+  22:00 khúc đêm; phím L tắt. Lưu `screenshots/sounds/music_<buổi>.wav` để nghe thử.
+- **Chưa ai nghe thử** (máy cloud không có loa): cân âm lượng / chất nhạc cần người chơi nghe rồi chỉnh `music_db`, `MOODS[].gain`,
+  nhịp, tỉ lệ lặng.
