@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56).
 
 ---
 
@@ -1626,3 +1626,22 @@ thay mesh procedural bằng model Blender.
 - `tools/cooking_test.gd`: ngoài sân / nhà người khác không nấu được; trong nhà mình nấu cơm, trứng rán bằng trứng vịt, canh, cá
   kho bằng cá trê 0,6 kg trong giỏ (con 0,2 kg không đủ, con 1,4 kg để lại), mâm cơm; thiếu nguyên liệu thì thôi; ăn mâm cơm no
   360 s; ngăn Nấu ăn + phím E; lưu / nạp `cooked`. Chụp ảnh: `--enter=main --inventory=5`.
+
+## 56. Mức thân quen với dân làng (giai đoạn 10e)
+
+- Điểm thân quen vẫn là `Dialogue._met[người]` (mỗi lần trò chuyện +1, biếu quà +2, biếu đúng món thích +3; đã lưu theo tên từ
+  trước) — giờ quy ra **mức** (`BOND_POINTS` 0 / 1 / 6 / 14 → `BOND_NAMES`: người lạ, quen biết, thân, thân thiết):
+  `Dialogue.bond(v)`, `bond_of(điểm)` (tĩnh), `add_bond(v, n)` (mọi chỗ cộng điểm đi qua đây; lên mức thân / thân thiết thì phát
+  `bond_changed(v, level)` + chữ báo "Bạn với … giờ đã thân").
+- **Được gì khi thân:**
+  - Lời chào thân mật hơn từ mức thân (`_greeting`).
+  - Mức thân: câu "{Npc} kể chuyện của {npc} cho {me} nghe đi" → chuyện riêng theo vai (`STORIES`, mỗi người một chuyện cố định
+    theo `display_name.hash()`).
+  - Mức thân thiết: câu hỏi thăm "{Npc} dạo này thế nào?" → dúi cho một món (`TREATS` theo vai: khoai, gạo, chè, bánh, sim…),
+    mỗi người mỗi ngày một lần (`_treat_day` theo `Calendar.jd`; không lưu — mở lại game thì hôm đó được hỏi lại).
+  - Chợ: người bán đã thân bớt giá `BOND_DISCOUNT` 10 % / 20 % (`Market.price_for(id, dlg)`; câu mua ghi "(giá chỗ thân)";
+    `buy(id, price)`).
+  - Việc nhờ: người thân trả thêm công `BOND_PAY_BONUS` +1 / +3 nghìn (`Quests._finish`; trẻ con vốn không trả công thì không thêm).
+- Sổ tay trang Người quen ghi mức, số điểm, còn bao nhiêu điểm thì lên mức sau. Trợ giúp F1 trang Dân làng có đoạn giải thích.
+- `tools/bond_test.gd`: điểm → mức; 6 điểm báo lên bậc, lời chào đổi, có chuyện riêng; 14 điểm có câu hỏi thăm → được quà, hôm đó
+  không cho nữa, hôm sau lại cho; nón lá 15 → 14 → 12 nghìn; việc nhờ công 4 + 3; sổ tay ghi "thân thiết".

@@ -421,8 +421,9 @@ static func _paged(entries: Array[Dictionary], page: int, more: Callable, quit: 
 func _buy_options(st: Dictionary, dlg: Dialogue, page: int) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
 	for id: String in st.items:
-		entries.append({"text": "Mua %s — %d nghìn" % [Inventory.item_name(id), Inventory.price_of(id)],
-				"answer": func() -> String: return buy(id),
+		var price := price_for(id, dlg)
+		entries.append({"text": "Mua %s — %d nghìn%s" % [Inventory.item_name(id), price, " (giá chỗ thân)" if price < Inventory.price_of(id) else ""],
+				"answer": func() -> String: return buy(id, price),
 				"next": func() -> Array[Dictionary]: return _buy_options(st, dlg, page)})
 	return _paged(entries, page, func(p: int) -> Array[Dictionary]: return _buy_options(st, dlg, p), "Thôi, {me} xem thế thôi{a}.")
 
@@ -438,8 +439,17 @@ func _sell_options(st: Dictionary, page: int) -> Array[Dictionary]:
 	return _paged(entries, page, func(p: int) -> Array[Dictionary]: return _sell_options(st, p), "Thôi, {me} giữ lại{a}.")
 
 
-func buy(id: String) -> String:
+## Giá bán cho người chơi: người bán đã thân thì bớt (Dialogue.BOND_DISCOUNT).
+func price_for(id: String, dlg: Dialogue) -> int:
 	var price := Inventory.price_of(id)
+	if dlg == null or dlg.npc == null:
+		return price
+	return maxi(1, int(round(price * (1.0 - Dialogue.BOND_DISCOUNT[dlg.bond(dlg.npc)]))))
+
+
+func buy(id: String, price: int = -1) -> String:
+	if price < 0:
+		price = Inventory.price_of(id)
 	var nm := Inventory.item_name(id)
 	if not inventory.spend(price):
 		return "Ơ, {you} không đủ tiền rồi (còn %d nghìn). Câu cá bán cho hàng cá lấy tiền mà mua nhé." % inventory.money

@@ -283,6 +283,7 @@ func page_text(i: int) -> String:
 			t += "Xong việc quay lại báo: được quà, người lớn trả thêm tiền công.\n"
 			t += "\n" + _head("Biếu quà")
 			t += "Mùa cấy, lúc lúa đang lên, mùa gặt: ra đồng hỏi bác nông dân \"có cần người … thuê không\" để làm thuê lấy công — bấm Space đúng nhịp tay.\n"
+			t += "Trò chuyện (+1) và biếu quà (+2, đúng món thích +3) làm thân dần: quen → thân (6 điểm) → thân thiết (14 điểm). Người thân kể chuyện riêng, bán hàng bớt giá, trả thêm công; thân thiết thì mỗi ngày cho quà. Xem ở sổ tay, trang Người quen.\n"
 			t += "Trong túi có đồ thì khi trò chuyện có câu \"biếu chút quà\". Biếu đúng món người ta thích thì họ quý hơn.\n"
 		3:
 			t += _head("Chợ phiên")

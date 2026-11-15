@@ -10,6 +10,31 @@ extends Node
 ## - Con vật, người đang đá bóng: chỉ nói một câu ngắn hiện trên đầu (bark).
 
 signal finished
+## Thân thêm một bậc với ai đó (mục 56).
+signal bond_changed(v: Villager, level: int)
+
+## Mức thân quen theo điểm (`_met`: mỗi lần trò chuyện +1, biếu quà +2 / +3): lạ → quen → thân → thân thiết.
+const BOND_POINTS: Array[int] = [0, 1, 6, 14]
+const BOND_NAMES: Array[String] = ["người lạ", "quen biết", "thân", "thân thiết"]
+## Người thân bớt giá khi bán hàng (theo mức), trả thêm công khi nhờ việc.
+const BOND_DISCOUNT: Array[float] = [0.0, 0.0, 0.1, 0.2]
+const BOND_PAY_BONUS: Array[int] = [0, 0, 1, 3]
+## Quà người thân thiết dúi cho mỗi ngày một lần (theo vai).
+const TREATS := {"farmer": ["khoai", "gao_tam", "rau_muong"], "carrier": ["banh_da", "oi", "keo_lac"], "elder": ["che", "banh_giay"],
+		"kid": ["keo_keo", "sim"], "herder": ["sim", "oi"]}
+## Chuyện riêng kể cho người đã thân (theo vai).
+const STORIES := {
+	"farmer": ["Hồi trẻ {self} đi cày thuê khắp vùng, đôi trâu nào khó mấy cũng trị được. Giờ có ruộng nhà rồi, chỉ mong mưa thuận gió hoà.",
+			"Năm lụt to, nước lên tận sân đình. Cả làng chèo thuyền đi gặt lúa non, được hạt nào hay hạt ấy. {Self} nhớ mãi."],
+	"carrier": ["{Self} đi chợ từ năm mười hai tuổi, theo mẹ gánh hàng. Đôi quang gánh này là của mẹ {self} để lại đấy.",
+			"Có hôm gánh hàng về gặp mưa giông giữa đồng, ướt hết cả. May có bác lái đò cho trú nhờ dưới mui."],
+	"elder": ["Ngày xưa {self} với bà nhà gặp nhau ở hội làng, đúng hôm rằm tháng Giêng. Hát đối đáp cả đêm, {you} ạ.",
+			"Hồi {self} còn bé, cây đa đầu làng mới to bằng cột đình. Giờ ba người ôm không xuể. Người già đi, cây lớn lên."],
+	"kid": ["{Self} nói nhỏ {you} nghe nhé: {self} giấu một hộp bi ve dưới gốc bàng sân trường đấy. Đừng mách ai!",
+			"Lớn lên {self} muốn làm cô giáo… à không, làm cầu thủ! Hay là cả hai nhỉ?"],
+	"herder": ["Con trâu nhà {self} khôn lắm. Có lần {self} ngủ quên trên lưng, nó tự đi về tận cổng.",
+			"{Self} biết chỗ có tổ chim chìa vôi ngoài bãi sông. Hôm nào {you} đi với {self}, {self} chỉ cho."],
+}
 
 @export var villagers: Villagers
 @export var day_night: DayNight
@@ -59,6 +84,7 @@ var talking: bool = false
 var npc: Villager
 var _rng := RandomNumberGenerator.new()
 var _met: Dictionary = {}          # Villager → số lần đã nói chuyện
+var _treat_day: Dictionary = {}    # người thân thiết → ngày (jd) đã dúi quà
 var _lore_index: Dictionary = {}   # Villager → chuyện kể tiếp theo
 var _asked: Dictionary = {}        # khoá câu hỏi đã hỏi trong cuộc này
 var _options: Array[Dictionary] = []
@@ -136,8 +162,33 @@ func start(v: Villager, player: Node3D) -> bool:
 	_name_label.text = v.display_name
 	_panel.visible = true
 	_say(_greeting(), true)
-	_met[_real(v)] = int(_met.get(_real(v), 0)) + 1
+	add_bond(v, 1)
 	return true
+
+
+## Mức thân quen 0…3 với người này.
+func bond(v: Villager) -> int:
+	return bond_of(int(_met.get(_real(v), 0))) if v != null else 0
+
+
+static func bond_of(points: int) -> int:
+	var lv := 0
+	for i in BOND_POINTS.size():
+		if points >= BOND_POINTS[i]:
+			lv = i
+	return lv
+
+
+## Cộng điểm thân quen; lên bậc thì báo.
+func add_bond(v: Villager, n: int) -> void:
+	var real := _real(v)
+	var before := bond(real)
+	_met[real] = int(_met.get(real, 0)) + n
+	var after := bond(real)
+	if after > before and after >= 2:
+		bond_changed.emit(real, after)
+		if inventory != null:
+			inventory.toast("Bạn với %s giờ đã %s" % [real.display_name, BOND_NAMES[after]])
 
 
 ## Người trong nhà là bản sao (IndoorFolk) — nhớ, việc nhờ… tính theo người thật.
@@ -377,6 +428,12 @@ func _build_options() -> Array[Dictionary]:
 					var opts: Array[Dictionary] = game_options(npc)
 					opts.append({"text": "Thôi, để lúc khác.", "end": true})
 					return opts})
+	# Đã thân (mục 56): kể chuyện riêng; thân thiết: mỗi ngày dúi cho chút quà
+	var lv := bond(v)
+	if lv >= 3 and STORIES.has(v.role) and not v.has_meta("proxy_of") and _treat_ready(v) and inventory != null:
+		all.push_front({"key": "treat", "text": "{Npc} dạo này thế nào{a}?", "answer": _ans_treat})
+	if lv >= 2 and STORIES.has(v.role):
+		all.push_front({"key": "story", "text": "{Npc} kể chuyện của {npc} cho {me} nghe đi{a}.", "answer": _ans_story})
 	if calendar != null:
 		all.append({"key": "date", "text": "Hôm nay là ngày bao nhiêu âm lịch{a}?", "answer": _ans_date})
 	all.append({"key": "weather", "text": "Trời thế này có mưa không{a}?", "answer": _ans_weather})
@@ -389,6 +446,29 @@ func _build_options() -> Array[Dictionary]:
 
 
 # --- Lời thoại -----------------------------------------------------------------------------
+
+func _ans_story() -> String:
+	var arr: Array = STORIES[npc.role]
+	return str(arr[absi(npc.display_name.hash()) % arr.size()])
+
+
+## Hôm nay người này chưa dúi quà cho người chơi.
+func _treat_ready(v: Villager) -> bool:
+	var day := calendar.jd if calendar != null else 0
+	return int(_treat_day.get(_real(v), -1)) != day
+
+
+func _ans_treat() -> String:
+	var real := _real(npc)
+	_treat_day[real] = calendar.jd if calendar != null else 0
+	var arr: Array = TREATS[npc.role]
+	var id := str(arr[_rng.randi_range(0, arr.size() - 1)])
+	inventory.add(id)
+	inventory.toast("%s cho bạn %s" % [real.display_name, Inventory.item_name(id)])
+	if npc.role in ["kid", "herder"]:
+		return "{Self} vẫn thế ạ! À, {self} để dành cho {you} %s này, {you} cầm lấy đi!" % Inventory.item_name(id)
+	return "Vẫn thường thôi {you} ạ. À này, nhà có %s, {you} cầm lấy mà dùng. Chỗ thân tình, đừng ngại!" % Inventory.item_name(id)
+
 
 func _hour() -> float:
 	return day_night.time_of_day if day_night != null else 17.0
@@ -404,6 +484,11 @@ func _greeting() -> String:
 	var times: int = _met.get(_real(v), 0)
 	var at_home := str(v.activity).begins_with("home_")
 	var kid := v.role in ["kid", "herder"]
+	if bond(v) >= 2:
+		if kid:
+			return _pick(["A, {you}! {Self} đang mong {you} đấy!", "{You} ơi! Lại đây chơi với {self} đi!"])
+		return _pick(["{You} đấy à! Quý hoá quá, lại đây nói chuyện với {self} nào.", "Ơ kìa {you}! Mấy hôm không thấy sang, {self} đang nhắc.",
+				"{You} đến chơi đấy à, vào đây đã!"])
 	if times > 0:
 		if kid:
 			return _pick(["Lại là {you} ạ? Hì hì.", "{You} lại tìm {self} ạ?"])

@@ -371,6 +371,9 @@ func _finish(q: Dictionary) -> String:
 	gifts.append(str(q.gift))
 	done_count += 1
 	var pay := int(q.get("pay", 0))
+	# Người đã thân trả thêm chút công (mục 56)
+	if pay > 0 and dialogue != null:
+		pay += Dialogue.BOND_PAY_BONUS[dialogue.bond(giver)]
 	if inventory != null:
 		inventory.add(str(q.get("gift_id", Inventory.id_of(str(q.gift)))))
 		inventory.earn(pay)

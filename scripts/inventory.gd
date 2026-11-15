@@ -464,7 +464,7 @@ func give(v: Villager, id: String, dlg: Dialogue) -> String:
 	var liked: bool = v.role in ((ITEMS[id] as Dictionary).likes as Array)
 	if dlg != null:
 		var real: Villager = v.get_meta("proxy_of", v)
-		dlg._met[real] = int(dlg._met.get(real, 0)) + (3 if liked else 2)
+		dlg.add_bond(real, 3 if liked else 2)
 	toast("Biếu %s %s" % [v.display_name, nm])
 	var kid := v.role in ["kid", "herder"]
 	if liked:

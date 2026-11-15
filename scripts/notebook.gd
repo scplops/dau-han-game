@@ -216,7 +216,11 @@ func _people_text() -> String:
 		if rel != "":
 			who += " (%s trong nhà)" % rel
 		t += "[b]%s[/b]  —  %s\n" % [v.display_name, who]
-		t += "[color=#%s]    %s  ·  đã nói chuyện %d lần[/color]\n" % [INK_SOFT.to_html(false), home, int(dialogue._met[v])]
+		var pts := int(dialogue._met[v])
+		var lv := Dialogue.bond_of(pts)
+		var nxt := ("còn %d điểm nữa thì %s" % [Dialogue.BOND_POINTS[lv + 1] - pts, Dialogue.BOND_NAMES[lv + 1]]) if lv < 3 else "bớt giá 20 %, hay cho quà"
+		t += "[color=#%s]    %s  ·  [/color][color=#%s]%s[/color][color=#%s] (%d điểm · %s)[/color]\n" % [INK_SOFT.to_html(false), home,
+				ACCENT.to_html(false), Dialogue.BOND_NAMES[lv], INK_SOFT.to_html(false), pts, nxt]
 	return t
 
 
