@@ -8,6 +8,7 @@ extends SceneTree
 ##        [--football=N] (N người ra sân đá ngay, camera nhìn vào sân bóng)
 ##        [--notebook=0..4] (mở sổ tay ở trang đó, kèm dữ liệu mẫu)
 ##        [--swim[=bến 0..2]] [--swim-kids=N] (trẻ con tắm sông ở bến đó; cùng --fp: bạn bơi cạnh, nhìn về bọn trẻ)
+##        [--help[=0..7]] (mở bảng trợ giúp ở trang đó)  [--guide[=bước]] (hiện khung hướng dẫn nhập môn)
 ##        [--inventory[=0..4]] (mở túi đồ ở ngăn đó — tất cả, đồ ăn, đồ dùng, đồ đạc, giỏ cá — kèm đồ mẫu)
 ##        [--enter=house_0 --fp --fp-in=stair|up|x,y,z] (đứng ở chân cầu thang / trên gác nhà 2 tầng)
 ##        [--fp] [--fp-yaw=độ] [--fp-pitch=độ] (nhập vai góc nhìn thứ nhất ở --focus;
@@ -636,6 +637,21 @@ func _run() -> void:
 			dlgn._met[vsn.people[k * 7]] = 9 - k
 		nb.show_notebook()
 		nb.set_page(int(args["notebook"]))
+		await process_frame
+		await process_frame
+	# --help[=N]: bảng trợ giúp trang N; --guide[=bước]: khung hướng dẫn nhập môn (mục 52)
+	var hgs := scene.get_node_or_null("HelpGuide") as HelpGuide
+	if hgs != null and args.has("guide"):
+		hgs.force_guide = true
+		var gv := str(args["guide"])
+		hgs.step = int(gv) if gv.is_valid_int() else 0
+		await process_frame
+		await process_frame
+	if hgs != null and args.has("help"):
+		hgs.show_help()
+		var hv := str(args["help"])
+		if hv.is_valid_int():
+			hgs.set_page(int(hv))
 		await process_frame
 		await process_frame
 	# --inventory[=N]: mở túi đồ ở ngăn N, kèm đồ mẫu (mục 48)

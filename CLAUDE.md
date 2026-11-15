@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52).
 
 ---
 
@@ -147,7 +147,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
    `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B), `cycle_quality` (G — mức đồ hoạ),
-   `toggle_inventory` (I — túi đồ),
+   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -210,6 +210,7 @@ scripts/
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
   river_swim.gd        # tắm sông: trẻ con chiều hè tan học ra bến bơi, té nước; người chơi bơi thì gọi (mục 49)
+  help_guide.gd        # bảng trợ giúp F1 (phím theo từng hoạt động) + hướng dẫn nhập môn từng bước (mục 52)
   inventory.gd         # túi đồ + tiền: danh mục vật phẩm, ăn / mồi / diều / sáo, biếu quà, màn hình phím I (mục 48)
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
   seasons.gd           # bốn mùa: màu lá, hoa phượng, thời tiết theo mùa, lá rụng, ve kêu (mục 42)
@@ -1533,3 +1534,19 @@ thay mesh procedural bằng model Blender.
   `football_test -- --players=22`, `fp_test` (dẫn bóng, sút), `quest_test` (việc sút vào lưới). Làng vẫn 60 nhà, 13 nhà 2 tầng.
 - Chụp ảnh: `--football=22 --focus=70,-6 --distance=62 --pitch=-52 --yaw=0` (cả sân từ trên);
   `--fp --focus=70,-6 --fb-join=9 [--fb-restart=penalty]` (bạn vào đá). Các lệnh chụp cũ dùng `--focus=-49,-167` / `-47,-145` là sân cũ.
+
+## 52. Trợ giúp F1 + hướng dẫn nhập môn (giai đoạn 10a)
+
+- Lý do: game có rất nhiều thứ nhưng người chơi khó tự tìm ra (đã gặp: không biết cách chèo đò, vào đá bóng thì rối).
+- `scripts/help_guide.gd` (`HelpGuide`, `CanvasLayer` con CUỐI của `Main`, `layer` 17):
+  - **Bảng trợ giúp** — phím F1 (`toggle_help`): giấy như sổ tay, 8 trang (`PAGES`, `page_text(i)`): Cơ bản, Nhập vai, Dân làng,
+    Chợ & túi đồ, Sông nước, Đá bóng, Trò dân gian, Thời gian. A / D hoặc bấm mục lật trang, F1 / Esc đóng, E bật / tắt hướng
+    dẫn nhập môn. Mở như sổ tay (không khi đang trò chuyện / mở sổ tay, túi đồ / chơi trò gì; nhập vai thì `_suspend("help")` và
+    mở thẳng trang Nhập vai; ngắm cảnh thì tạm tắt `CameraRig.active`). **Thêm tính năng / phím mới thì cập nhật `page_text`.**
+  - **Hướng dẫn nhập môn** — khung nhỏ bên trái dưới khung giờ, 8 bước (`STEPS`), xong bước nào tự sang bước sau
+    (`_step_complete`): xoay / zoom camera → V nhập vai → đi `walk_goal` 12 m → trò chuyện (đã quen ai đó) → I túi đồ → M bản đồ
+    lớn → B sổ tay → F1. Đang nhập vai sẵn thì bỏ qua hai bước đầu. Ẩn khi HUD chung ẩn hoặc đang mở bảng khác. Xong / tắt thì
+    lưu `guide_done` (SaveGame); chạy bằng `-s` thì không hiện trừ `force_guide`.
+- **Dải phím tắt ở đáy màn hình rút gọn** còn một dòng cho mỗi chế độ (`Hud.SHORTCUTS_*`), kết thúc bằng "F1: trợ giúp".
+- `tools/help_test.gd`: đi hết 8 bước hướng dẫn, lưu / nạp, 8 trang có nội dung, mở / đóng ở hai chế độ, E tắt hướng dẫn,
+  không mở khi trò chuyện. Chụp ảnh: `--help[=0..7]`, `--guide[=bước]`.

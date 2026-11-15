@@ -32,6 +32,7 @@ signal loaded(path: String)
 @export var hide_seek: HideSeek
 @export var market: Market
 @export var inventory: Inventory
+@export var help_guide: HelpGuide
 @export var festival: Festival
 @export var graphics: Graphics
 
@@ -191,6 +192,8 @@ func snapshot() -> Dictionary:
 		d["lixi_year"] = festival.lixi_year
 	if graphics != null:
 		d["quality"] = graphics.quality
+	if help_guide != null:
+		d["guide_done"] = help_guide.done()
 	d["records"] = records.duplicate()
 	return d
 
@@ -243,6 +246,8 @@ func apply(d: Dictionary) -> void:
 		for nm: Variant in d.get("lixi", []):
 			festival.lixi.append(str(nm))
 		festival.lixi_year = int(d.get("lixi_year", 0))
+	if help_guide != null and bool(d.get("guide_done", false)):
+		help_guide.set_done(true)
 	if graphics != null and d.has("quality"):
 		graphics.set_quality(int(d.quality))
 	var rec: Dictionary = d.get("records", {})

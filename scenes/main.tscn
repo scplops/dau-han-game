@@ -48,6 +48,7 @@
 [ext_resource type="Script" path="res://scripts/hide_seek.gd" id="32_hs"]
 [ext_resource type="Script" path="res://scripts/inventory.gd" id="47_inv"]
 [ext_resource type="Script" path="res://scripts/river_swim.gd" id="48_swim"]
+[ext_resource type="Script" path="res://scripts/help_guide.gd" id="49_help"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -417,8 +418,9 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 village = NodePath("../World/Village")
 
-[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics", "inventory")]
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics", "inventory", "help_guide")]
 script = ExtResource("38_save")
+help_guide = NodePath("../HelpGuide")
 inventory = NodePath("../Inventory")
 graphics = NodePath("../Graphics")
 folk_games = NodePath("../FolkGames")
@@ -551,3 +553,13 @@ weather = NodePath("../Weather")
 calendar = NodePath("../Calendar")
 first_person = NodePath("../FirstPerson")
 dialogue = NodePath("../Dialogue")
+
+[node name="HelpGuide" type="CanvasLayer" parent="." node_paths=PackedStringArray("first_person", "outdoor_rig", "dialogue", "inventory", "notebook", "minimap", "hud")]
+script = ExtResource("49_help")
+first_person = NodePath("../FirstPerson")
+outdoor_rig = NodePath("../CameraRig")
+dialogue = NodePath("../Dialogue")
+inventory = NodePath("../Inventory")
+notebook = NodePath("../Notebook")
+minimap = NodePath("../HUD/MiniMap")
+hud = NodePath("../HUD")

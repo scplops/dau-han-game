@@ -20,12 +20,12 @@ var money_text: String = ""
 
 const FONT_REGULAR := "res://assets/fonts/BeVietnamPro-Regular.ttf"
 const FONT_SEMIBOLD := "res://assets/fonts/BeVietnamPro-SemiBold.ttf"
-const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Bấm cửa, chỗ câu / E: vào nhà, ngồi câu    Bấm người: xem tin    Bấm bóng: sút    Bấm đò: chèo đò    P: phối cảnh / trực giao    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    V: nhập vai    M: bản đồ    B: sổ tay    I: túi đồ    F5: lưu    N: tắt tiếng    G: đồ hoạ    H: ẩn / hiện"
-const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Lăn chuột: zoom    Esc / E: thôi câu    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
-const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi / bơi    Shift: chạy / bơi sải    Space: nhảy    E / chuột trái: tương tác (đứng trên đò: chèo đò)    V / Esc: thôi nhập vai    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    B: sổ tay    I: túi đồ    F5: lưu    N: tắt tiếng    G: đồ hoạ    H: ẩn / hiện"
-const SHORTCUTS_FP_IN := "Chuột: nhìn    WASD: đi    Shift: chạy    E / chuột trái: tương tác    Esc / bước ra cửa: ra sân    V: xem kiểu nhà búp bê    [ ]: chỉnh giờ    H: ẩn / hiện"
-const SHORTCUTS_BOAT := "W / S: chèo tới / lùi    A / D: rẽ    Shift: chèo nhanh    Chuột phải: xoay    Lăn chuột: zoom    E / Esc: thôi chèo    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    M: bản đồ    H: ẩn / hiện"
-const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    Chuột giữa / WASD: di chuyển    Esc / E: ra sân    P: phối cảnh / trực giao    [ ]: chỉnh giờ    , .: lùi / tiến ngày    T: tự chạy giờ    R: đổi thời tiết    H: ẩn / hiện"
+const SHORTCUTS_OUT := "Chuột phải: xoay    Lăn chuột: zoom    WASD: di chuyển    Bấm chuột trái: vào nhà, câu cá, xem người, chèo đò    V: nhập vai    M: bản đồ    B: sổ tay    I: túi đồ    [ ]: giờ    F1: trợ giúp, mọi phím"
+const SHORTCUTS_FISH := "Giữ chuột trái / Space: lấy đà, cuộn dây    Thả: quăng cần, nhả dây    Chuột phải: xoay    Esc / E: thôi câu    F1: trợ giúp"
+const SHORTCUTS_FP := "Chuột: nhìn    WASD: đi / bơi    Shift: chạy    Space: nhảy    E: tương tác với thứ đang nhìn    V / Esc: thôi nhập vai    M: bản đồ    B: sổ tay    I: túi đồ    F1: trợ giúp, mọi phím"
+const SHORTCUTS_FP_IN := "Chuột: nhìn    WASD: đi    E: tương tác    Esc / bước ra cửa: ra sân    V: xem kiểu nhà búp bê    F1: trợ giúp"
+const SHORTCUTS_BOAT := "W / S: chèo tới / lùi    A / D: rẽ    Shift: chèo nhanh    Chuột phải: xoay    Lăn chuột: zoom    E / Esc: thôi chèo    F1: trợ giúp"
+const SHORTCUTS_IN := "Chuột phải: xoay    Lăn chuột: zoom    WASD: di chuyển    Esc / E: ra sân    F1: trợ giúp"
 
 var _time_label: Label
 var _date_label: Label
