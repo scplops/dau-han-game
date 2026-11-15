@@ -60,6 +60,7 @@ var _drum_t: float = 0.0
 var _drum_pos: Vector3
 var _race_beat: float = 0.0
 var _thunder: Array[float] = []
+var _whistles: Array = []            # [còn bao lâu, chỗ] — tiếng còi trọng tài đang chờ
 var _splash_cool: float = 0.0
 var _step_t: float = 0.0
 var _ambient_bus: int = -1
@@ -73,7 +74,7 @@ func _ready() -> void:
 		_rng.randomize()
 	_setup_buses()
 	_queue.assign(["wind", "rain", "river", "crickets", "frogs", "cicada", "bird0", "bird1", "bird2", "rooster", "drum", "bell",
-			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur", "pop", "flute"])
+			"thunder", "splash", "step", "bark", "cluck", "cheer", "murmur", "pop", "flute", "whistle"])
 	for i in 14:
 		var p := AudioStreamPlayer3D.new()
 		p.bus = "Effects"
@@ -100,6 +101,9 @@ func _ready() -> void:
 		river.rippled.connect(_on_ripple)
 	if football != null:
 		football.goal_scored.connect(func(_t: int, _p: bool) -> void: play_at("cheer", football.center3(), 0.0, _rng.randf_range(0.95, 1.1)))
+		football.whistle.connect(func(pos: Vector3, count: int) -> void:
+			for i in count:
+				_whistles.append([i * 0.38, pos]))
 	if boat_race != null:
 		boat_race.finished.connect(func(place: int, _time: float) -> void:
 			if place == 1:
@@ -275,6 +279,12 @@ func _tick_events(delta: float, h: float) -> void:
 		if _thunder[i] <= 0.0:
 			_thunder.remove_at(i)
 			play_flat("thunder", _rng.randf_range(-6.0, 0.0), _rng.randf_range(0.8, 1.1))
+	# Còi trọng tài: mỗi tiếng cách nhau một nhịp ngắn
+	for i in range(_whistles.size() - 1, -1, -1):
+		_whistles[i][0] = float(_whistles[i][0]) - delta
+		if float(_whistles[i][0]) <= 0.0:
+			play_at("whistle", _whistles[i][1] as Vector3, 2.0, _rng.randf_range(0.97, 1.03))
+			_whistles.remove_at(i)
 	# Trống đua thuyền theo nhịp (cả khi dân làng tự đua)
 	_splash_cool -= delta
 	if boat_race != null and boat_race.phase == BoatRace.Phase.RACE and not boat_race.boats.is_empty():
@@ -360,6 +370,7 @@ func _make(nm: String) -> AudioStreamWAV:
 		"murmur": return _wav(_murmur(5.0), true)
 		"pop": return _wav(_pop(), false)
 		"flute": return _wav(_flute(), false)
+		"whistle": return _wav(_whistle(), false)
 	return _wav(PackedFloat32Array([0.0]), false)
 
 
@@ -631,6 +642,21 @@ func _step() -> PackedFloat32Array:
 		lp += (_rng.randf_range(-1.0, 1.0) - lp) * 0.12
 		x[i] = lp * exp(-t * 35.0) * minf(t / 0.004, 1.0)
 	return _norm(x, 0.8)
+
+
+## Còi trọng tài: tiếng cao ~2,7 kHz rung nhanh (viên bi trong còi) + hơi thổi.
+func _whistle() -> PackedFloat32Array:
+	var n := int(0.34 * SAMPLE_RATE)
+	var x := PackedFloat32Array()
+	x.resize(n)
+	var ph := 0.0
+	for i in n:
+		var t := float(i) / SAMPLE_RATE
+		var trill := sin(TAU * 38.0 * t)
+		ph += TAU * (2700.0 + 90.0 * trill) / SAMPLE_RATE
+		var env := minf(t / 0.015, 1.0) * minf((0.34 - t) / 0.05, 1.0)
+		x[i] = (sin(ph) * (0.72 + 0.28 * trill) + 0.3 * sin(ph * 2.0) + _rng.randf_range(-1.0, 1.0) * 0.12) * env
+	return _norm(x, 0.7)
 
 
 ## Chó sủa "gâu": hai tiếng ngắn, giọng khàn.

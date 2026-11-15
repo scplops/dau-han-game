@@ -314,6 +314,7 @@ func page_text(i: int) -> String:
 			t += _key("E khi đứng trên sân", "xin vào đá; thiếu quân thì người làng bên vào cho đủ")
 			t += _key("Chạy vào bóng", "dẫn bóng")
 			t += _key("Chuột trái", "giữ lấy lực rồi thả để sút (nhìn lên thì bóng bổng)")
+			t += _key("Chuột trái lúc bóng bổng ngang đầu", "đánh đầu theo hướng nhìn")
 			t += _key("Chuột phải", "chuyền cho đồng đội gần hướng nhìn nhất")
 			t += _key("Q", "gọi đồng đội chuyền cho mình")
 			t += _key("V / Esc", "rời sân")

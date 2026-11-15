@@ -14,6 +14,8 @@ extends Node3D
 
 ## Có bàn thắng (`by_player`: người nhập vai chạm bóng cuối cùng).
 signal goal_scored(team: int, by_player: bool)
+## Trọng tài thổi còi `count` tiếng ở chỗ `pos` (Soundscape phát tiếng).
+signal whistle(pos: Vector3, count: int)
 
 enum Phase { IDLE, KICKOFF, PLAY, GOAL, RESTART, HALFTIME, FULLTIME }
 
@@ -54,6 +56,25 @@ const FORMATION: Array[Vector2] = [Vector2(0.24, 0.38), Vector2(0.24, 0.62), Vec
 @export var ball_radius: float = 0.13
 @export var rolling_friction: float = 3.2
 @export var user_kick_speed: float = 12.0
+
+@export_group("Lối chơi")
+## Lực sút của máy (m/s, thấp nhất – cao nhất).
+@export var shot_speed: Vector2 = Vector2(14.0, 19.0)
+## Tầm chuyền ngắn (m).
+@export var pass_range: float = 20.0
+## Xác suất chọn chuyền dài bổng khi có đồng đội trống ở xa phía trên.
+@export_range(0.0, 1.0) var long_pass_chance: float = 0.22
+@export var long_pass_range: float = 36.0
+## Xác suất tạt bóng vào vòng cấm khi đang dẫn bóng ở cánh, gần cuối sân.
+@export_range(0.0, 1.0) var cross_chance: float = 0.75
+## Tầm với (ngang) và độ cao bóng đánh đầu được (thấp nhất – cao nhất, m).
+@export var header_reach: float = 1.0
+@export var header_heights: Vector2 = Vector2(1.15, 2.25)
+## Thủ môn cản được cú sút bay trong tầm với (m) với xác suất này.
+@export var keeper_reach: float = 1.5
+@export_range(0.0, 1.0) var keeper_save: float = 0.6
+## Tốc độ chạy của trọng tài (m/s).
+@export var referee_speed: float = 3.8
 
 @export_group("Luật")
 @export var halftime_seconds: float = 6.0
@@ -108,10 +129,14 @@ var _charging: bool = false
 var _charge: float = 0.0
 var _user_foul_cd: float = 0.0
 var _pen_save: bool = false
+var _pen_flight: bool = false      # quả phạt đền đang bay (thủ môn cản hay không đã quyết từ lúc sút)
 var _ui: CanvasLayer
 var _hud: FootballHud
 var _guest_root: Node3D
 var _guest_n: int = 0
+var _ref: Villager                 # trọng tài (người làng bên, áo đen)
+var _ref_arm_t: float = 0.0       # đang giơ tay thổi còi
+var _ref_moving: bool = false
 
 
 func build() -> void:
@@ -453,6 +478,7 @@ func user_kick() -> void:
 
 
 func _kick(dir: Vector3, speed: float, lift: float) -> void:
+	_pen_flight = false
 	_ball_vel = dir.normalized() * speed + Vector3(0, lift, 0)
 	_ball_pos.y = maxf(_ball_pos.y, ball_radius + 0.02)
 
@@ -486,7 +512,7 @@ func arrive(v: Villager) -> bool:
 		v.wear("shirtless")
 	var run := clampf(v.speed * (2.0 if v.role == "kid" else 2.5), 2.6, 4.2)
 	players.append({"v": v, "team": team, "keeper": false, "slot": 0, "cool": 0.0, "kick_t": 0.0,
-			"run": run, "disc": disc, "wander": _rng.randf() * TAU})
+			"run": run, "disc": disc, "wander": _rng.randf() * TAU, "jump_t": 0.0})
 	v.dwell = 1.0e6     # Football quyết định khi nào xong
 	v.work_anim = "idle"
 	v.activity_text = "đang đá bóng cho %s%s" % [TEAM_NAMES[team], " (cởi trần)" if team == SHIRTLESS_TEAM else ""]
@@ -561,12 +587,16 @@ func _start_match() -> void:
 	_kickoff_team = _rng.randi_range(0, 1)
 	_first_kickoff = _kickoff_team
 	_call("Tuýt! Bắt đầu trận — %s giao bóng" % TEAM_NAMES[_kickoff_team])
+	_spawn_referee()
+	_whistle(1)
 	_begin_kickoff()
 
 
 func _reset_stats() -> void:
 	stats = {"throw": 0, "goal_kick": 0, "corner": 0, "free": 0, "penalty": 0, "fouls": 0, "user_fouls": 0,
-			"pen_saved": 0, "user_touches": 0, "user_goals": 0, "user_passes": 0, "pass_to_user": 0, "halftime": 0}
+			"pen_saved": 0, "user_touches": 0, "user_goals": 0, "user_passes": 0, "pass_to_user": 0, "halftime": 0,
+			"shots": 0, "passes": 0, "long_passes": 0, "crosses": 0, "headers": 0, "header_shots": 0, "user_headers": 0,
+			"whistles": 0, "saves": 0}
 
 
 func _begin_kickoff() -> void:
@@ -581,6 +611,7 @@ func _begin_kickoff() -> void:
 func _end_match() -> void:
 	phase = Phase.IDLE
 	_restart = {}
+	_dismiss_referee()
 	while not players.is_empty():
 		_remove(players.size() - 1, true)
 	if user_team >= 0:
@@ -610,6 +641,7 @@ func _process(delta: float) -> void:
 	if phase != Phase.IDLE and _total() < 2:
 		phase = Phase.IDLE
 		_restart = {}
+		_dismiss_referee()
 	var dt := minf(delta, 0.05)
 	if _charging:
 		_charge = minf(_charge + dt / user_charge_time, 1.0)
@@ -655,6 +687,7 @@ func _step(dt: float) -> void:
 			if _phase_timer <= 0.0:
 				_kickoff_team = 1 - _first_kickoff
 				_call("Hiệp 2 — %s giao bóng" % TEAM_NAMES[_kickoff_team])
+				_whistle(1)
 				_begin_kickoff()
 		Phase.FULLTIME:
 			_phase_timer -= dt
@@ -668,6 +701,8 @@ func _step(dt: float) -> void:
 	for p in players:
 		p.cool = maxf(float(p.cool) - dt, 0.0)
 		p.kick_t = maxf(float(p.kick_t) - dt, 0.0)
+		p.jump_t = maxf(float(p.jump_t) - dt, 0.0)
+	_step_referee(dt)
 
 
 ## Hướng tấn công theo trục x: hiệp 2 hai đội đổi sân.
@@ -678,6 +713,28 @@ func _attack_dir(team: int) -> float:
 
 func _own_goal_x(team: int) -> float:
 	return rect.position.x if _attack_dir(team) > 0.0 else rect.end.x
+
+
+## Tâm khung thành đối phương của `team` (theo hiệp).
+func _opp_goal(team: int) -> Vector2:
+	return Vector2(rect.end.x if _attack_dir(team) > 0.0 else rect.position.x, rect.get_center().y)
+
+
+## Lực (x) và độ bổng (y) để bóng bay `dist` mét trong `t` giây (bù sức cản không khí).
+func _loft(dist: float, t: float) -> Vector2:
+	return Vector2(dist / t * 1.08, 4.9 * t)
+
+
+## Chỗ bóng bổng sẽ rơi xuống ngang tầm đầu (bóng thấp / đang lăn thì chỗ bóng sắp tới).
+func _ball_target() -> Vector2:
+	var b := Vector2(_ball_pos.x, _ball_pos.z)
+	var hv := Vector2(_ball_vel.x, _ball_vel.z)
+	if _ball_pos.y < 0.6 and _ball_vel.y < 2.0:
+		return b + hv * 0.25
+	var h := 1.6 if _ball_pos.y > 1.6 or _ball_vel.y > 5.6 else 0.0     # có lên tới tầm đầu không
+	var disc := _ball_vel.y * _ball_vel.y + 19.6 * (_ball_pos.y - h)
+	var t := (_ball_vel.y + sqrt(maxf(disc, 0.0))) / 9.8
+	return b + hv * t * 0.93
 
 
 ## Trong vòng cấm của đội `team` (3 m trước khung thành nhà, rộng 7 m)?
@@ -695,6 +752,11 @@ func _home_point(p: Dictionary) -> Vector2:
 	var f: Vector2 = FORMATION[int(p.slot) % FORMATION.size()]
 	var x := _own_goal_x(team) + dir * f.x * rect.size.x + (_ball_pos.x - c.x) * 0.45
 	var z := rect.position.y + f.y * rect.size.y + (_ball_pos.z - c.y) * 0.2
+	# Bóng đã lên gần cuối sân đối phương: tiền đạo băng vào vòng cấm chờ tạt
+	var og := _opp_goal(team)
+	if f.x > 0.6 and (og.x - _ball_pos.x) * dir < 26.0:
+		x = og.x - dir * (5.5 + float(int(p.slot) % 3) * 1.5)
+		z = c.y + (-2.6 if f.y < 0.5 else 2.6)
 	# Đội hình lặp lại thì lệch ra cho khỏi đứng chồng
 	if int(p.slot) >= FORMATION.size():
 		z += 2.5
@@ -702,7 +764,7 @@ func _home_point(p: Dictionary) -> Vector2:
 
 
 func _move_players(dt: float, formation_only: bool) -> void:
-	var ball2 := Vector2(_ball_pos.x, _ball_pos.z) + Vector2(_ball_vel.x, _ball_vel.z) * 0.25
+	var ball2 := _ball_target()
 	# Người gần bóng nhất mỗi đội lao vào bóng, người thứ hai chạy đỡ
 	var chasers: Array = [null, null]
 	var support: Array = [null, null]
@@ -732,7 +794,7 @@ func _move_players(dt: float, formation_only: bool) -> void:
 		var v: Villager = p.v
 		var pos := Vector2(v.global_position.x, v.global_position.z)
 		var team := int(p.team)
-		var goal := Vector2(rect.end.x if team == 0 else rect.position.x, rect.get_center().y)
+		var goal := _opp_goal(team)
 		var target := _home_point(p)
 		var urgent := false
 		if not formation_only:
@@ -796,12 +858,15 @@ func _move_players(dt: float, formation_only: bool) -> void:
 
 
 func _try_kicks() -> void:
-	if _ball_pos.y > 0.55 or _restart_timer >= 0.0 or _touch_gap > 0.0:
+	if _restart_timer >= 0.0 or _touch_gap > 0.0:
 		return
-	var order := range(players.size())
-	order.shuffle()
-	for i: int in order:
-		var p: Dictionary = players[i]
+	if _ball_pos.y > 0.55:
+		_try_headers()
+		return
+	# Duyệt từ một người bất kỳ: hai người cùng tới bóng thì không đội nào luôn được đá trước
+	var first := _rng.randi_range(0, maxi(players.size() - 1, 0))
+	for k in players.size():
+		var p: Dictionary = players[(first + k) % players.size()]
 		if float(p.cool) > 0.0:
 			continue
 		var v: Villager = p.v
@@ -811,48 +876,72 @@ func _try_kicks() -> void:
 			continue
 		var team := int(p.team)
 		var dir := _attack_dir(team)
+		var c := rect.get_center()
 		# Tranh bóng với đối phương đang giữ bóng: đôi khi thành phạm lỗi
 		if _opponent_on_ball(team, ball2) and _rng.randf() < foul_chance:
 			p.cool = 1.0
 			_foul(team, ball2, (p.v as Villager).display_name)
 			return
 		# Nhắm khung thành, đôi khi chệch cột
-		var goal := Vector2(rect.end.x if team == 0 else rect.position.x, rect.get_center().y + _rng.randf_range(-2.6, 2.6))
+		var og := _opp_goal(team)
+		var goal := Vector2(og.x, og.y + _rng.randf_range(-goal_width * 0.5 - 1.6, goal_width * 0.5 + 1.6))
 		var to_goal := goal - ball2
+		var depth := (og.x - ball2.x) * dir          # còn cách vạch cuối sân đối phương
+		var wide := absf(ball2.y - c.y) > rect.size.y * 0.22
 		var aim: Vector2
 		var speed: float
 		var lift: float
 		if p.keeper:
 			# Thủ môn phát bóng dài ra một cánh
 			aim = Vector2(dir, (1.0 if _rng.randf() < 0.5 else -1.0) * _rng.randf_range(0.4, 0.9))
-			speed = _rng.randf_range(9.0, 11.0)
-			lift = _rng.randf_range(3.0, 4.5)
-		elif to_goal.length() < shot_range and _rng.randf() < 0.8:
+			speed = _rng.randf_range(13.0, 16.0)
+			lift = _rng.randf_range(5.0, 6.5)
+		elif wide and depth < 26.0 and depth > 1.5 and _rng.randf() < cross_chance:
+			# Tạt cánh: bóng bổng vào trước khung thành
+			var tgt := _cross_target(p)
+			aim = tgt - ball2
+			var kick := _loft(aim.length(), clampf(aim.length() / 13.0, 0.9, 1.5))
+			speed = kick.x
+			lift = kick.y
+			stats.crosses = int(stats.crosses) + 1
+		elif to_goal.length() < shot_range and not (wide and depth < 6.0) and _rng.randf() < 0.8:
 			aim = to_goal                      # sút
-			speed = _rng.randf_range(11.0, 15.0)
-			lift = _rng.randf_range(0.3, 1.8)
-		elif user_team == team and _pass_call_t > 0.0 and _user_free() and _user_pos2().distance_to(ball2) < 22.0 and _rng.randf() < 0.85:
+			speed = _rng.randf_range(shot_speed.x, shot_speed.y)
+			lift = _rng.randf_range(0.3, 2.0)
+			stats.shots = int(stats.shots) + 1
+		elif user_team == team and _pass_call_t > 0.0 and _user_free() and _user_pos2().distance_to(ball2) < 26.0 and _rng.randf() < 0.85:
 			# Người chơi gọi "Chuyền đây!": chuyền tới trước chân người chơi
 			var fpv := first_person.velocity
 			var lead := _user_pos2() + Vector2(fpv.x, fpv.z) * 0.4
 			aim = lead - ball2
-			speed = clampf(aim.length() * 1.05 + 2.0, 5.0, 11.0)
-			lift = 0.3 if aim.length() < 10.0 else 2.0
+			speed = clampf(aim.length() * 1.1 + 3.0, 6.0, 14.0)
+			lift = 0.3 if aim.length() < 12.0 else 2.2
 			_pass_call_t = 0.0
 			stats.pass_to_user = int(stats.pass_to_user) + 1
 		else:
+			var far := _long_target(p, ball2)
 			var mate := _pass_target(p, ball2)
-			if mate != Vector2.INF and _rng.randf() < 0.4:
+			if far != Vector2.INF and _rng.randf() < long_pass_chance:
+				# Chuyền dài bổng vượt tuyến
+				aim = far - ball2
+				var kick := _loft(aim.length(), clampf(aim.length() / 15.0, 1.0, 1.7))
+				speed = kick.x
+				lift = kick.y
+				stats.long_passes = int(stats.long_passes) + 1
+			elif mate != Vector2.INF and _rng.randf() < 0.5:
 				if user_team == team and mate.distance_to(_user_pos2()) < 1.5:
 					stats.pass_to_user = int(stats.pass_to_user) + 1
-				aim = mate - ball2             # chuyền
-				speed = clampf(aim.length() * 1.1 + 2.0, 5.0, 10.0)
-				lift = 0.4 if aim.length() < 9.0 else 2.0
+				aim = mate - ball2             # chuyền sệt
+				speed = clampf(aim.length() * 1.15 + 3.0, 6.0, 14.0)
+				lift = 0.3 if aim.length() < 12.0 else 2.2
+				stats.passes = int(stats.passes) + 1
 			else:
 				# Dẫn bóng: lách sang phía không có đối phương
 				var away := _rng.randf_range(0.15, 0.6) * _dodge_side(p, ball2)
-				aim = to_goal.normalized().rotated(away * dir)
-				speed = _rng.randf_range(4.0, 5.5)
+				aim = (og - ball2).normalized().rotated(away * dir)
+				if wide and depth > 14.0:
+					aim = Vector2(dir, away * 0.3)      # ở cánh: dốc bóng dọc biên xuống cuối sân rồi tạt
+				speed = _rng.randf_range(4.2, 5.8)
 				lift = 0.0
 		_kick(Vector3(aim.x, 0, aim.y), speed, lift)
 		p.cool = 0.5
@@ -861,6 +950,110 @@ func _try_kicks() -> void:
 		_player_touch = false
 		_last_team = team
 		return
+
+
+## Bóng bổng ngang tầm đầu: người đứng sát điểm rơi bật lên đánh đầu — trước khung thành đối phương thì
+## đánh đầu vào khung, ở sân nhà thì phá ra, còn lại thì đánh đầu nối cho đồng đội phía trên.
+func _try_headers() -> void:
+	# Chỉ đánh đầu bóng đang rơi xuống (bóng sút căng đi ngang qua thì không kịp)
+	if _ball_pos.y < header_heights.x or _ball_pos.y > header_heights.y or _ball_vel.y > -0.5:
+		return
+	var ball2 := Vector2(_ball_pos.x, _ball_pos.z)
+	var who: Dictionary = {}
+	var best := header_reach
+	for p in players:
+		if float(p.cool) > 0.0:
+			continue
+		var v: Villager = p.v
+		if v.role == "kid" and _ball_pos.y > header_heights.y - 0.5:
+			continue                   # trẻ con không với tới bóng cao
+		var d := Vector2(v.global_position.x, v.global_position.z).distance_to(ball2)
+		if d < best:
+			best = d
+			who = p
+	if who.is_empty():
+		return
+	var team := int(who.team)
+	var dir := _attack_dir(team)
+	var og := _opp_goal(team)
+	var aim: Vector2
+	var speed: float
+	var lift: float
+	if who.keeper:
+		# Thủ môn đấm bóng ra
+		aim = Vector2(dir, _rng.randf_range(-0.8, 0.8))
+		speed = _rng.randf_range(9.0, 12.0)
+		lift = _rng.randf_range(3.0, 4.5)
+	elif og.distance_to(ball2) < 13.0:
+		aim = Vector2(og.x, og.y + _rng.randf_range(-goal_width * 0.5 - 0.8, goal_width * 0.5 + 0.8)) - ball2
+		speed = _rng.randf_range(9.5, 13.0)
+		lift = _rng.randf_range(-2.0, 0.6)
+		stats.header_shots = int(stats.header_shots) + 1
+	elif (ball2.x - _own_goal_x(team)) * dir < rect.size.x * 0.3:
+		aim = Vector2(dir, _rng.randf_range(-0.7, 0.7))          # phá bóng
+		speed = _rng.randf_range(9.0, 12.0)
+		lift = _rng.randf_range(3.0, 4.5)
+	else:
+		var mate := _pass_target(who, ball2)
+		aim = (mate - ball2) if mate != Vector2.INF else Vector2(dir, _rng.randf_range(-0.5, 0.5))
+		speed = clampf(aim.length() * 0.9 + 2.0, 5.0, 9.0)
+		lift = 1.6
+	_ball_vel = Vector3(aim.x, 0, aim.y).normalized() * speed + Vector3(0, lift, 0)
+	if float(who.jump_t) <= 0.0:
+		who.y0 = (who.v as Villager).global_position.y
+	who.jump_t = 0.45
+	who.cool = 0.7
+	_touch_gap = 0.3
+	_player_touch = false
+	_last_team = team
+	stats.headers = int(stats.headers) + 1
+
+
+## Chỗ tạt bóng tới: đồng đội đang ở trước khung thành đối phương, không có thì khoảng trống trước khung.
+func _cross_target(p: Dictionary) -> Vector2:
+	var team := int(p.team)
+	var dir := _attack_dir(team)
+	var og := _opp_goal(team)
+	var best := Vector2.INF
+	var best_d := 15.0
+	for q in players:
+		if q == p or int(q.team) != team or q.keeper:
+			continue
+		var qp := Vector2(q.v.global_position.x, q.v.global_position.z)
+		var d := qp.distance_to(og)
+		if d < best_d and absf(qp.y - og.y) < 9.0:
+			best_d = d
+			best = qp
+	if user_team == team and _user_pos2().distance_to(og) < best_d and _user_free():
+		best = _user_pos2()
+	if best == Vector2.INF:
+		best = Vector2(og.x - dir * _rng.randf_range(6.0, 9.0), og.y + _rng.randf_range(-3.0, 3.0))
+	return best + Vector2(_rng.randf_range(-0.8, 0.8), _rng.randf_range(-0.8, 0.8))
+
+
+## Đồng đội ở xa phía trên, không bị kèm, để chuyền dài (Vector2.INF nếu không có).
+func _long_target(p: Dictionary, ball2: Vector2) -> Vector2:
+	var team := int(p.team)
+	var dir := _attack_dir(team)
+	var best := Vector2.INF
+	var best_gain := 10.0
+	for q in players:
+		if q == p or int(q.team) != team or q.keeper:
+			continue
+		var qp := Vector2(q.v.global_position.x, q.v.global_position.z)
+		var d := qp.distance_to(ball2)
+		var gain := (qp.x - ball2.x) * dir
+		if gain <= best_gain or d < 16.0 or d > long_pass_range:
+			continue
+		var marked := false
+		for o in players:
+			if int(o.team) != team and Vector2(o.v.global_position.x, o.v.global_position.z).distance_to(qp) < 3.0:
+				marked = true
+				break
+		if not marked:
+			best_gain = gain
+			best = qp + Vector2(dir * 2.0, 0)
+	return best
 
 
 ## Đối phương của `team` đang giữ bóng (đứng sát bóng) — máy hoặc người nhập vai.
@@ -910,14 +1103,14 @@ func _pass_target(p: Dictionary, ball2: Vector2) -> Vector2:
 			continue
 		var qp := Vector2(q.v.global_position.x, q.v.global_position.z)
 		var gain := (qp.x - ball2.x) * dir
-		if gain > best_gain and qp.distance_to(ball2) < 15.0:
+		if gain > best_gain and qp.distance_to(ball2) < pass_range:
 			best_gain = gain
 			best = qp + Vector2(dir * 1.0, 0)
 	# Người nhập vai cùng đội cũng là chỗ chuyền (ưu tiên nếu đang trống)
 	if user_team == team:
 		var up := _user_pos2()
 		var gain := (up.x - ball2.x) * dir + (2.0 if _user_free() else -3.0)
-		if gain > best_gain and up.distance_to(ball2) < 15.0:
+		if gain > best_gain and up.distance_to(ball2) < pass_range:
 			best = up + Vector2(dir * 1.0, 0)
 	return best
 
@@ -985,11 +1178,7 @@ func leave_user() -> void:
 func _fill_guests(n: int) -> void:
 	if n <= 0:
 		return
-	if _guest_root == null:
-		_guest_root = Node3D.new()
-		_guest_root.name = "FootballGuests"
-		# Đặt NGOÀI `World`: nhập vai dựng va chạm từ mesh dưới World
-		get_parent().get_parent().add_child(_guest_root)
+	_ensure_guest_root()
 	for i in n:
 		_guest_n += 1
 		var kid := i % 3 == 2
@@ -1003,6 +1192,93 @@ func _fill_guests(n: int) -> void:
 		v.global_position = Vector3(_rng.randf_range(rect.position.x + 4.0, rect.end.x - 4.0), 0.05,
 				rect.get_center().y + side * (rect.size.y * 0.5 + _rng.randf_range(0.6, 1.6)))
 		arrive(v)
+
+
+func _ensure_guest_root() -> void:
+	if _guest_root == null:
+		_guest_root = Node3D.new()
+		_guest_root.name = "FootballGuests"
+		# Đặt NGOÀI `World`: nhập vai dựng va chạm từ mesh dưới World
+		get_parent().get_parent().add_child(_guest_root)
+
+
+# --- Trọng tài ---------------------------------------------------------------------------------
+
+## Trọng tài (áo quần đen) vào sân khi trận bắt đầu, chạy theo bóng, giơ tay thổi còi.
+func _spawn_referee() -> void:
+	if is_instance_valid(_ref) or villagers == null:
+		return
+	_ensure_guest_root()
+	_ref = GameKit.make_person(_guest_root, villagers, "Referee", "farmer", "Ông trọng tài", false,
+			{"role_name": "trọng tài", "home_name": "làng bên", "shirt": Palette.REFEREE, "pants": Palette.REFEREE})
+	_ref.set_meta("fb_guest", true)
+	_ref.set_meta("fb_referee", true)
+	_ref.activity = "football"
+	_ref.activity_text = "đang cầm còi bắt trận bóng"
+	_ref.state = Villager.State.IDLE
+	var c := rect.get_center()
+	_ref.global_position = Vector3(c.x + 3.0, 0.05, c.y - 4.0)
+
+
+func _dismiss_referee() -> void:
+	if is_instance_valid(_ref):
+		_ref.queue_free()
+	_ref = null
+
+
+func is_referee(v: Villager) -> bool:
+	return v != null and v == _ref
+
+
+func _whistle(count: int) -> void:
+	stats.whistles = int(stats.get("whistles", 0)) + 1
+	_ref_arm_t = 0.5 + 0.38 * count
+	var at := _ref.global_position + Vector3(0, 1.5, 0) if is_instance_valid(_ref) else _ball_pos
+	whistle.emit(at, count)
+
+
+func _step_referee(dt: float) -> void:
+	if not is_instance_valid(_ref):
+		return
+	_ref_arm_t = maxf(_ref_arm_t - dt, 0.0)
+	var c := rect.get_center()
+	var ball2 := Vector2(_ball_pos.x, _ball_pos.z)
+	var pos := Vector2(_ref.global_position.x, _ref.global_position.z)
+	# Đứng chếch về phía giữa sân so với bóng, không chắn đường bóng
+	var inward := c - ball2
+	inward = inward.normalized() if inward.length() > 1.0 else Vector2(0, 1)
+	var target := ball2 + inward.rotated(0.7) * 6.5
+	if phase in [Phase.HALFTIME, Phase.FULLTIME, Phase.KICKOFF, Phase.GOAL]:
+		target = c + Vector2(2.5, -3.5)
+	target = Vector2(clampf(target.x, rect.position.x + 2.0, rect.end.x - 2.0), clampf(target.y, rect.position.y + 2.0, rect.end.y - 2.0))
+	var to := target - pos
+	var dist := to.length()
+	# Chỉ chạy khi đã xa chỗ cần đứng (đỡ giật qua giật lại theo từng cú chạm)
+	if dist > 3.0:
+		_ref_moving = true
+	elif dist < 0.6:
+		_ref_moving = false
+	var move := Vector2.ZERO
+	if _ref_moving and _ref_arm_t <= 0.0:
+		move = to / dist * minf((referee_speed if dist > 5.0 else referee_speed * 0.5) * dt, dist)
+	# Né cầu thủ đứng sát
+	for q in players:
+		var sep := pos - Vector2(q.v.global_position.x, q.v.global_position.z)
+		if sep.length() < 0.8 and sep.length() > 0.001:
+			move += sep.normalized() * (0.8 - sep.length()) * dt * 4.0
+	pos += move
+	_ref.global_position = Vector3(pos.x, _ref.global_position.y, pos.y)
+	var face := move if move.length() > 0.002 else (ball2 - pos)
+	if face.length() > 0.01:
+		_ref._face(Vector3(face.x, 0, face.y).normalized(), dt)
+	var amount := clampf(move.length() / maxf(dt, 0.001) / referee_speed, 0.0, 1.0)
+	_ref.speed_mul = 1.0 + amount
+	_ref._walk_amount = move_toward(_ref._walk_amount, amount, dt * 6.0)
+	_ref._animate(dt)
+	if _ref_arm_t > 0.0 and _ref.arms.size() == 2:
+		_ref.arms[1].rotation.x = -2.7          # giơ tay phải lên khi thổi còi
+		if _ref.elbows.size() == 2:
+			_ref.elbows[1].rotation.x = 0.0
 
 
 ## Gọi tối đa `n` người (trẻ con, đàn ông) đang rảnh ra sân. Trả về số người được gọi.
@@ -1049,7 +1325,7 @@ func _user_can_touch() -> bool:
 
 func _ball_in_reach() -> bool:
 	var b := Vector2(_ball_pos.x, _ball_pos.z)
-	return _user_pos2().distance_to(b) <= user_reach and _ball_pos.y < 1.2
+	return _user_pos2().distance_to(b) <= user_reach and _ball_pos.y < header_heights.y
 
 
 ## Chuột trái nhấn: bắt đầu lấy lực.
@@ -1078,6 +1354,12 @@ func user_charge_release(look: Vector3) -> void:
 	if String(_restart.get("kind", "")) == "throw":
 		speed = lerpf(4.5, 10.0, power)
 		lift = 2.5 + clampf(look.y, 0.0, 0.6) * 4.0
+	elif _ball_pos.y > 1.0:
+		# Bóng bổng ngang đầu: đánh đầu theo hướng nhìn
+		speed = lerpf(8.0, 13.0, power)
+		lift = clampf(look.y, -0.3, 0.5) * 8.0
+		stats.user_headers = int(stats.user_headers) + 1
+		_call("Bạn đánh đầu!", false)
 	_user_kick(dir, speed, lift)
 
 
@@ -1122,6 +1404,7 @@ func _user_kick(dir: Vector3, speed: float, lift: float) -> void:
 	if restart_kind == "penalty":
 		_decide_penalty_save(dir)
 	_kick(dir, speed, lift)
+	_pen_flight = restart_kind == "penalty"
 	# Phạt đền: không ai chạm bóng cho tới khi bóng qua vạch (cản hay không do _pen_save quyết định)
 	_touch_gap = 0.7 if restart_kind == "penalty" else 0.3
 	_player_touch = true
@@ -1158,6 +1441,7 @@ func _check_user_foul(_dt: float) -> void:
 ## Phạm lỗi của đội `team` tại `at`: đội kia được đá phạt, trong vòng cấm của `team` thì phạt đền.
 func _foul(team: int, at: Vector2, who: String) -> void:
 	stats.fouls = int(stats.fouls) + 1
+	_whistle(1)
 	var victim := 1 - team
 	if _in_own_box(team, at):
 		var spot := Vector2(_own_goal_x(team) + _attack_dir(team) * penalty_spot, rect.get_center().y)
@@ -1303,6 +1587,7 @@ func _take_restart(p: Dictionary) -> void:
 	_last_team = team
 	_player_touch = false
 	_touch_gap = 0.7 if kind == "penalty" else 0.35
+	_pen_flight = kind == "penalty"
 	phase = Phase.PLAY
 	_restart = {}
 
@@ -1383,6 +1668,7 @@ func _begin_halftime() -> void:
 	_restart = {}
 	_place_ball(center3())
 	_call("Hết hiệp 1 (%d – %d) — nghỉ giữa hiệp, đổi sân" % [score[0], score[1]])
+	_whistle(2)
 
 
 func _begin_fulltime() -> void:
@@ -1393,6 +1679,7 @@ func _begin_fulltime() -> void:
 	if user_team >= 0 and score[0] != score[1]:
 		res += "  Đội bạn %s." % ("thắng" if score[user_team] > score[1 - user_team] else "thua")
 	_call("Hết giờ! %s %d – %d %s · %s" % [TEAM_NAMES[0], score[0], score[1], TEAM_NAMES[1], res])
+	_whistle(3)
 
 
 ## Trọng tài hô (chữ to trên sân + dòng trên giao diện người chơi). `on_field = false`: lời riêng cho
@@ -1570,6 +1857,8 @@ func _check_goal(prev: Vector3) -> void:
 			_ball_vel.x = -_ball_vel.x * 0.5
 			_ball_vel.z += _rng.randf_range(-1.5, 1.5)
 			return
+		if dz < hw and _ball_pos.y < goal_height and phase == Phase.PLAY and not _pen_flight and _keeper_saves(gx, s):
+			return
 		if dz < hw and _ball_pos.y < goal_height:
 			_ball_vel *= 0.25
 			var scorer := 0 if _attack_dir(0) == s else 1
@@ -1582,6 +1871,7 @@ func _check_goal(prev: Vector3) -> void:
 					stats.user_goals = int(stats.user_goals) + 1
 				_call("VÀO! %s ghi bàn%s" % [TEAM_NAMES[team], " — bạn ghi!" if _player_touch and user_team == team else ""])
 				_update_score()
+				_whistle(1)
 				phase = Phase.GOAL
 				_phase_timer = 2.6
 				_kickoff_team = 1 - team
@@ -1604,6 +1894,40 @@ func _check_goal(prev: Vector3) -> void:
 			if (_ball_pos.x - gx) * s > goal_depth - ball_radius:
 				_ball_pos.x = gx + s * (goal_depth - ball_radius)
 				_ball_vel.x = -_ball_vel.x * 0.2
+
+
+## Cú sút sắp vào lưới: thủ môn đứng trong tầm với thì có thể cản — đẩy bóng ra sân hoặc ra ngoài vạch cuối
+## (phạt góc). Trả về true nếu cản được.
+func _keeper_saves(gx: float, s: float) -> bool:
+	var defender := 0 if is_equal_approx(_own_goal_x(0), gx) else 1
+	for p in players:
+		if int(p.team) != defender or not p.keeper:
+			continue
+		var v: Villager = p.v
+		if absf(v.global_position.x - gx) > 3.0 or absf(v.global_position.z - _ball_pos.z) > keeper_reach:
+			return false
+		if _rng.randf() > keeper_save:
+			return false
+		stats.saves = int(stats.saves) + 1
+		_last_team = defender
+		_player_touch = false
+		_touch_gap = 0.3
+		if float(p.jump_t) <= 0.0:
+			p.y0 = v.global_position.y
+		p.jump_t = 0.45
+		var c := rect.get_center()
+		var side := 1.0 if _ball_pos.z > c.y else -1.0
+		if _rng.randf() < 0.45:
+			# Đẩy bóng ra ngoài vạch cuối sân cạnh cột → phạt góc
+			_ball_pos = Vector3(gx + s * 0.4, _ball_pos.y, c.y + side * (goal_width * 0.5 + 1.2))
+			_ball_vel = Vector3(s * 2.0, 1.0, side * 3.0)
+			_call("Thủ môn đẩy bóng ra ngoài!")
+		else:
+			_ball_pos.x = gx - s * (ball_radius + 0.5)
+			_ball_vel = Vector3(-s * _rng.randf_range(4.0, 7.0), _rng.randf_range(2.0, 4.0), _rng.randf_range(-5.0, 5.0))
+			_call("Thủ môn cản được!")
+		return true
+	return false
 
 
 func _apply_visuals(dt: float) -> void:
@@ -1632,6 +1956,12 @@ func _apply_visuals(dt: float) -> void:
 			v.legs[1].rotation.x = -1.3 * sin(float(p.kick_t) / 0.35 * PI)
 		if phase != Phase.GOAL and v.work_anim == "play":
 			v.work_anim = "idle"
+		# Bật nhảy đánh đầu
+		if p.has("y0"):
+			var jt := float(p.jump_t)
+			v.global_position.y = float(p.y0) + (0.42 * sin((1.0 - jt / 0.45) * PI) if jt > 0.0 else 0.0)
+			if jt <= 0.0:
+				p.erase("y0")
 
 
 # --- Công cụ chụp ảnh -------------------------------------------------------------------

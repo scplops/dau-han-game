@@ -15,6 +15,8 @@ func _run() -> void:
 	await process_frame
 	var f := scene.get_node("World/Football") as Football
 	f.set_process(false)
+	if args.has("seed"):
+		f._rng.seed = int(args.seed)
 	f.debug_match(int(args.get("players", "12")), 0.0)
 	print("cầu thủ: ", f.players.size(), "  pha: ", Football.Phase.keys()[f.phase])
 	var dt := 1.0 / 60.0
@@ -45,4 +47,7 @@ func _run() -> void:
 	outs = int(f.stats.throw) + int(f.stats.goal_kick) + int(f.stats.corner)
 	print("cú chạm bóng: %d, bóng ra ngoài: %d (ném biên %d, phát bóng lên %d, phạt góc %d), phạm lỗi %d, phạt đền %d, nghỉ giữa hiệp %s, bóng nằm yên khi đang đá: %.1fs" % [
 			kicks, outs, f.stats.throw, f.stats.goal_kick, f.stats.corner, f.stats.fouls, f.stats.penalty, f.half == 2, still])
+	print("sút %d, chuyền sệt %d, chuyền dài %d, tạt cánh %d, đánh đầu %d (vào khung %d), thủ môn cản %d, tiếng còi %d, trọng tài %s" % [
+			f.stats.shots, f.stats.passes, f.stats.long_passes, f.stats.crosses, f.stats.headers, f.stats.header_shots,
+			f.stats.saves, f.stats.whistles, "có" if is_instance_valid(f._ref) else "đã về"])
 	quit()

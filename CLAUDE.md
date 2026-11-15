@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53).
 
 ---
 
@@ -1550,3 +1550,32 @@ thay mesh procedural bằng model Blender.
 - **Dải phím tắt ở đáy màn hình rút gọn** còn một dòng cho mỗi chế độ (`Hud.SHORTCUTS_*`), kết thúc bằng "F1: trợ giúp".
 - `tools/help_test.gd`: đi hết 8 bước hướng dẫn, lưu / nạp, 8 trang có nội dung, mở / đóng ở hai chế độ, E tắt hướng dẫn,
   không mở khi trò chuyện. Chụp ảnh: `--help[=0..7]`, `--guide[=bước]`.
+
+## 53. Trận bóng sôi động hơn: chuyền dài, tạt cánh, đánh đầu, thủ môn cản, trọng tài + còi (giai đoạn 10b)
+
+- Lý do: trên sân 64 × 40 m lối đá cũ (lực yếu, chỉ chuyền sệt ngắn) làm trận máy đấu máy tẻ nhạt, bóng hầu như không ra biên.
+- **Lối chơi** (`Football`, nhóm `@export` "Lối chơi"; thứ tự chọn trong `_try_kicks`): thủ môn phát bóng dài 13–16 m/s → ở cánh
+  (lệch tâm > 22 % bề ngang) và cách vạch cuối < 26 m thì **tạt** (`cross_chance`, `_cross_target`: đồng đội trước khung thành,
+  không có thì khoảng trống cách khung 6–9 m) → trong `shot_range` thì **sút** `shot_speed` 14–19 m/s (nhắm rộng hơn khung 1,6 m
+  mỗi bên nên có quả ra ngoài) → người chơi gọi chuyền → **chuyền dài bổng** vượt tuyến (`long_pass_chance`, `_long_target`: đồng đội
+  phía trên 16…`long_pass_range` m không bị kèm trong 3 m) → **chuyền sệt** trong `pass_range` 20 m (6–14 m/s) → dẫn bóng (ở cánh
+  thì dốc dọc biên). `_loft(dist, t)` cho lực + độ bổng để bóng rơi đúng chỗ. Tiền đạo (`FORMATION.x > 0,6`) băng vào trước khung
+  thành khi bóng đã lên cách vạch cuối < 26 m.
+- **Đánh đầu** (`_try_headers`): bóng ĐANG RƠI ở độ cao `header_heights` 1,15–2,25 m (trẻ con chỉ tới 1,75 m), người gần nhất trong
+  `header_reach` bật nhảy (`jump_t`, `y0` — `_apply_visuals` nâng node lên 0,42 m): cách khung đối phương < 13 m thì đánh đầu vào
+  khung, ở 30 % sân nhà thì phá ra, còn lại nối cho đồng đội; thủ môn thì đấm bóng. Người chạy đón bóng bổng theo điểm rơi
+  (`_ball_target`), không chạy theo bóng trên trời. Người chơi: bóng bổng ngang đầu trong tầm → chuột trái là đánh đầu theo hướng nhìn.
+- **Thủ môn cản** (`_keeper_saves`, trong `_check_goal`): cú sút sắp vào lưới mà thủ môn đứng trong `keeper_reach` 1,5 m →
+  `keeper_save` 60 % cản: đẩy ra sân, hoặc đẩy ra ngoài vạch cuối → phạt góc. Không áp dụng cho phạt đền (`_pen_flight` — phạt đền
+  đã quyết định lúc sút).
+- **Sửa lỗi cũ:** hiệp 2 đã đổi sân nhưng máy vẫn nhắm khung thành theo số đội (sút / dẫn bóng về khung nhà) — giờ dùng
+  `_opp_goal(team)`. `_try_kicks` duyệt cầu thủ từ một chỉ số ngẫu nhiên (trước đây đội vào sân trước luôn được đá trước khi hai
+  người cùng tới bóng — Xóm Đông thắng hầu hết các trận).
+- **Trọng tài** (`_spawn_referee` khi trận bắt đầu, `_dismiss_referee` khi tan): `GameKit.make_person` với `opts.shirt / pants` =
+  `Palette.REFEREE` (đen), ở node `FootballGuests` ngoài `World`; `_step_referee` chạy chếch phía giữa sân cách bóng ~6,5 m (chỉ chạy
+  khi lệch chỗ > 3 m), giơ tay phải khi thổi còi. Nhìn vào + E: chỉ nói câu ngắn (`Football.is_referee`).
+  Tín hiệu `whistle(pos, count)`: bắt đầu trận / bàn thắng / phạm lỗi / hiệp 2 một tiếng, hết hiệp 1 hai tiếng, hết giờ ba tiếng →
+  Soundscape tiếng mới `whistle` (sin 2,7 kHz rung 38 Hz + hơi thổi, 0,34 s), mỗi tiếng cách 0,38 s.
+- `tools/football_test.gd -- --players=22 --seconds=380 [--seed=N]` in thêm: sút / chuyền sệt / chuyền dài / tạt cánh / đánh đầu /
+  thủ môn cản / tiếng còi. Thường mỗi trận 6 phút: 3–7 bàn (hai đội thắng thua lẫn lộn), ~30 cú sút, ~60 chuyền sệt, 7–19 chuyền dài,
+  5–13 quả tạt, 35–60 lần đánh đầu, 2–7 lần thủ môn cản, ~9 lần bóng ra ngoài (trước đây 1–2). `football_join_test` vẫn 7/7 luật.

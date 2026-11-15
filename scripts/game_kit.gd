@@ -80,6 +80,9 @@ static func make_person(owner: Node, villagers: Villagers, node_name: String, ro
 		look["prop"] = "none"
 	if opts.has("scale"):
 		look["scale"] = float(opts.scale)
+	for key: String in ["shirt", "pants"]:
+		if opts.has(key):
+			look[key] = opts[key]
 	v.build_person(look)
 	return v
 

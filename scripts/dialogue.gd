@@ -117,6 +117,9 @@ func start(v: Villager, player: Node3D) -> bool:
 	if jump_rope != null and jump_rope.is_member(v):
 		bark(v, ["Vào nhảy với bọn em đi!", "Đang nhảy, chờ tí!", "Một, hai, ba…"][_rng.randi_range(0, 2)])
 		return false
+	if football != null and football.is_referee(v):
+		bark(v, ["Tuýt! Đang bắt trận, đứng lui ra!", "Đá đẹp vào, đừng chơi xấu nhé!", "Hết trận hẵng nói chuyện."][_rng.randi_range(0, 2)])
+		return false
 	if football != null and football._find(v) >= 0:
 		bark(v, ["Đang đá, nói sau nhé!", "Chuyền đây! Chuyền đây!", "Ra cổ vũ đi!"][_rng.randi_range(0, 2)])
 		return false

@@ -184,3 +184,4 @@ const ICON_CANDY := Color("#b07a3e")      # kẹo lạc, bánh đa
 const ICON_RICE_CAKE := Color("#f4f0e4")  # bánh giầy, xôi
 const ICON_SLOT := Color("#e8d8b2")       # ô đồ trong túi
 const ICON_SLOT_ON := Color("#f7c873")    # ô đang chọn
+const REFEREE := Color("#2b2b30")        # áo quần trọng tài (bổ sung)
