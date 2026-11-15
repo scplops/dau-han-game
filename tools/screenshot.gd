@@ -434,7 +434,17 @@ func _run() -> void:
 		if rig != null and fgs.pg.is_empty():
 			rig.set_focus(fgs.sites[fk] as Vector3)
 			rig.global_position = fgs.sites[fk] as Vector3
-	# Làm thuê: --farm=plant|weed|reap[,số khóm] (cùng --fp --focus=x,z ngoài đồng)
+	# Lặn: --dive[=chỉ số con ốc / trai] (cùng --fp): xuống sông cạnh một con ốc, giữ phím lặn
+	var rdv := scene.get_node_or_null("RiverDive") as RiverDive
+	if rdv != null and args.has("dive") and fp != null and not rdv.shells.is_empty():
+		var shi := clampi(int(args["dive"]) if str(args["dive"]).is_valid_int() else 0, 0, rdv.shells.size() - 1)
+		var sp3: Vector3 = rdv.shells[shi].pos
+		fp.global_position = Vector3(sp3.x + 0.9, sp3.y + 0.3, sp3.z)
+		fp.rotation.y = PI * 0.5
+		Input.action_press("fp_dive")
+		for i in 90:
+			await physics_frame
+		# Làm thuê: --farm=plant|weed|reap[,số khóm] (cùng --fp --focus=x,z ngoài đồng)
 	var fwk := scene.get_node_or_null("FarmWork") as FarmWork
 	if fwk != null and args.has("farm") and fp != null:
 		var fparts := String(args["farm"]).split(",")

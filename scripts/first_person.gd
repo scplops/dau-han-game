@@ -51,6 +51,10 @@ const SOLID_LAYER := 4
 @export var swim_eye: float = 0.17
 ## Trong nước đổi hướng / lấy đà chậm hơn trên bờ.
 @export var swim_acceleration: float = 3.5
+## Lặn (giữ `fp_dive` khi đang bơi): tốc độ dưới nước, mắt cách đáy sông, nín thở được bao lâu (giây).
+@export var dive_speed: float = 1.2
+@export var dive_eye: float = 0.14
+@export var breath_seconds: float = 14.0
 
 @export_group("Tương tác")
 @export var reach: float = 3.2
@@ -63,6 +67,10 @@ var speed_scale: float = 1.0
 var run_boost: float = 1.0
 ## Đang bơi dưới sông (mục 49).
 var swimming: bool = false
+var diving: bool = false
+## Hơi thở còn lại 0…1 (lặn thì cạn dần, ngoi lên thì đầy lại).
+var breath: float = 1.0
+var _breath_out: bool = false     # hết hơi: phải thả phím lặn rồi mới lặn lại được
 var _eye: float = 1.6
 var _stroke: float = 0.0
 var _tread: float = 0.0
@@ -344,6 +352,13 @@ func _physics_process(delta: float) -> void:
 	var top := run_speed * run_boost if Input.is_action_pressed("fp_run") else walk_speed
 	if swimming:
 		top = swim_fast_speed * run_boost if Input.is_action_pressed("fp_run") else swim_speed
+	# Lặn: giữ phím lặn khi đang bơi, hết hơi thì tự ngoi lên
+	var hold := Input.is_action_pressed("fp_dive")
+	if not hold:
+		_breath_out = false
+	set_diving(swimming and hold and not _breath_out, delta)
+	if diving:
+		top = dive_speed
 	wish = wish.normalized() * top * minf(input.length(), 1.0) * speed_scale
 	var t := 1.0 - exp(-(swim_acceleration if swimming else acceleration) * delta)
 	velocity.x = lerpf(velocity.x, wish.x, t)
@@ -368,11 +383,15 @@ func _physics_process(delta: float) -> void:
 	if swimming:
 		# Mắt sát mặt nước, nhấp nhô và nghiêng theo nhịp sải tay; mỗi sải một gợn nước
 		eye_to = river.water_level + swim_eye - global_position.y
+		if diving:
+			eye_to = river.bed_level + dive_eye - global_position.y
 		var before_stroke := _stroke
 		_stroke += hs * delta * 1.25
 		bob = 0.035 * sin(_stroke * TAU) * clampf(hs / swim_speed, 0.0, 1.0) + 0.012 * sin(_tread * 2.4)
 		_tread += delta
-		if floorf(_stroke) != floorf(before_stroke) or (hs < 0.3 and fmod(_tread, 1.8) < delta):
+		if diving:
+			bob *= 0.3
+		elif floorf(_stroke) != floorf(before_stroke) or (hs < 0.3 and fmod(_tread, 1.8) < delta):
 			river.splash(global_position - global_transform.basis.z * 0.5)
 	_eye = lerpf(_eye, eye_to, 1.0 - exp(-7.0 * delta))
 	camera.position.y = _eye + bob
@@ -399,6 +418,18 @@ func _update_swimming() -> void:
 		# Đã bơi thì nới biên một chút cho khỏi chập chờn ở mép nước
 		now = river.is_water(Vector2(global_position.x, global_position.z), swim_margin - (0.5 if swimming else 0.0))
 	_set_swimming(now)
+
+
+## Ngụp xuống / ngoi lên + hơi thở (bài thử gọi thẳng). Hết hơi thì ngoi lên, phải thả phím mới lặn lại được.
+func set_diving(on: bool, delta: float) -> void:
+	if on and breath <= 0.0:
+		_breath_out = true
+		on = false
+	if on != diving:
+		diving = on
+		if river != null:
+			river.splash(global_position)
+	breath = clampf(breath + (-delta / breath_seconds if diving else delta / (breath_seconds * 0.35)), 0.0, 1.0)
 
 
 func _set_swimming(on: bool) -> void:

@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56), lặn mò ốc / trai (mục 57).
 
 ---
 
@@ -147,7 +147,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
    `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B), `cycle_quality` (G — mức đồ hoạ),
-   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp),
+   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp), `fp_dive` (C / Ctrl — lặn khi đang bơi),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -209,6 +209,7 @@ scripts/
   game_kit.gd          # đồ dùng chung của các trò chơi: hình nhân, khung giao diện, nhãn chữ (mục 46)
   soundscape.gd        # âm thanh tổng hợp bằng code: gió, mưa, dế, ếch, sông, gà, trống, chuông, sấm (mục 38)
   notebook.gd          # sổ tay người chơi: kỷ lục, sổ câu, người quen, quà & việc, làng hôm nay (mục 39)
+  river_dive.gd        # lặn mò ốc, mò trai dưới đáy sông: màn nước, thanh hơi thở, nhặt, mọc lại (mục 57)
   river_swim.gd        # tắm sông: trẻ con chiều hè tan học ra bến bơi, té nước; người chơi bơi thì gọi (mục 49)
   help_guide.gd        # bảng trợ giúp F1 (phím theo từng hoạt động) + hướng dẫn nhập môn từng bước (mục 52)
   inventory.gd         # túi đồ + tiền: danh mục vật phẩm, ăn / mồi / diều / sáo, biếu quà, màn hình phím I (mục 48)
@@ -1645,3 +1646,25 @@ thay mesh procedural bằng model Blender.
 - Sổ tay trang Người quen ghi mức, số điểm, còn bao nhiêu điểm thì lên mức sau. Trợ giúp F1 trang Dân làng có đoạn giải thích.
 - `tools/bond_test.gd`: điểm → mức; 6 điểm báo lên bậc, lời chào đổi, có chuyện riêng; 14 điểm có câu hỏi thăm → được quà, hôm đó
   không cho nữa, hôm sau lại cho; nón lá 15 → 14 → 12 nghìn; việc nhờ công 4 + 3; sổ tay ghi "thân thiết".
+
+## 57. Lặn mò ốc, mò trai (giai đoạn 10f)
+
+- **Không đào lòng sông.** Gợi ý ban đầu là "sông sâu thật + lặn", nhưng lòng sông nằm trên nền cỏ phẳng (mục 14): muốn sâu thật phải
+  khoét nền đất (các tấm nền của `Terrain`), dựng lại mặt cắt sông, bến, bậc đá, đò, đường đua, chỗ trẻ con tắm — rủi ro lớn.
+  Nên vẫn giữ độ sâu "giả" của mục 49 và làm phần **lặn** trên đó: lặn = hạ mắt xuống sát lòng bùn + màn nước xanh.
+  Muốn sông sâu thật thì đó là một bước riêng (đổi `Terrain` + `River` trước, rồi mới tới các phần bám theo mặt nước).
+- **Lặn** (`FirstPerson`): đang bơi mà giữ `fp_dive` (C hoặc Ctrl) → `diving`: mắt xuống cách đáy `dive_eye` 0,14 m (dưới mặt nước),
+  bơi chậm `dive_speed` 1,2 m/s, không gợn nước; `breath` 1 → 0 trong `breath_seconds` 14 s, ngoi lên thì đầy lại nhanh gấp ~3;
+  hết hơi tự ngoi lên và phải THẢ phím mới lặn lại được (`_breath_out`). `set_diving(on, delta)` tách riêng.
+- `scripts/river_dive.gd` (`RiverDive`, node con CUỐI của `Main` — nhận E trước `FirstPerson`): quanh mỗi bến sông
+  `shells_per_landing` 14 con **ốc vặn / trai sông** (`clam_ratio` 35 % là trai) nằm dưới đáy trong ±`spread_along` 45 m dọc sông
+  (mỗi con một MeshInstance nhỏ dùng chung mesh, `visibility_range_end` 30 m, nằm ngoài `World`). Đang lặn tới gần `pick_reach`
+  1,4 m: dòng "E: Nhặt …" → `pick(i)` → vào túi đồ (`oc`, `trai`), `respawn_seconds` 240 s sau mọc lại chỗ khác quanh bến đó.
+  Giao diện (CanvasLayer lớp 3): màn nước xanh `tint` khi lặn, thanh hơi thở (đỏ khi sắp hết), lời nhắc ("Giữ C để lặn mò ốc, mò
+  trai" khi đang bơi, "Hết hơi — ngoi lên thở đã!").
+- **Vật phẩm + món mới** (`Inventory`): `oc` (rổ ốc vặn, 4 nghìn) và `trai` (con trai sông, 6 nghìn) bán được cho hàng cá; nấu
+  (mục 55, giờ 9 công thức): 2 rổ ốc → bát ốc luộc; 1 con trai + rau → 2 bát canh trai. Biểu tượng `snail`, `clam`.
+- Nhìn từ dưới nước không thấy mặt nước (mặt nước chỉ vẽ một mặt) mà thấy bờ / lau sậy qua màn xanh — chấp nhận ở mức "giả".
+- `tools/dive_test.gd`: 42 con dưới đáy quanh 3 bến; bơi nổi không nhặt được; giữ C: mắt 0,20 m (đáy 0,06, mặt nước 0,32), màn
+  xanh, có gợi ý, E nhặt vào túi; lặn bơi 1,18 m/s; ~14 s hết hơi tự ngoi lên, giữ phím không lặn lại, thả ra bấm lại thì lặn;
+  mọc lại; trên bờ không lặn. Chụp ảnh: `--date=2027-06-22 --hour=15 --fp --focus=-150,-100 --dive=0 --fp-pitch=-8`.

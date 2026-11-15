@@ -310,6 +310,8 @@ func page_text(i: int) -> String:
 			t += _key("W / S", "tới / lùi      [b]A / D[/b]  rẽ      [b]Shift[/b]  chèo nhanh      [b]E / Esc[/b]  thôi chèo")
 			t += "\n" + _head("Bơi")
 			t += "Lội xuống sông sâu một chút là tự bơi: W A S D bơi, Shift bơi sải. Lên gần bờ thì đi bộ lại.\n"
+			t += _key("Giữ C (hoặc Ctrl) khi đang bơi", "lặn xuống đáy — nín thở được chừng 14 giây, hết hơi thì tự ngoi lên")
+			t += _key("E khi đang lặn", "nhặt ốc, trai nằm dưới đáy quanh các bến (đem nấu hoặc bán cho hàng cá)")
 			t += "\n" + _head("Đua thuyền")
 			t += "Bấm bến đua (cờ ba màu, trống) ở bến sông phía bắc. Giữ W chèo, Space đúng nhịp trống, A / D lái.\n"
 		5:

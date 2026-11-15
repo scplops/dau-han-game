@@ -31,7 +31,7 @@ func _run() -> void:
 		for need: Array in r.needs:
 			for alt: String in need[0]:
 				ok_cat = ok_cat and (alt == "@fish" or Inventory.ITEMS.has(alt))
-	_check("7 công thức, nguyên liệu và món đều có trong danh mục", ok_cat and Inventory.RECIPES.size() == 7)
+	_check("9 công thức, nguyên liệu và món đều có trong danh mục", ok_cat and Inventory.RECIPES.size() == 9)
 	inv.add("gao_tam", 1)
 	inv.add("trung_vit", 1)
 	inv.add("hanh", 2)
@@ -67,7 +67,7 @@ func _run() -> void:
 	# Màn hình: ngăn Nấu ăn
 	var opened := inv.show_inventory()
 	inv.set_tab(5)
-	_check("mở túi trong nhà, ngăn Nấu ăn có 7 công thức", opened and inv._entries.size() == 7
+	_check("mở túi trong nhà, ngăn Nấu ăn có 9 công thức", opened and inv._entries.size() == 9
 			and str(inv._entries[0].kind) == "recipe")
 	inv.add("khoai", 1)
 	inv._refresh()

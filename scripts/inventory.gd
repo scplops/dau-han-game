@@ -95,6 +95,10 @@ const ITEMS := {
 			"desc": "Canh rau nấu tép đồng, ngọt mát.", "likes": ["carrier", "elder"]},
 	"ca_kho": {"name": "niêu cá kho", "cat": "food", "price": 14, "stall": "", "icon": "braised", "use": "eat", "energy": 300,
 			"desc": "Cá kho niêu đất, kho hai lửa, ăn với cơm trắng thì hết sảy.", "likes": ["elder", "farmer", "carrier"]},
+	"oc_luoc": {"name": "bát ốc luộc", "cat": "food", "price": 6, "stall": "", "icon": "snail", "use": "eat", "energy": 140,
+			"desc": "Ốc luộc lá chanh, khều bằng gai bưởi.", "likes": ["kid", "herder", "carrier"]},
+	"canh_trai": {"name": "bát canh trai", "cat": "food", "price": 7, "stall": "", "icon": "soup", "use": "eat", "energy": 170,
+			"desc": "Canh trai nấu rau, ngọt mát ngày hè.", "likes": ["elder", "farmer"]},
 	"mam_com": {"name": "mâm cơm nhà", "cat": "food", "price": 30, "stall": "", "icon": "tray", "use": "eat", "energy": 360,
 			"desc": "Mâm cơm đủ cơm trắng, cá kho, canh rau. Ăn xong no căng, khoẻ cả buổi.", "likes": ["elder", "farmer", "carrier"]},
 	# --- Đồ dùng ---
@@ -119,6 +123,10 @@ const ITEMS := {
 			"desc": "Cải ngồng nấu canh.", "likes": ["carrier"]},
 	"hanh": {"name": "bó hành lá", "cat": "goods", "price": 1, "stall": "veg", "icon": "greens", "use": "",
 			"desc": "Hành lá thơm.", "likes": []},
+	"oc": {"name": "rổ ốc vặn", "cat": "goods", "price": 4, "stall": "fish", "icon": "snail", "use": "",
+			"desc": "Ốc vặn mò dưới đáy sông. Luộc lá chanh chấm mắm gừng.", "likes": ["kid", "carrier"]},
+	"trai": {"name": "con trai sông", "cat": "goods", "price": 6, "stall": "fish", "icon": "clam", "use": "",
+			"desc": "Trai sông to bằng bàn tay, lặn mới mò được. Nấu canh rau ngọt lừ.", "likes": ["elder", "farmer"]},
 	"tep": {"name": "mớ tép", "cat": "goods", "price": 5, "stall": "fish", "icon": "shrimp", "use": "",
 			"desc": "Tép đồng rang khế.", "likes": ["carrier"]},
 	"ca_ro": {"name": "xâu cá rô", "cat": "goods", "price": 9, "stall": "fish", "icon": "fish", "use": "",
@@ -147,6 +155,8 @@ const RECIPES: Array = [
 	{"id": "trung", "gives": "trung_ran", "n": 2, "needs": [[["trung_ga", "trung_vit"], 1], [["hanh"], 1]], "how": "Đập trứng, thái hành, rán vàng hai mặt."},
 	{"id": "canh", "gives": "canh_rau", "n": 2, "needs": [[["rau_muong", "rau_cai"], 1], [["tep"], 1]], "how": "Giã tép, đun sôi, thả rau."},
 	{"id": "ca_kho", "gives": "ca_kho", "n": 1, "needs": [[["ca_ro", "@fish"], 1], [["hanh"], 1]], "how": "Ướp cá, xếp niêu đất, kho liu riu hai lửa."},
+	{"id": "oc", "gives": "oc_luoc", "n": 1, "needs": [[["oc"], 2]], "how": "Ngâm ốc nước gạo, luộc với lá chanh."},
+	{"id": "canh_trai", "gives": "canh_trai", "n": 2, "needs": [[["trai"], 1], [["rau_muong", "rau_cai"], 1]], "how": "Luộc trai lấy ruột, nấu với rau."},
 	{"id": "mam", "gives": "mam_com", "n": 1, "needs": [[["com"], 2], [["ca_kho"], 1], [["canh_rau"], 1]], "how": "Dọn cơm, cá kho, canh ra mâm."},
 ]
 ## Cá trong giỏ nặng từ ngần này cân mới đủ kho một niêu.
@@ -1207,6 +1217,15 @@ class ItemIcon extends Control:
 					draw_rect(Rect2(12, 24, 40, 5), Palette.RICE_1)
 					draw_circle(Vector2(24, 25), 3, Palette.ICON_FISH_RED)
 					draw_circle(Vector2(38, 26), 3, Palette.ICON_FISH_RED)
+			"snail":
+				draw_circle(Vector2(28, 38), 18, Palette.SHELL_DARK)
+				draw_circle(Vector2(28, 38), 11, Palette.SHELL_DARK.lightened(0.18))
+				draw_circle(Vector2(28, 38), 5, Palette.SHELL_DARK.lightened(0.35))
+				draw_circle(Vector2(48, 24), 8, Palette.SHELL_DARK.lightened(0.1))
+			"clam":
+				draw_colored_polygon(PackedVector2Array([Vector2(6, 40), Vector2(20, 22), Vector2(44, 22), Vector2(58, 40), Vector2(32, 50)]), Palette.SHELL_LIGHT)
+				for i in 4:
+					draw_line(Vector2(32, 50), Vector2(14 + i * 12, 26), Palette.SHELL_LIGHT.darkened(0.25), 2.0)
 			"fried_egg":
 				draw_circle(Vector2(32, 36), 24, Palette.CERAMIC)
 				draw_circle(Vector2(32, 36), 17, Palette.ICON_RICE_CAKE)

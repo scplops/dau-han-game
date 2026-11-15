@@ -50,6 +50,7 @@
 [ext_resource type="Script" path="res://scripts/river_swim.gd" id="48_swim"]
 [ext_resource type="Script" path="res://scripts/help_guide.gd" id="49_help"]
 [ext_resource type="Script" path="res://scripts/farm_work.gd" id="50_farmwork"]
+[ext_resource type="Script" path="res://scripts/river_dive.gd" id="51_dive"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -578,3 +579,10 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 villagers = NodePath("../World/Villagers")
 inventory = NodePath("../Inventory")
+
+[node name="RiverDive" type="Node3D" parent="." node_paths=PackedStringArray("river", "first_person", "inventory", "hud")]
+script = ExtResource("51_dive")
+river = NodePath("../World/River")
+first_person = NodePath("../FirstPerson")
+inventory = NodePath("../Inventory")
+hud = NodePath("../HUD")
