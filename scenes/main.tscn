@@ -530,8 +530,9 @@ sun = NodePath("../Sun")
 day_night = NodePath("../DayNight")
 terrain = NodePath("../World/Terrain")
 
-[node name="Inventory" type="CanvasLayer" parent="." node_paths=PackedStringArray("market", "fishing", "quests", "dialogue", "first_person", "kite", "boat_race", "tug_war", "o_an_quan", "soundscape", "villagers", "notebook", "hud", "outdoor_rig")]
+[node name="Inventory" type="CanvasLayer" parent="." node_paths=PackedStringArray("market", "fishing", "quests", "dialogue", "first_person", "kite", "boat_race", "tug_war", "o_an_quan", "soundscape", "villagers", "notebook", "hud", "outdoor_rig", "house_entry")]
 script = ExtResource("47_inv")
+house_entry = NodePath("../HouseEntry")
 market = NodePath("../World/Market")
 fishing = NodePath("../Fishing")
 quests = NodePath("../Quests")

@@ -30,6 +30,7 @@ signal used(id: String)
 @export var notebook: Notebook
 @export var hud: Hud
 @export var outdoor_rig: CameraRig
+@export var house_entry: HouseEntry
 @export_group("Tiền")
 ## Tiền lúc bắt đầu chơi (nghìn đồng).
 @export var start_money: int = 20
@@ -51,8 +52,8 @@ signal used(id: String)
 
 ## Loại vật phẩm (ngăn trong túi).
 const CATS := {"food": "Đồ ăn", "tool": "Đồ dùng", "goods": "Đồ đạc"}
-const TABS: Array[String] = ["all", "food", "tool", "goods", "fish"]
-const TAB_NAMES := {"all": "Tất cả", "food": "Đồ ăn", "tool": "Đồ dùng", "goods": "Đồ đạc", "fish": "Giỏ cá"}
+const TABS: Array[String] = ["all", "food", "tool", "goods", "fish", "cook"]
+const TAB_NAMES := {"all": "Tất cả", "food": "Đồ ăn", "tool": "Đồ dùng", "goods": "Đồ đạc", "fish": "Giỏ cá", "cook": "Nấu ăn"}
 
 ## Danh mục vật phẩm. stall: sạp ở chợ mua lại món này ("" = không ai mua). energy: giây no bụng.
 ## use: eat | drink | bait | kite | flute | "" (không dùng được, chỉ để biếu / bán). likes: vai thích được biếu món này.
@@ -83,6 +84,19 @@ const ITEMS := {
 			"desc": "Xôi lạc gói lá chuối, ăn sáng no tới trưa.", "likes": ["farmer", "carrier"]},
 	"che": {"name": "gói chè Thái", "cat": "food", "price": 6, "stall": "", "icon": "tea", "use": "drink", "energy": 120,
 			"desc": "Chè búp Thái Nguyên. Pha một ấm uống cho tỉnh người.", "likes": ["elder", "farmer"]},
+	# --- Món tự nấu ở bếp nhà mình (mục 55): không bán ở chợ, ăn no lâu, biếu thì quý ---
+	"com": {"name": "bát cơm trắng", "cat": "food", "price": 3, "stall": "", "icon": "rice_bowl", "use": "eat", "energy": 120,
+			"desc": "Cơm gạo tám mới nấu, thơm dẻo.", "likes": ["farmer", "herder"]},
+	"khoai_nuong": {"name": "củ khoai nướng", "cat": "food", "price": 3, "stall": "", "icon": "potato", "use": "eat", "energy": 110,
+			"desc": "Khoai lang vùi tro bếp, bóc ra vàng ươm, nóng hổi.", "likes": ["kid", "herder"]},
+	"trung_ran": {"name": "đĩa trứng rán", "cat": "food", "price": 8, "stall": "", "icon": "fried_egg", "use": "eat", "energy": 180,
+			"desc": "Trứng rán hành thơm lừng.", "likes": ["kid", "farmer"]},
+	"canh_rau": {"name": "bát canh rau tép", "cat": "food", "price": 5, "stall": "", "icon": "soup", "use": "eat", "energy": 150,
+			"desc": "Canh rau nấu tép đồng, ngọt mát.", "likes": ["carrier", "elder"]},
+	"ca_kho": {"name": "niêu cá kho", "cat": "food", "price": 14, "stall": "", "icon": "braised", "use": "eat", "energy": 300,
+			"desc": "Cá kho niêu đất, kho hai lửa, ăn với cơm trắng thì hết sảy.", "likes": ["elder", "farmer", "carrier"]},
+	"mam_com": {"name": "mâm cơm nhà", "cat": "food", "price": 30, "stall": "", "icon": "tray", "use": "eat", "energy": 360,
+			"desc": "Mâm cơm đủ cơm trắng, cá kho, canh rau. Ăn xong no căng, khoẻ cả buổi.", "likes": ["elder", "farmer", "carrier"]},
 	# --- Đồ dùng ---
 	"moi": {"name": "hộp mồi giun", "cat": "tool", "price": 3, "stall": "fish", "icon": "bait", "use": "bait",
 			"desc": "Giun đất đào ở bờ ruộng. Móc mồi vào thì cá cắn câu nhanh hơn (5 lượt câu).", "likes": []},
@@ -125,6 +139,20 @@ const ITEMS := {
 			"desc": "Chum sành đựng nước mưa.", "likes": ["farmer", "elder"]},
 }
 
+## Công thức nấu ăn. needs: [[các món thay thế nhau], số lượng]; "@fish" = một con cá trong giỏ nặng từ `cook_fish_kg`.
+const RECIPES: Array = [
+	{"id": "com", "gives": "com", "n": 4, "needs": [[["gao_tam"], 1]], "how": "Vo gạo, bắc nồi lên kiềng, đun nhỏ lửa."},
+	{"id": "xoi", "gives": "xoi_lac", "n": 3, "needs": [[["gao_nep"], 1]], "how": "Ngâm nếp, đồ chõ cho chín dẻo."},
+	{"id": "khoai", "gives": "khoai_nuong", "n": 3, "needs": [[["khoai"], 1]], "how": "Vùi khoai vào tro nóng."},
+	{"id": "trung", "gives": "trung_ran", "n": 2, "needs": [[["trung_ga", "trung_vit"], 1], [["hanh"], 1]], "how": "Đập trứng, thái hành, rán vàng hai mặt."},
+	{"id": "canh", "gives": "canh_rau", "n": 2, "needs": [[["rau_muong", "rau_cai"], 1], [["tep"], 1]], "how": "Giã tép, đun sôi, thả rau."},
+	{"id": "ca_kho", "gives": "ca_kho", "n": 1, "needs": [[["ca_ro", "@fish"], 1], [["hanh"], 1]], "how": "Ướp cá, xếp niêu đất, kho liu riu hai lửa."},
+	{"id": "mam", "gives": "mam_com", "n": 1, "needs": [[["com"], 2], [["ca_kho"], 1], [["canh_rau"], 1]], "how": "Dọn cơm, cá kho, canh ra mâm."},
+]
+## Cá trong giỏ nặng từ ngần này cân mới đủ kho một niêu.
+const COOK_FISH_KG := 0.3
+
+var cooked: int = 0               # số lần đã nấu
 var money: int = 20
 ## Số lượng từng món: mã → số.
 var items: Dictionary = {}
@@ -455,7 +483,7 @@ func snapshot() -> Dictionary:
 	var its := {}
 	for id in order:
 		its[id] = count(id)
-	return {"money": money, "items": its, "order": order.duplicate(), "energy": energy, "earned": earned, "spent": spent,
+	return {"money": money, "items": its, "order": order.duplicate(), "energy": energy, "earned": earned, "spent": spent, "cooked": cooked,
 			"bait": fishing.bait if fishing != null else 0}
 
 
@@ -470,6 +498,7 @@ func load_data(d: Dictionary) -> void:
 			order.append(k)
 			items[k] = int(its[k])
 	energy = float(d.get("energy", 0.0))
+	cooked = int(d.get("cooked", 0))
 	earned = int(d.get("earned", 0))
 	spent = int(d.get("spent", 0))
 	if fishing != null:
@@ -502,6 +531,85 @@ func reset() -> void:
 	spent = 0
 	_push_effects()
 	_changed()
+
+
+# --- Nấu ăn (mục 55) -------------------------------------------------------------------------------------------
+
+## Đang đứng trong nhà mình (có bếp) thì mới nấu được.
+func at_kitchen() -> bool:
+	return house_entry != null and house_entry.inside and house_entry._target != null \
+			and str(house_entry._target.get_meta("key", "")) == "main"
+
+
+func recipe(id: String) -> Dictionary:
+	for r: Dictionary in RECIPES:
+		if str(r.id) == id:
+			return r
+	return {}
+
+
+## Con cá nhẹ nhất trong giỏ mà vẫn đủ kho (−1 nếu không có).
+func _cook_fish() -> int:
+	var best := -1
+	if fishing != null:
+		for i in fishing.basket.size():
+			var kg := float(fishing.basket[i].kg)
+			if kg >= COOK_FISH_KG and (best < 0 or kg < float(fishing.basket[best].kg)):
+				best = i
+	return best
+
+
+## Món sẽ dùng cho một nguyên liệu (món đầu tiên trong các món thay thế mà đang có đủ); "" nếu thiếu.
+func _pick_need(need: Array) -> String:
+	for alt: String in need[0]:
+		if alt == "@fish":
+			if _cook_fish() >= 0:
+				return alt
+		elif count(alt) >= int(need[1]):
+			return alt
+	return ""
+
+
+func can_cook(id: String) -> bool:
+	var r := recipe(id)
+	if r.is_empty():
+		return false
+	for need: Array in r.needs:
+		if _pick_need(need) == "":
+			return false
+	return true
+
+
+## Nấu một món: trừ nguyên liệu, thêm món chín vào túi. Trả về lời báo ("" nếu không nấu được).
+func cook(id: String) -> String:
+	if not at_kitchen():
+		toast("Phải về bếp nhà mình mới nấu được")
+		return ""
+	if not can_cook(id):
+		toast("Chưa đủ nguyên liệu")
+		return ""
+	var r := recipe(id)
+	for need: Array in r.needs:
+		var use_id := _pick_need(need)
+		if use_id == "@fish":
+			fishing.basket.remove_at(_cook_fish())
+		else:
+			remove(use_id, int(need[1]))
+	add(str(r.gives), int(r.n))
+	cooked += 1
+	var text := "Nấu xong: %d %s" % [int(r.n), item_name(str(r.gives))]
+	toast(text)
+	return text
+
+
+func _need_text(need: Array) -> String:
+	var names: Array[String] = []
+	for alt: String in need[0]:
+		if alt == "@fish":
+			names.append("một con cá trong giỏ (từ %s)" % Fishing._kg(COOK_FISH_KG))
+		else:
+			names.append("%s (có %d)" % [item_name(alt), count(alt)])
+	return "%s%s  %s" % ["✓ " if _pick_need(need) != "" else "✗ ", ("%d × " % int(need[1])) if int(need[1]) > 1 else "", " hoặc ".join(names)]
 
 
 # --- Màn hình túi đồ -------------------------------------------------------------------------------------------
@@ -577,6 +685,10 @@ func _select(i: int) -> void:
 
 
 func _use_selected() -> void:
+	if _sel < _entries.size() and str(_entries[_sel].kind) == "recipe":
+		cook(str(_entries[_sel].id))
+		_refresh()
+		return
 	if _sel < _entries.size() and str(_entries[_sel].kind) == "item":
 		use(str(_entries[_sel].id))
 
@@ -591,6 +703,10 @@ func _drop_selected() -> void:
 func _collect_entries() -> void:
 	_entries.clear()
 	var tab := TABS[_tab]
+	if tab == "cook":
+		for r: Dictionary in RECIPES:
+			_entries.append({"kind": "recipe", "id": str(r.id)})
+		return
 	if tab != "fish":
 		for id in order:
 			if tab == "all" or str((ITEMS[id] as Dictionary).cat) == tab:
@@ -645,7 +761,12 @@ func _slot(i: int) -> Control:
 	nm.size = Vector2(96, 36)
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(nm)
-	if str(e.kind) == "item":
+	if str(e.kind) == "recipe":
+		var r := recipe(str(e.id))
+		ic.set_icon(str((ITEMS[str(r.gives)] as Dictionary).icon))
+		ic.modulate = Color.WHITE if can_cook(str(e.id)) else Color(1, 1, 1, 0.4)
+		nm.text = item_name(str(r.gives))
+	elif str(e.kind) == "item":
 		var id := str(e.id)
 		ic.set_icon(str((ITEMS[id] as Dictionary).icon))
 		nm.text = item_name(id)
@@ -688,6 +809,27 @@ func _refresh_selection() -> void:
 		_drop_button.visible = false
 		return
 	var e: Dictionary = _entries[_sel]
+	if str(e.kind) == "recipe":
+		var r := recipe(str(e.id))
+		var out: Dictionary = ITEMS[str(r.gives)]
+		_detail_icon.set_icon(str(out.icon))
+		_detail_name.text = "Nấu: " + item_name(str(r.gives))
+		_detail_sub.text = "Được %d phần  ·  mỗi phần no thêm %s" % [int(r.n), _clock(float(out.energy))]
+		var lines: Array[String] = [str(r.how), "", "Cần:"]
+		for need: Array in r.needs:
+			lines.append("  " + _need_text(need))
+		lines.append("")
+		if not at_kitchen():
+			lines.append("Phải về BẾP NHÀ MÌNH mới nấu được (vào nhà mình rồi mở túi, ngăn Nấu ăn).")
+		elif not can_cook(str(e.id)):
+			lines.append("Chưa đủ nguyên liệu — mua ở chợ phiên, câu cá, đi gặt thuê lấy gạo.")
+		else:
+			lines.append("Đủ nguyên liệu rồi, nấu thôi!")
+		_detail_desc.text = "\n".join(lines)
+		_use_button.visible = at_kitchen() and can_cook(str(e.id))
+		_use_button.text = "Nấu (E)"
+		_drop_button.visible = false
+		return
 	if str(e.kind) == "fish":
 		var f: Dictionary = e.fish
 		var price := maxi(1, roundi(float(f.kg) * float(Market.FISH_PRICE.get(str(f.name), 18))))
@@ -1054,6 +1196,32 @@ class ItemIcon extends Control:
 				draw_colored_polygon(PackedVector2Array([Vector2(10, 24), Vector2(54, 24), Vector2(48, 50), Vector2(16, 50)]), Palette.JAR)
 				draw_rect(Rect2(8, 20, 48, 6), Palette.JAR.darkened(0.2))
 				draw_rect(Rect2(24, 12, 16, 6), Palette.JAR.darkened(0.25))
+			"rice_bowl", "soup":
+				draw_colored_polygon(PackedVector2Array([Vector2(8, 28), Vector2(56, 28), Vector2(44, 50), Vector2(20, 50)]), Palette.CERAMIC)
+				draw_line(Vector2(9, 32), Vector2(55, 32), Palette.SIGN_BLUE, 3.0)
+				draw_rect(Rect2(26, 50, 12, 4), Palette.CERAMIC.darkened(0.1))
+				if icon == "rice_bowl":
+					draw_circle(Vector2(32, 26), 15, Palette.ICON_RICE_CAKE)
+					draw_rect(Rect2(8, 28, 48, 3), Palette.CERAMIC)
+				else:
+					draw_rect(Rect2(12, 24, 40, 5), Palette.RICE_1)
+					draw_circle(Vector2(24, 25), 3, Palette.ICON_FISH_RED)
+					draw_circle(Vector2(38, 26), 3, Palette.ICON_FISH_RED)
+			"fried_egg":
+				draw_circle(Vector2(32, 36), 24, Palette.CERAMIC)
+				draw_circle(Vector2(32, 36), 17, Palette.ICON_RICE_CAKE)
+				draw_circle(Vector2(34, 34), 8, Palette.SUN)
+			"braised":
+				draw_colored_polygon(PackedVector2Array([Vector2(8, 26), Vector2(56, 26), Vector2(48, 52), Vector2(16, 52)]), Palette.JAR)
+				draw_rect(Rect2(6, 22, 52, 6), Palette.JAR.darkened(0.2))
+				draw_colored_polygon(PackedVector2Array([Vector2(16, 20), Vector2(40, 12), Vector2(48, 18), Vector2(40, 24)]), Palette.ICON_FISH_GOLD)
+				draw_colored_polygon(PackedVector2Array([Vector2(16, 20), Vector2(10, 13), Vector2(11, 25)]), Palette.ICON_FISH_GOLD)
+			"tray":
+				draw_circle(Vector2(32, 34), 27, Palette.WOOD_LIGHT)
+				draw_circle(Vector2(32, 34), 23, Palette.SUN.darkened(0.15))
+				draw_circle(Vector2(22, 28), 8, Palette.ICON_RICE_CAKE)
+				draw_circle(Vector2(42, 28), 8, Palette.JAR)
+				draw_circle(Vector2(32, 44), 8, Palette.RICE_1)
 			"bowl":
 				draw_colored_polygon(PackedVector2Array([Vector2(8, 26), Vector2(56, 26), Vector2(44, 48), Vector2(20, 48)]), Palette.CERAMIC)
 				draw_line(Vector2(9, 30), Vector2(55, 30), Palette.SIGN_BLUE, 3.0)

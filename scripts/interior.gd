@@ -638,6 +638,19 @@ func _room_storage(mb: MeshBuilder, x0: float, x1: float, outer: float) -> void:
 	mb.add_prism(0.27, 0.22, 0.06, 9, Palette.WOOD, _t(jx, p + 0.74, jz))
 	for i in 2:
 		mb.add_blob(Vector3(0.26, 0.24, 0.2), Palette.SACK, _rng, 0.15, _t(jx - outer * (0.6 + i * 0.48), p, jz + 0.45))
+	# Bếp kiềng ở góc trong cùng sát tường hồi: ba hòn đầu rau, kiềng sắt, nồi đất, mấy thanh củi (mục 55)
+	var kx := (x1 - 0.42) if outer > 0.0 else (x0 + 0.42)
+	var kz := wall_z + 0.38
+	if absf(kx - cx) > cw * 0.5 + 0.3:
+		for i in 3:
+			var a := TAU * i / 3.0 + 0.5
+			mb.add_blob(Vector3(0.09, 0.14, 0.09), Palette.ROCK_DARK, _rng, 0.2, _t(kx + cos(a) * 0.2, p, kz + sin(a) * 0.2))
+		mb.add_prism(0.24, 0.24, 0.025, 9, Palette.WINDOW_DARK, _t(kx, p + 0.15, kz))
+		mb.add_prism(0.17, 0.21, 0.17, 9, Palette.JAR.darkened(0.25), _t(kx, p + 0.175, kz))
+		mb.add_prism(0.18, 0.12, 0.04, 9, Palette.JAR.darkened(0.35), _t(kx, p + 0.345, kz))
+		for i in 3:
+			mb.add_box(Vector3(0.05, 0.05, 0.5), Palette.WOOD, Transform3D(Basis(Vector3.UP, (i - 1) * 0.35), Vector3(kx + (i - 1) * 0.05, p + 0.02, kz + 0.32)))
+		mb.add_blob(Vector3(0.1, 0.05, 0.1), Palette.ROOF_DARK, _rng, 0.2, _t(kx, p + 0.02, kz))
 	# Nong nia dựng nghiêng vào tường hồi
 	var nx := (x1 - 0.08) if outer > 0.0 else (x0 + 0.08)
 	for i in 3:

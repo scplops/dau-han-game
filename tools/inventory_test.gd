@@ -217,10 +217,10 @@ func _run() -> void:
 			"đồ ăn %d, cá %d" % [foods, inv._entries.size()])
 	inv.close()
 	_check("gấp túi thì đi tiếp", not inv.open and fp._suspended == "")
-	dlg.start(elder, fp)
+	# Đặt thẳng cờ đang trò chuyện (cụ già có hôm đang dở ván ô ăn quan thì chỉ nói câu ngắn, không mở khung thoại)
+	dlg.talking = true
 	_check("đang trò chuyện không mở túi", not inv.show_inventory())
-	dlg.end()
-	fp._resume()
+	dlg.talking = false
 
 	print("9) File lưu bản trước")
 	inv.load_legacy({"money": 33, "bag": ["nải chuối", "cái nón lá", "nải chuối"], "gifts": ["gói chè Thái", "mấy viên bi"]})

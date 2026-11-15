@@ -294,8 +294,9 @@ func page_text(i: int) -> String:
 			t += _key("Hộp mồi giun", "5 lượt câu cá cắn nhanh hơn")
 			t += _key("Diều giấy", "tự thả diều ở chỗ thoáng (đứt dây là mất)")
 			t += _key("Sáo trúc", "thổi một khúc sáo")
+			t += _key("Ngăn Nấu ăn", "về NHÀ MÌNH rồi mở túi: nấu cơm, đồ xôi, nướng khoai, rán trứng, canh, cá kho, mâm cơm")
 			t += "\n" + _head("Kiếm tiền")
-			t += "Bán cá, giúp việc dân làng, nhất đua thuyền, mừng tuổi ngày Tết.\n"
+			t += "Bán cá, giúp việc dân làng, làm thuê ngoài đồng, nhất đua thuyền, mừng tuổi ngày Tết.\n"
 		4:
 			t += _head("Câu cá — ở ghế câu các bến sông và trên mũi đò")
 			t += _key("Giữ chuột trái / Space", "lấy đà; thả ra để quăng phao")

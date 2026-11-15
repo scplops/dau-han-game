@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55).
 
 ---
 
@@ -271,13 +271,13 @@ screenshots/           # ảnh chụp, không commit
   (lúa, cỏ, đá) phải dùng `MultiMeshInstance3D`.
 - Comment trong code bằng **tiếng Việt**, ngắn gọn. Tên biến, hàm, file bằng tiếng Anh.
 - Không thêm gameplay ngoài các ngoại lệ đã ghi (câu cá, sân bóng, nhập vai đi lại, trò chuyện,
-  việc nhờ, chèo đò, trò chơi dân gian, chợ phiên, lễ hội, túi đồ + tiền); chế tạo / nấu ăn để giai đoạn sau.
+  việc nhờ, chèo đò, trò chơi dân gian, chợ phiên, lễ hội, túi đồ + tiền, làm thuê, nấu ăn); chế tạo đồ để giai đoạn sau.
 - Dùng Git: commit sau mỗi bước hoàn thành, message rõ ràng
   (ví dụ: `step 4: add tiled-roof house`).
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), nấu ăn / chế tạo đồ, nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), chế tạo đồ, nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
 thay mesh procedural bằng model Blender.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -1607,3 +1607,22 @@ thay mesh procedural bằng model Blender.
   xin cấy qua hội thoại → xuống ruộng; bot lệch tay ±0,03 s: 112 khóm, công 9 nghìn (bác chủ 75); ±0,11 s: ~66 khóm, 6 nghìn; ±0,2 s:
   ~31 khóm, 3 nghìn; không bấm: 0; mùa gặt 112 khóm = 6 nghìn + 2 cân gạo; Esc dọn sạch; kỷ lục.
   Chụp ảnh: `--hour=9 --weather=clear --crop-day=8|40|83 --fp --focus=-70,10 --farm=plant|weed|reap[,số khóm]`.
+
+## 55. Nấu ăn ở bếp nhà mình (giai đoạn 10d)
+
+- Nằm trong `Inventory` (không thêm node): ngăn thứ sáu **"Nấu ăn"** của màn hình túi đồ (`TABS` có `cook`). Chỉ nấu được khi
+  đang ở TRONG NHÀ MÌNH (`at_kitchen()`: `HouseEntry.inside` và cửa đang vào có khoá `main` — Inventory có thêm export
+  `house_entry`); ở chỗ khác ngăn vẫn xem được công thức nhưng báo "phải về bếp nhà mình".
+- **Công thức** `RECIPES` (7): `needs` = [[các món thay thế nhau], số lượng], `"@fish"` = một con cá trong `Fishing.basket` nặng
+  từ `COOK_FISH_KG` 0,3 kg (lấy con nhẹ nhất đủ cân): cơm (1 gạo tám → 4 bát), xôi (1 gạo nếp → 3 gói xôi lạc), khoai nướng
+  (1 rổ khoai → 3 củ), trứng rán (trứng gà / vịt + hành → 2 đĩa), canh rau tép (rau muống / cải + tép → 2 bát), cá kho (cá rô
+  hoặc cá trong giỏ + hành → 1 niêu), mâm cơm nhà (2 cơm + cá kho + canh → no hết cỡ 360 s).
+  `can_cook(id)`, `cook(id)` (trừ nguyên liệu, thêm món, `cooked` +1, chữ báo), `_pick_need`, `_need_text` (✓ / ✗ từng nguyên liệu).
+- **Món chín** là vật phẩm thường trong `ITEMS` (`com`, `khoai_nuong`, `trung_ran`, `canh_rau`, `ca_kho`, `mam_com`; `stall` rỗng —
+  chợ không mua lại): ăn no lâu hơn đồ mua sẵn, biếu đúng người thích (`likes`) thì quý +3 như mọi món. Biểu tượng mới vẽ bằng
+  code: `rice_bowl`, `soup`, `fried_egg`, `braised`, `tray`. Gạo có từ đi gặt thuê (mục 54) hoặc mua ở chợ.
+- **Bếp kiềng** trong gian kho của mọi nhà (`Interior._room_storage`): ba hòn đầu rau, kiềng sắt, nồi đất, củi, than — ở góc trong
+  cùng sát tường hồi (chỉ dựng khi còn chỗ cạnh chạn bát).
+- `tools/cooking_test.gd`: ngoài sân / nhà người khác không nấu được; trong nhà mình nấu cơm, trứng rán bằng trứng vịt, canh, cá
+  kho bằng cá trê 0,6 kg trong giỏ (con 0,2 kg không đủ, con 1,4 kg để lại), mâm cơm; thiếu nguyên liệu thì thôi; ăn mâm cơm no
+  360 s; ngăn Nấu ăn + phím E; lưu / nạp `cooked`. Chụp ảnh: `--enter=main --inventory=5`.
