@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56), lặn mò ốc / trai (mục 57), nhạc nền tự soạn (mục 58).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54), nấu ăn ở bếp nhà mình (mục 55), mức thân quen với dân làng (mục 56), lặn mò ốc / trai (mục 57), nhạc nền tự soạn (mục 58), đo hiệu năng F3 / F4 (mục 59).
 
 ---
 
@@ -147,7 +147,7 @@ Nhìn từ camera chéo, bố cục giống ảnh concept:
    `toggle_minimap` (M), `day_back` / `day_forward` (`,` / `.` — lùi / tiến một ngày),
    `fb_shoot` (chuột trái / J), `fb_pass` (chuột phải / K), `fb_call` (Q) — khi đang đá bóng),
    `save_game` (F5), `new_game` (Ctrl+F5), `toggle_sound` (N), `toggle_notebook` (B), `cycle_quality` (G — mức đồ hoạ),
-   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp), `fp_dive` (C / Ctrl — lặn khi đang bơi), `toggle_music` (L — nhạc nền),
+   `toggle_inventory` (I — túi đồ), `toggle_help` (F1 — trợ giúp), `fp_dive` (C / Ctrl — lặn khi đang bơi), `toggle_music` (L — nhạc nền), `toggle_perf` (F3 — bảng FPS), `run_benchmark` (F4 — đo hiệu năng),
    không bắt phím cứng trong code.
 
 ## 6. Cấu trúc thư mục
@@ -190,6 +190,7 @@ scripts/
   fishing.gd           # mini-game câu cá ở các bến sông (mục 16)
   first_person.gd      # nhập vai góc nhìn thứ nhất: đi lại, va chạm, tương tác (mục 18)
   dialogue.gd          # trò chuyện với dân làng: lời thoại, xưng hô, khung thoại (mục 19)
+  perf_meter.gd        # đo hiệu năng trên máy người chơi: bảng FPS (F3), bài đo tự động + gợi ý mức đồ hoạ (F4) (mục 59)
   quests.gd            # dân làng nhờ việc: gánh nước, nhắn tin, câu cá, tìm đồ, sút bóng (mục 20)
   indoor_folk.gd       # dân làng ở trong nhà / đình / chùa / lớp học theo lịch (mục 22)
   minimap.gd           # bản đồ nhỏ góc màn hình, phím M (mục 23)
@@ -1694,3 +1695,21 @@ thay mesh procedural bằng model Blender.
   22:00 khúc đêm; phím L tắt. Lưu `screenshots/sounds/music_<buổi>.wav` để nghe thử.
 - **Chưa ai nghe thử** (máy cloud không có loa): cân âm lượng / chất nhạc cần người chơi nghe rồi chỉnh `music_db`, `MOODS[].gain`,
   nhịp, tỉ lệ lặng.
+
+## 59. Đo hiệu năng trên máy người chơi (giai đoạn 10h)
+
+- Máy cloud dựng hình bằng phần mềm (lavapipe ~1 khung / giây) nên **FPS thật chưa từng được đo** (mục 47). Thay vì đoán, game
+  có công cụ để người chơi tự đo trên máy mình: `scripts/perf_meter.gd` (`PerfMeter`, `CanvasLayer` lớp 20, con cuối của `Main`).
+- **F3** (`toggle_perf`): bảng nhỏ góc trên phải — FPS, thời gian khung trung bình / chậm nhất trong 120 khung gần đây, số lệnh
+  vẽ, số tam giác, số vật thể (`Performance.get_monitor`), mức đồ hoạ.
+- **F4** (`run_benchmark`): bài đo tự động, chỉ ở chế độ ngắm cảnh ngoài sân (`blocked()`: đang nhập vai / trong nhà thì nhắc).
+  Với từng mức đồ hoạ (Nhẹ, Vừa, Cao — `Graphics.set_quality`) camera tới 4 góc `VIEWS` (nhà mình, cổng làng, giữa làng, cả làng
+  từ xa — cùng bộ với `tools/render_stats.gd`), chờ `settle_seconds` 1 s rồi xoay chậm `spin_deg` 14°/s và ghi thời gian từng
+  khung trong `bench_seconds` 4 s (cả bài ~1 phút). `summarize()` → FPS trung bình + FPS của 1 % khung chậm nhất. Xong: trả lại
+  camera, mức đồ hoạ, HUD; `recommended` = mức cao nhất mà GÓC NẶNG NHẤT (`level_fps`) vẫn đạt `target_fps` 50; hiện bảng kết quả
+  (`report`) và ghi thêm vào `out_path` (`user://benchmark.txt`, kèm ngày giờ, cỡ cửa sổ, tên card đồ hoạ). Esc / F4: huỷ / đóng.
+  Tín hiệu `benchmark_done(results)`.
+- `tools/perf_meter_test.gd`: tóm tắt số liệu giả (99 khung 10 ms + 1 khung 100 ms → 91,7 / 10 FPS); nhập vai thì không đo; đi hết
+  12 lượt, bật đủ 3 mức, trả lại camera / mức / HUD; có mức gợi ý; ghi file; huỷ giữa chừng. (Số FPS headless không có nghĩa.)
+- **Việc của người chơi:** chạy game trên máy thật, bấm F4, gửi lại nội dung `benchmark.txt` — lúc đó mới biết cần tối ưu tiếp
+  chỗ nào (mục tiêu ≥ 60 FPS ở 1080p).

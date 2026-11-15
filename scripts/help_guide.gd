@@ -259,6 +259,7 @@ func page_text(i: int) -> String:
 			t += _key("F1", "bảng trợ giúp này")
 			t += _key("H", "ẩn / hiện chữ trên màn hình")
 			t += _key("G", "mức đồ hoạ: Nhẹ / Vừa / Cao      [b]N[/b]  tắt / bật tiếng      [b]L[/b]  tắt / bật nhạc nền")
+			t += _key("F3", "bảng FPS, số lệnh vẽ      [b]F4[/b]  đo hiệu năng tự động (~1 phút) rồi gợi ý mức đồ hoạ")
 		1:
 			t += _head("Đi lại")
 			t += _key("Chuột", "nhìn quanh (bấm vào cửa sổ game nếu chuột chưa bị giữ)")

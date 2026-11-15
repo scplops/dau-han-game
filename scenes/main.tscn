@@ -52,6 +52,7 @@
 [ext_resource type="Script" path="res://scripts/farm_work.gd" id="50_farmwork"]
 [ext_resource type="Script" path="res://scripts/river_dive.gd" id="51_dive"]
 [ext_resource type="Script" path="res://scripts/music.gd" id="52_music"]
+[ext_resource type="Script" path="res://scripts/perf_meter.gd" id="53_perf"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -593,3 +594,11 @@ hud = NodePath("../HUD")
 script = ExtResource("52_music")
 day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
+
+[node name="PerfMeter" type="CanvasLayer" parent="." node_paths=PackedStringArray("outdoor_rig", "graphics", "first_person", "house_entry", "hud")]
+script = ExtResource("53_perf")
+outdoor_rig = NodePath("../CameraRig")
+graphics = NodePath("../Graphics")
+first_person = NodePath("../FirstPerson")
+house_entry = NodePath("../HouseEntry")
+hud = NodePath("../HUD")
