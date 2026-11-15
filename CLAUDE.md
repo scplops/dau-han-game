@@ -6,7 +6,7 @@
 > Ngoại lệ: **vào/ra các toà nhà bằng cách bấm cửa** (mục 10), **dân làng tự đi lại** (mục 13),
 > mini-game câu cá (mục 16), sân bóng — người chơi vào đá được (mục 17), **nhập vai góc nhìn thứ nhất** (mục 18, phím `V`)
 > **trò chuyện với dân làng** (mục 19), **dân làng nhờ việc** (mục 20), **lên đò, chèo đò trên sông** (mục 24)
-> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53).
+> và **trò chơi dân gian** (mục 27: ô ăn quan, mục 28: trốn tìm, mục 29: đua thuyền rồng / thuyền đơn có chướng ngại, mục 30: thả diều, mục 31: nhảy dây, mục 32: đánh khăng, mục 43: kéo co, mục 44: đá cầu / bắn bi / chơi chuyền / bịt mắt bắt dê / rồng rắn lên mây), **mùa vụ lúa** (mục 33: cày → cấy → gặt, ~3 tháng một vụ), nhà 2 tầng có cầu thang lên gác (mục 35), dân làng tự chơi trò dân gian (mục 36), lưu game (mục 37), âm thanh tổng hợp bằng code (mục 38), sổ tay người chơi (mục 39), chợ phiên mua bán (mục 40), lễ hội theo lịch âm (mục 41), bốn mùa (mục 42), **túi đồ + tiền** (mục 48, phím `I`), **bơi dưới sông + trẻ con tắm sông chiều hè** (mục 49), giao diện đá bóng góc nhìn thứ nhất (mục 50), sân bóng 11 đấu 11 (mục 51), trợ giúp F1 + hướng dẫn nhập môn (mục 52), trận bóng sôi động hơn + trọng tài (mục 53), làm thuê mùa vụ (mục 54).
 
 ---
 
@@ -215,6 +215,7 @@ scripts/
   festival.gd          # lễ hội theo lịch âm: Tết, rằm tháng Giêng, Trung thu rước đèn (mục 41)
   seasons.gd           # bốn mùa: màu lá, hoa phượng, thời tiết theo mùa, lá rụng, ve kêu (mục 42)
   save_game.gd         # lưu / mở lại game: ngày giờ, sổ câu, quà, người quen, kỷ lục (mục 37)
+  farm_work.gd         # làm thuê mùa vụ: cấy / làm cỏ / gặt thuê theo nhịp tay, trả công tiền + gạo (mục 54)
   farming.gd           # mùa vụ lúa theo lịch: cày bừa, cấy, lúa lên, trổ, chín, gặt, phơi thóc (mục 33)
                        # (interior.gd có thêm kiểu đi bộ bên trong cho nhập vai — mục 21)
 shaders/
@@ -276,7 +277,7 @@ screenshots/           # ảnh chụp, không commit
 
 ## 9. Ngoài phạm vi (để giai đoạn sau)
 
-Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), làm thuê mùa vụ lấy tiền công, nấu ăn / chế tạo đồ, nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
+Người chơi tự trồng trọt (mùa vụ của làng đã có — mục 33), nấu ăn / chế tạo đồ, nhạc nền (tiếng động, mưa, sấm đã có — mục 38),
 thay mesh procedural bằng model Blender.
 
 ## 10. Vào trong nhà (giai đoạn 1b)
@@ -1579,3 +1580,30 @@ thay mesh procedural bằng model Blender.
 - `tools/football_test.gd -- --players=22 --seconds=380 [--seed=N]` in thêm: sút / chuyền sệt / chuyền dài / tạt cánh / đánh đầu /
   thủ môn cản / tiếng còi. Thường mỗi trận 6 phút: 3–7 bàn (hai đội thắng thua lẫn lộn), ~30 cú sút, ~60 chuyền sệt, 7–19 chuyền dài,
   5–13 quả tạt, 35–60 lần đánh đầu, 2–7 lần thủ môn cản, ~9 lần bóng ra ngoài (trước đây 1–2). `football_join_test` vẫn 7/7 luật.
+
+## 54. Làm thuê mùa vụ (giai đoạn 10c)
+
+- `scripts/farm_work.gd` (`FarmWork`, node con CUỐI của `Main`). Việc theo giai đoạn của vụ (`kind_now()` đọc `Farming.stage_key()`):
+  mùa cấy → `plant` (cấy thuê), lúa non / thì con gái → `weed` (làm cỏ thuê), mùa gặt → `reap` (gặt thuê); cày bừa, trổ, chín,
+  ruộng nghỉ thì không có việc. Nhờ thế phần lớn thời gian trong vụ đều có việc làm thuê.
+- **Xin làm** (nhập vai): trò chuyện với một bác nông dân (`role == "farmer"`) → câu "{Npc} có cần người cấy / làm cỏ / gặt thuê
+  không?" (`dialog_options`, Dialogue thêm vào nhóm câu phụ TRƯỚC câu của chợ / biếu quà) → "(Xắn quần lội xuống ruộng)" → `start(v)`.
+  `refusal(v, chỗ đứng)`: không phải nông dân, đồng không có việc (lời theo giai đoạn), ngoài giờ `hours` 6:00–17:30, mưa, người
+  chơi cách ô ruộng gần nhất (`nearest_field`, các ô của `Farming._outer`) quá `field_reach` 15 m ("ra bờ ruộng gặp bác").
+- **Luống:** hai luống cạnh nhau (người chơi + bác chủ ruộng) `cols` 6 × `rows` 20 khóm cách `spacing` 0,42 m, chạy dọc chiều dài
+  ô ruộng, nằm gọn trong ruộng gần chỗ người chơi đứng; đi kiểu con rắn (`cell_pos`). Các khóm là MỘT MultiMesh hình nón nhỏ
+  (`_set_cell`): cấy — khóm mạ hiện ra; làm cỏ — bụi cỏ sẫm biến mất; gặt — khóm lúa vàng cao thành gốc rạ. **Cấy thì đi giật lùi**
+  (mặt quay về phần đã cấy), làm cỏ / gặt thì tiến tới. Hình nhân `GameKit.make_avatar` + bác chủ ruộng (meta `talking` +
+  `farm_work`, cất cuốc) cúi theo dáng `plant` / `reap` — FarmWork ghi đè dáng sau khi Villagers diễn hoạt. Camera `FarmCam` sau lưng.
+- **Nhịp tay:** chấm trắng chạy trên thước (pha `_phi` 0…1), Space / chuột trái (`fish_reel`) lúc chấm ở vùng vàng (lệch ≤
+  `beat_window` 0,09 s) → xong một khóm, chuỗi "đều tay" +1; chu kỳ nhịp `beat_period` 0,85 s → 0,5 s khi chuỗi đạt `streak_full`
+  24 (đều tay thì làm nhanh dần); lệch / bấm hai lần một nhịp → mất chuỗi, khựng `stumble` 0,35 s. Một buổi `work_seconds` 60 s
+  (mưa to thì nghỉ sớm). Bác chủ ruộng làm đều `npc_period` 0,8 s / khóm (75 khóm một buổi) để so.
+- **Tiền công** (`_finish`): cấy / làm cỏ `cells_per_thousand` 12 khóm một nghìn; gặt 20 khóm một nghìn + 45 khóm một cân gạo tám
+  (`Inventory.earn` / `add("gao_tam")`); dưới `min_cells` 10 khóm thì không có công. Esc giữa buổi vẫn được trả phần đã làm.
+  Hết buổi: E làm buổi nữa, Esc nghỉ (về chỗ đứng cũ). Tín hiệu `finished(kind, cells, pay)` → kỷ lục `farm_sessions`,
+  `farm_best`, `farm_pay` (sổ tay trang Kỷ lục: "Làm thuê ngoài đồng"). Trợ giúp F1 trang Dân làng có dòng hướng dẫn.
+- `tools/farm_work_test.gd` (chạy với `timeout 110`): việc theo 8 ngày trong vụ; từ chối (trẻ con, giữa làng, tối, giông, lúa trổ);
+  xin cấy qua hội thoại → xuống ruộng; bot lệch tay ±0,03 s: 112 khóm, công 9 nghìn (bác chủ 75); ±0,11 s: ~66 khóm, 6 nghìn; ±0,2 s:
+  ~31 khóm, 3 nghìn; không bấm: 0; mùa gặt 112 khóm = 6 nghìn + 2 cân gạo; Esc dọn sạch; kỷ lục.
+  Chụp ảnh: `--hour=9 --weather=clear --crop-day=8|40|83 --fp --focus=-70,10 --farm=plant|weed|reap[,số khóm]`.

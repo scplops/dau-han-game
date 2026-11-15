@@ -434,6 +434,26 @@ func _run() -> void:
 		if rig != null and fgs.pg.is_empty():
 			rig.set_focus(fgs.sites[fk] as Vector3)
 			rig.global_position = fgs.sites[fk] as Vector3
+	# Làm thuê: --farm=plant|weed|reap[,số khóm] (cùng --fp --focus=x,z ngoài đồng)
+	var fwk := scene.get_node_or_null("FarmWork") as FarmWork
+	if fwk != null and args.has("farm") and fp != null:
+		var fparts := String(args["farm"]).split(",")
+		var boss: Villager = null
+		for v in (scene.get_node("World/Villagers") as Villagers).people:
+			if v.role == "farmer" and (boss == null or v.global_position.distance_to(fp.global_position) < boss.global_position.distance_to(fp.global_position)):
+				boss = v
+		boss.visible = true
+		fwk.start(boss, fparts[0])
+		fwk.step(3.0)
+		var want := int(fparts[1]) if fparts.size() > 1 else 14
+		for i in 4000:
+			if fwk.done_cells >= want:
+				break
+			fwk.step(1.0 / 60.0)
+			if absf(fwk._phi - 0.5) < 0.04:
+				fwk.press()
+		for i in 10:
+			await process_frame
 	# Kéo co: --tug[=giây] 8 người kéo ở bãi (camera nhìn vào bãi); cùng --fp: bạn vào kéo cùng
 	var tgs := scene.get_node_or_null("TugOfWar") as TugOfWar
 	if tgs != null and args.has("tug"):

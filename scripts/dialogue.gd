@@ -23,6 +23,7 @@ signal finished
 @export var hide_seek: HideSeek
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
+@export var farm_work: FarmWork
 @export var folk_games: FolkGames
 @export var river_swim: RiverSwim
 @export var tip_cat: TipCat
@@ -334,6 +335,9 @@ func _build_options() -> Array[Dictionary]:
 		out.append_array(festival.dialog_options(v, self))
 	# Chợ phiên (mục 40): xem hàng / bán lại đồ, bán cá cho người bán; túi đồ (mục 48): biếu quà cho ai cũng được
 	var extra: Array[Dictionary] = []
+	# Làm thuê mùa vụ (mục 54): hỏi bác nông dân khi đồng đang có việc
+	if farm_work != null:
+		extra.append_array(farm_work.dialog_options(v, self))
 	if market != null:
 		extra.append_array(market.dialog_options(v, self))
 	if inventory != null:

@@ -49,6 +49,7 @@
 [ext_resource type="Script" path="res://scripts/inventory.gd" id="47_inv"]
 [ext_resource type="Script" path="res://scripts/river_swim.gd" id="48_swim"]
 [ext_resource type="Script" path="res://scripts/help_guide.gd" id="49_help"]
+[ext_resource type="Script" path="res://scripts/farm_work.gd" id="50_farmwork"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_main"]
 sun_angle_max = 20.0
@@ -290,8 +291,9 @@ outdoor_rig = NodePath("../CameraRig")
 dialogue = NodePath("../Dialogue")
 hud = NodePath("../HUD")
 
-[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan", "hide_seek", "kite", "jump_rope", "tip_cat", "farming", "market", "festival", "tug_war", "folk_games", "inventory", "river_swim")]
+[node name="Dialogue" type="Node" parent="." node_paths=PackedStringArray("villagers", "day_night", "weather", "football", "fishing", "quests", "calendar", "school_day", "o_an_quan", "hide_seek", "kite", "jump_rope", "tip_cat", "farming", "market", "festival", "tug_war", "folk_games", "inventory", "river_swim", "farm_work")]
 script = ExtResource("24_dialogue")
+farm_work = NodePath("../FarmWork")
 river_swim = NodePath("../RiverSwim")
 inventory = NodePath("../Inventory")
 folk_games = NodePath("../FolkGames")
@@ -418,8 +420,9 @@ day_night = NodePath("../DayNight")
 weather = NodePath("../Weather")
 village = NodePath("../World/Village")
 
-[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics", "inventory", "help_guide")]
+[node name="SaveGame" type="Node" parent="." node_paths=PackedStringArray("calendar", "day_night", "weather", "outdoor_rig", "fishing", "quests", "dialogue", "villagers", "football", "jump_rope", "tip_cat", "boat_race", "kite", "o_an_quan", "hide_seek", "market", "festival", "tug_war", "folk_games", "graphics", "inventory", "help_guide", "farm_work")]
 script = ExtResource("38_save")
+farm_work = NodePath("../FarmWork")
 help_guide = NodePath("../HelpGuide")
 inventory = NodePath("../Inventory")
 graphics = NodePath("../Graphics")
@@ -563,3 +566,14 @@ inventory = NodePath("../Inventory")
 notebook = NodePath("../Notebook")
 minimap = NodePath("../HUD/MiniMap")
 hud = NodePath("../HUD")
+
+[node name="FarmWork" type="Node3D" parent="." node_paths=PackedStringArray("farming", "first_person", "dialogue", "hud", "day_night", "weather", "villagers", "inventory")]
+script = ExtResource("50_farmwork")
+farming = NodePath("../Farming")
+first_person = NodePath("../FirstPerson")
+dialogue = NodePath("../Dialogue")
+hud = NodePath("../HUD")
+day_night = NodePath("../DayNight")
+weather = NodePath("../Weather")
+villagers = NodePath("../World/Villagers")
+inventory = NodePath("../Inventory")

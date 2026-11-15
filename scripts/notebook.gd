@@ -143,6 +143,8 @@ func _records_text() -> String:
 	t += _row("Nhảy dây", ("nhảy liền %d lần  ·  %d lượt" % [int(r.rope_best), int(r.rope_games)]) if int(r.rope_games) > 0 else "chưa chơi")
 	t += _row("Đánh khăng", ("lượt cao nhất %d khăng  ·  %d lượt" % [int(r.khang_best), int(r.khang_turns)]) if int(r.khang_turns) > 0 else "chưa chơi")
 	t += _row("Kéo co", ("thắng %d / %d cuộc" % [int(r.get("tug_wins", 0)), int(r.get("tug_games", 0))]) if int(r.get("tug_games", 0)) > 0 else "chưa chơi")
+	if int(r.get("farm_sessions", 0)) > 0:
+		t += _row("Làm thuê ngoài đồng", "%d buổi  ·  buổi nhiều nhất %d khóm  ·  công %d nghìn" % [int(r.farm_sessions), int(r.get("farm_best", 0)), int(r.get("farm_pay", 0))])
 	if int(r.get("folk_games", 0)) > 0:
 		t += _row("Đá cầu", "nhiều nhất %d chạm liên tiếp" % int(r.get("cau_best", 0)))
 		t += _row("Bắn bi", "ăn nhiều nhất %d viên một ván" % int(r.get("bi_best", 0)))

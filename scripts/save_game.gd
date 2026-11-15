@@ -24,6 +24,7 @@ signal loaded(path: String)
 @export var football: Football
 @export var jump_rope: JumpRope
 @export var tug_war: TugOfWar
+@export var farm_work: FarmWork
 @export var folk_games: FolkGames
 @export var tip_cat: TipCat
 @export var boat_race: BoatRace
@@ -48,6 +49,7 @@ var records: Dictionary = {
 	"hs_games": 0, "hs_found": 0, "hs_all_found": 0,
 	"goals": 0,
 	"tug_wins": 0, "tug_games": 0,
+	"farm_sessions": 0, "farm_best": 0, "farm_pay": 0,
 	"cau_best": 0, "bi_best": 0, "chuyen_best": 0, "goat_best": 0, "dragon_best": 0, "folk_games": 0,
 	"play_seconds": 0.0,
 }
@@ -84,6 +86,11 @@ func _connect_games() -> void:
 			records.tug_games = int(records.tug_games) + 1
 			if won:
 				records.tug_wins = int(records.tug_wins) + 1)
+	if farm_work != null:
+		farm_work.finished.connect(func(_kind: String, cells: int, pay: int) -> void:
+			records.farm_sessions = int(records.get("farm_sessions", 0)) + 1
+			records.farm_best = maxi(int(records.get("farm_best", 0)), cells)
+			records.farm_pay = int(records.get("farm_pay", 0)) + pay)
 	if tip_cat != null:
 		tip_cat.turn_done.connect(func(who: String, points: int, out: bool) -> void:
 			if who == "Bạn":
